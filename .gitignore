@@ -1,0 +1,42 @@
+## Godot-specific ignores
+.godot/
+*.import
+export.cfg
+export_presets.cfg
+
+# Build artifacts
+bin/
+*.pck
+*.exe
+*.dll
+*.so
+*.dylib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env
+*.env
+
+# Temporary files
+tmp/
+temp/
+
+# Backup files
+*.bak
+*.old
+
+# Local editor settings
+editor_settings.cfg

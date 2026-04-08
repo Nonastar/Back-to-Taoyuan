@@ -1,0 +1,80 @@
+[gd_scene format=3 uid="uid://g160ja0thg31"]
+
+[node name="Main" type="Node2D" unique_id=2083334665]
+
+[node name="Background" type="ColorRect" parent="." unique_id=80561397]
+z_index = -10
+offset_left = -640.0
+offset_top = -360.0
+offset_right = 640.0
+offset_bottom = 360.0
+color = Color(0.35, 0.65, 0.35, 1)
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=747985671]
+
+[node name="TimePanel" type="PanelContainer" parent="UILayer" unique_id=2008108821]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 120.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UILayer/TimePanel" unique_id=743833495]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/TimePanel/MarginContainer" unique_id=2022689131]
+layout_mode = 2
+
+[node name="TimeLabel" type="Label" parent="UILayer/TimePanel/MarginContainer/VBox" unique_id=970314037]
+layout_mode = 2
+text = "00:00"
+horizontal_alignment = 1
+
+[node name="DateLabel" type="Label" parent="UILayer/TimePanel/MarginContainer/VBox" unique_id=469223964]
+layout_mode = 2
+text = "第1年 春第1天"
+horizontal_alignment = 1
+
+[node name="StateLabel" type="Label" parent="UILayer/TimePanel/MarginContainer/VBox" unique_id=1132533553]
+layout_mode = 2
+text = "状态: 时间暂停"
+horizontal_alignment = 1
+
+[node name="InstructionsPanel" type="PanelContainer" parent="UILayer" unique_id=1608647198]
+offset_left = 10.0
+offset_top = 130.0
+offset_right = 320.0
+offset_bottom = 280.0
+
+[node name="MarginContainer" type="MarginContainer" parent="UILayer/InstructionsPanel" unique_id=1017785254]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/InstructionsPanel/MarginContainer" unique_id=1912271957]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=1975687904]
+layout_mode = 2
+text = "操作说明"
+horizontal_alignment = 1
+
+[node name="Controls" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=608679828]
+layout_mode = 2
+text = "WASD/方向键 - 移动
+E - 交互
+Tab - 背包
+空格 - 开始/暂停时间
+R - 重置时间"
+
+[node name="SleepButton" type="Button" parent="UILayer" unique_id=1914066360]
+offset_left = 10.0
+offset_top = 290.0
+offset_right = 150.0
+offset_bottom = 330.0
+text = "睡觉 (Sleep)"

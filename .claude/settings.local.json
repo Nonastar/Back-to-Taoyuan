@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(cp:*)",
+      "WebFetch",
+      "Bash(dir:*)",
+      "Bash(for:*)",
+      "Skill(architecture-decision)",
+      "Skill(architecture-decision:*)",
+      "Skill(prototype)",
+      "Skill(prototype:*)",
+      "Skill(sprint-plan)",
+      "Skill(sprint-plan:*)"
+    ]
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true
+  },
+  "apiBaseUrl": "https://code.newcli.com/claude/aws/v1",
+  "apiKey": "sk-ant-oat01-4QeMBOe-wsk17pooJylM5c4_ZE39aFjKEKqw5Qko25FxddrRXepM9oSs9kckuQIwL9nJm1xcTpColJeMhtkkFPXmc1fVhAA"
+}
