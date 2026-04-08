@@ -82,8 +82,19 @@ var time_state: TimeState = TimeState.TIME_PAUSED:
 ## 时间流速
 var time_scale: float = 1.0
 
+## 睡眠恢复率 (当前)
+var recovery_rate: float = 0.90
+
 ## 是否午夜警告已显示
 var midnight_warned: bool = false
+
+# ============ 可配置变量 ============
+
+var hour_duration_ms: float = HOUR_DURATION_MS
+var days_per_season: int = DAYS_PER_SEASON
+var day_start_hour: int = DAY_START_HOUR
+var day_end_hour: int = DAY_END_HOUR
+var midnight_warning_hour: int = MIDNIGHT_HOUR
 
 # ============ 内部状态 ============
 
@@ -334,3 +345,23 @@ func advance_minutes(minutes: int) -> void:
 ## 推进指定小时数
 func advance_hours(hours: int) -> void:
 	advance_minutes(hours * 60)
+
+# ============ 配置应用 ============
+
+## 应用时间配置
+func apply_config(config: TimeConfig) -> void:
+	if config == null:
+		push_error("[TimeManager] Cannot apply null config")
+		return
+
+	hour_duration_ms = config.hour_duration_ms
+	days_per_season = config.days_per_season
+	day_start_hour = config.day_start_hour
+	day_end_hour = config.day_end_hour
+	midnight_warning_hour = config.midnight_warning_hour
+
+	recovery_rate = config.early_bed_recovery_rate
+	time_scale = config.default_time_scale
+
+	push_warning("[TimeManager] Config applied: hour_duration=%sms, days_per_season=%d" % [
+		hour_duration_ms, days_per_season])

@@ -18,12 +18,14 @@ config/icon="res://assets/art/icon.svg"
 
 [autoload]
 
+ConfigManager="*res://src/scripts/autoload/config_manager.gd"
 GameManager="*res://src/scripts/autoload/game_manager.gd"
 TimeManager="*res://src/scripts/autoload/time_manager.gd"
 EventBus="*res://src/scripts/autoload/event_bus.gd"
 SaveManager="*res://src/scripts/autoload/save_manager.gd"
 AudioManager="*res://src/scripts/autoload/audio_manager.gd"
 InventorySystem="*res://src/scripts/autoload/inventory_system.gd"
+ItemDataSystem="*res://src/scripts/autoload/item_data_system.gd"
 
 [display]
 

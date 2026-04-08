@@ -115,8 +115,8 @@ Sprint 1 优先级排序:
 | Day 1 | T01完成 | [x] 2026-04-08 |
 | Day 2-3 | T02完成 | [x] 2026-04-08 |
 | Day 4-6 | T03完成 | [x] 2026-04-08 |
-| Day 7-9 | T04完成 | [ ] |
-| Day 10-12 | T05完成 | [ ] |
+| Day 7-9 | T04完成 | [x] 2026-04-08 |
+| Day 10-12 | T05完成 | [x] 2026-04-08 |
 | Day 13-14 | 缓冲/测试 | [ ] |
 
 ## 已完成工作
@@ -143,4 +143,22 @@ Sprint 1 优先级排序:
 - [x] 时间推进 (700ms/游戏小时)
 - [x] 睡眠系统 (24时就寝90%恢复, 25时60%, 强制50%)
 - [x] 日结算和季节切换
-- [x] 信号派发 (hour_changed, day_changed, season_changed, year_changed, sleep_triggered) |
+- [x] 信号派发 (hour_changed, day_changed, season_changed, year_changed, sleep_triggered)
+
+### T04 F04存档系统 ✅
+- [x] 存档槽系统 (3个存档槽)
+- [x] JSON序列化/反序列化
+- [x] 配置数据分离 (时间、背包、玩家属性)
+- [x] 存档完整性验证
+- [x] AutoSave自动保存
+
+### T05 F03物品数据系统 ✅
+- [x] ItemDef Resource基类定义
+- [x] Quality品质系统 (普通/优秀/精良/史诗)
+- [x] ItemCategory物品分类 (17种分类)
+- [x] ItemDataSystem加载管理
+- [x] 11个默认物品定义
+- [x] 品质修正售价计算
+- [x] 物品验证机制
+- [x] 查询API (按分类/标签/全部)
+- [x] 备用默认物品生成 (当数据目录为空时) |

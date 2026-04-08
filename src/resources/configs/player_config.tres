@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="PlayerConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/resources/configs/player_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+config_version = 1
+max_health = 100.0
+max_stamina = 156.0
+initial_money = 500
+stamina_cost_till = 2.5
+stamina_cost_plant = 1.0
+stamina_cost_water = 1.5
+stamina_cost_harvest = 1.0
+stamina_cost_move_per_tile = 0.1
+default_backpack_size = 30
+max_stack_size = 9999
+initial_warehouse_size = 100

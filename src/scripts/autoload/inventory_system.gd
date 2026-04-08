@@ -32,6 +32,9 @@ var backpack: Array[ItemSlot] = []
 ## 背包容量
 var backpack_size: int = DEFAULT_BACKPACK_SIZE
 
+## 最大堆叠数量 (可配置)
+var max_stack_size: int = 9999
+
 ## 仓库扩展 (解锁后可用)
 var has_warehouse: bool = false
 var warehouse_size: int = 100
@@ -357,3 +360,20 @@ func _count_in_slots(slots: Array, item_id: String) -> int:
 		if slot.item_id == item_id:
 			count += slot.quantity
 	return count
+
+# ============ 配置应用 ============
+
+## 应用玩家配置
+func apply_config(config: PlayerConfig) -> void:
+	if config == null:
+		push_error("[InventorySystem] Cannot apply null config")
+		return
+
+	backpack_size = config.default_backpack_size
+	max_stack_size = config.max_stack_size
+
+	# 如果背包容量增加，扩展背包
+	while backpack.size() < backpack_size:
+		backpack.append(ItemSlot.new())
+
+	push_warning("[InventorySystem] Config applied: backpack_size=%d" % backpack_size)
