@@ -428,7 +428,7 @@ func clear_tomorrow_weather_override() -> void:
 	_roll_tomorrow_weather()
 
 ## 是否有玩家覆盖
-func has_player_override() -> bool:
+func has_player_weather_override() -> bool:
 	return has_player_override
 
 # ============ 唤雨能力 ============
