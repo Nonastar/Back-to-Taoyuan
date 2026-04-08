@@ -4,18 +4,15 @@ extends Node
 ## 负责天气生成、天气预报和天气影响
 ## 参考: F02 天气系统 GDD
 
-# ============ 天气枚举 ============
+# ============ 天气类型常量 ============
 
 ## 天气类型
-class_name WeatherType
-extends RefCounted
-
-const SUNNY: String = "sunny"
-const RAINY: String = "rainy"
-const STORMY: String = "stormy"
-const SNOWY: String = "snowy"
-const WINDY: String = "windy"
-const GREEN_RAIN: String = "green_rain"
+const WEATHER_SUNNY: String = "sunny"
+const WEATHER_RAINY: String = "rainy"
+const WEATHER_STORMY: String = "stormy"
+const WEATHER_SNOWY: String = "snowy"
+const WEATHER_WINDY: String = "windy"
+const WEATHER_GREEN_RAIN: String = "green_rain"
 
 # ============ 常量 ============
 
@@ -64,46 +61,46 @@ const FESTIVAL_DAYS: Dictionary = {
 # ============ 春季天气概率 ============
 
 const SPRING_WEATHER_TABLE: Array = [
-	{"weather": WeatherType.SUNNY, "threshold": 0.50},
-	{"weather": WeatherType.RAINY, "threshold": 0.75},
-	{"weather": WeatherType.STORMY, "threshold": 0.85},
-	{"weather": WeatherType.WINDY, "threshold": 1.00}
+	{"weather": WEATHER_SUNNY, "threshold": 0.50},
+	{"weather": WEATHER_RAINY, "threshold": 0.75},
+	{"weather": WEATHER_STORMY, "threshold": 0.85},
+	{"weather": WEATHER_WINDY, "threshold": 1.00}
 ]
 
 # ============ 夏季天气概率 ============
 
 const SUMMER_WEATHER_TABLE: Array = [
-	{"weather": WeatherType.GREEN_RAIN, "threshold": 0.08},
-	{"weather": WeatherType.SUNNY, "threshold": 0.42},
-	{"weather": WeatherType.RAINY, "threshold": 0.68},
-	{"weather": WeatherType.STORMY, "threshold": 0.83},
-	{"weather": WeatherType.WINDY, "threshold": 1.00}
+	{"weather": WEATHER_GREEN_RAIN, "threshold": 0.08},
+	{"weather": WEATHER_SUNNY, "threshold": 0.42},
+	{"weather": WEATHER_RAINY, "threshold": 0.68},
+	{"weather": WEATHER_STORMY, "threshold": 0.83},
+	{"weather": WEATHER_WINDY, "threshold": 1.00}
 ]
 
 # ============ 秋季天气概率 ============
 
 const AUTUMN_WEATHER_TABLE: Array = [
-	{"weather": WeatherType.SUNNY, "threshold": 0.45},
-	{"weather": WeatherType.RAINY, "threshold": 0.70},
-	{"weather": WeatherType.STORMY, "threshold": 0.80},
-	{"weather": WeatherType.WINDY, "threshold": 1.00}
+	{"weather": WEATHER_SUNNY, "threshold": 0.45},
+	{"weather": WEATHER_RAINY, "threshold": 0.70},
+	{"weather": WEATHER_STORMY, "threshold": 0.80},
+	{"weather": WEATHER_WINDY, "threshold": 1.00}
 ]
 
 # ============ 冬季天气概率 ============
 
 const WINTER_WEATHER_TABLE: Array = [
-	{"weather": WeatherType.SUNNY, "threshold": 0.50},
-	{"weather": WeatherType.SNOWY, "threshold": 0.80},
-	{"weather": WeatherType.WINDY, "threshold": 1.00}
+	{"weather": WEATHER_SUNNY, "threshold": 0.50},
+	{"weather": WEATHER_SNOWY, "threshold": 0.80},
+	{"weather": WEATHER_WINDY, "threshold": 1.00}
 ]
 
 # ============ 天气数据 ============
 
 ## 当前日天气
-var today_weather: String = WeatherType.SUNNY
+var today_weather: String = WEATHER_SUNNY
 
 ## 明日天气预报
-var tomorrow_weather: String = WeatherType.SUNNY
+var tomorrow_weather: String = WEATHER_SUNNY
 
 ## 玩家天气覆盖
 var has_player_override: bool = false
@@ -146,8 +143,8 @@ func _initialize() -> void:
 		return
 
 	# 初始化为晴天
-	today_weather = WeatherType.SUNNY
-	tomorrow_weather = WeatherType.SUNNY
+	today_weather = WEATHER_SUNNY
+	tomorrow_weather = WEATHER_SUNNY
 
 	_initialized = true
 
@@ -204,7 +201,7 @@ func _check_green_rain() -> void:
 
 	# Year 1 Summer Day 5 触发绿雨
 	if year == GREEN_RAIN_YEAR and season_idx == GREEN_RAIN_SEASON and day == GREEN_RAIN_DAY:
-		today_weather = WeatherType.GREEN_RAIN
+		today_weather = WEATHER_GREEN_RAIN
 		is_green_rain_active = true
 		if _debug_mode:
 			print("[WeatherSystem] Green rain triggered: Year %d, Summer Day %d" % [year, day])
@@ -237,7 +234,7 @@ func _roll_tomorrow_weather() -> void:
 
 	# 检查明日是否为节日
 	if _is_festival_day(tomorrow_day, tomorrow_season_idx):
-		tomorrow_weather = WeatherType.SUNNY
+		tomorrow_weather = WEATHER_SUNNY
 		forecast_updated.emit(tomorrow_weather)
 		return
 
@@ -269,7 +266,7 @@ func _roll_weather_by_season(season_idx: int) -> String:
 		if roll < entry["threshold"]:
 			return entry["weather"]
 
-	return WeatherType.SUNNY
+	return WEATHER_SUNNY
 
 ## 获取季节天气表
 func _get_weather_table(season_idx: int) -> Array:
@@ -302,40 +299,40 @@ func get_tomorrow_weather() -> String:
 
 ## 是否为雨天 (rainy/stormy/green_rain/snowy)
 func is_rainy() -> bool:
-	return today_weather in [WeatherType.RAINY, WeatherType.STORMY, WeatherType.GREEN_RAIN, WeatherType.SNOWY]
+	return today_weather in [WEATHER_RAINY, WEATHER_STORMY, WEATHER_GREEN_RAIN, WEATHER_SNOWY]
 
 ## 是否为雷雨天
 func is_stormy() -> bool:
-	return today_weather == WeatherType.STORMY
+	return today_weather == WEATHER_STORMY
 
 ## 是否为绿雨
 func is_green_rain() -> bool:
-	return today_weather == WeatherType.GREEN_RAIN
+	return today_weather == WEATHER_GREEN_RAIN
 
 ## 是否为雪天
 func is_snowy() -> bool:
-	return today_weather == WeatherType.SNOWY
+	return today_weather == WEATHER_SNOWY
 
 ## 是否为大风天
 func is_windy() -> bool:
-	return today_weather == WeatherType.WINDY
+	return today_weather == WEATHER_WINDY
 
 ## 是否为晴天
 func is_sunny() -> bool:
-	return today_weather == WeatherType.SUNNY
+	return today_weather == WEATHER_SUNNY
 
 # ============ 修正值API ============
 
 ## 获取体力消耗修正系数
 func get_stamina_modifier() -> float:
 	match today_weather:
-		WeatherType.RAINY:
+		WEATHER_RAINY:
 			return RAINY_STAMINA_MOD
-		WeatherType.STORMY:
+		WEATHER_STORMY:
 			return STORMY_STAMINA_MOD
-		WeatherType.SNOWY:
+		WEATHER_SNOWY:
 			return SNOWY_STAMINA_MOD
-		WeatherType.GREEN_RAIN:
+		WEATHER_GREEN_RAIN:
 			return GREEN_RAIN_STAMINA_MOD
 		_:
 			return 1.0
@@ -343,9 +340,9 @@ func get_stamina_modifier() -> float:
 ## 获取采矿收益修正
 func get_mining_yield_modifier() -> float:
 	match today_weather:
-		WeatherType.RAINY:
+		WEATHER_RAINY:
 			return RAINY_ACTIVITY_MOD
-		WeatherType.STORMY:
+		WEATHER_STORMY:
 			return STORMY_ACTIVITY_MOD
 		_:
 			return 1.0
@@ -353,33 +350,33 @@ func get_mining_yield_modifier() -> float:
 ## 获取钓鱼收益修正
 func get_fishing_yield_modifier() -> float:
 	match today_weather:
-		WeatherType.RAINY:
+		WEATHER_RAINY:
 			return RAINY_ACTIVITY_MOD
-		WeatherType.STORMY:
+		WEATHER_STORMY:
 			return STORMY_ACTIVITY_MOD
-		WeatherType.GREEN_RAIN:
+		WEATHER_GREEN_RAIN:
 			return GREEN_RAIN_FISHING_MOD
 		_:
 			return 1.0
 
 ## 获取农作物产量修正
 func get_crop_yield_modifier() -> float:
-	if today_weather == WeatherType.GREEN_RAIN:
+	if today_weather == WEATHER_GREEN_RAIN:
 		return GREEN_RAIN_CROP_MOD
 	return 1.0
 
 ## 获取移动体力修正
 func get_travel_stamina_modifier() -> float:
-	if today_weather == WeatherType.SNOWY:
+	if today_weather == WEATHER_SNOWY:
 		return SNOWY_STAMINA_MOD  # 雪天移动-30%体力
 	return get_stamina_modifier()
 
 ## 获取NPC心情天气修正
 func get_npc_mood_modifier() -> float:
 	match today_weather:
-		WeatherType.SUNNY:
+		WEATHER_SUNNY:
 			return 1.1  # 晴 +10%好感
-		WeatherType.STORMY:
+		WEATHER_STORMY:
 			return 0.9  # 暴风雨 -10%好感
 		_:
 			return 1.0
@@ -450,11 +447,11 @@ func is_rain_boost_active() -> bool:
 
 ## 是否自动浇水
 func is_auto_watering_day() -> bool:
-	return today_weather in [WeatherType.RAINY, WeatherType.STORMY, WeatherType.GREEN_RAIN, WeatherType.SNOWY]
+	return today_weather in [WEATHER_RAINY, WEATHER_STORMY, WEATHER_GREEN_RAIN, WEATHER_SNOWY]
 
 ## 大风是否吹走浇水状态
 func does_windy_blow_away_watering() -> bool:
-	return today_weather == WeatherType.WINDY
+	return today_weather == WEATHER_WINDY
 
 ## 大风吹走浇水概率
 func get_windy_water_loss_chance() -> float:
@@ -467,17 +464,17 @@ func get_windy_water_loss_chance() -> float:
 ## 获取天气中文名称
 func get_weather_name(weather: String) -> String:
 	match weather:
-		WeatherType.SUNNY:
+		WEATHER_SUNNY:
 			return "晴天"
-		WeatherType.RAINY:
+		WEATHER_RAINY:
 			return "雨天"
-		WeatherType.STORMY:
+		WEATHER_STORMY:
 			return "暴风雨"
-		WeatherType.SNOWY:
+		WEATHER_SNOWY:
 			return "雪天"
-		WeatherType.WINDY:
+		WEATHER_WINDY:
 			return "大风"
-		WeatherType.GREEN_RAIN:
+		WEATHER_GREEN_RAIN:
 			return "绿雨"
 		_:
 			return "未知"
@@ -507,8 +504,8 @@ func load_save_data(data: Dictionary) -> void:
 	if data.is_empty():
 		return
 
-	today_weather = data.get("today_weather", WeatherType.SUNNY)
-	tomorrow_weather = data.get("tomorrow_weather", WeatherType.SUNNY)
+	today_weather = data.get("today_weather", WEATHER_SUNNY)
+	tomorrow_weather = data.get("tomorrow_weather", WEATHER_SUNNY)
 	has_player_override = data.get("has_player_override", false)
 	player_override_weather = data.get("player_override_weather", "")
 	is_green_rain_active = data.get("is_green_rain_active", false)
@@ -527,7 +524,7 @@ func debug_set_weather(weather: String) -> void:
 	var old_weather = today_weather
 	today_weather = weather
 
-	if weather == WeatherType.GREEN_RAIN:
+	if weather == WEATHER_GREEN_RAIN:
 		is_green_rain_active = true
 
 	weather_changed.emit(today_weather, old_weather)

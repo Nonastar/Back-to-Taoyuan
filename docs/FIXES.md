@@ -294,6 +294,46 @@ func apply_config(config: PlayerConfig) -> void:
 - [ ] 类型使用`int`而非`enum`
 - [ ] 变量先声明后使用
 - [ ] 接口方法已实现
+- [ ] Autoload依赖顺序正确
+
+---
+
+## Autoload加载顺序
+
+Autoload按project.godot中的顺序加载，后加载的可以引用先加载的。
+
+**依赖关系:**
+```
+ConfigManager → GameManager → TimeManager → EventBus → SaveManager
+                                              ↓
+AudioManager → PlayerStats → ItemDataSystem → InventorySystem → WeatherSystem
+```
+
+**注意:** InventorySystem依赖PlayerStats，必须在PlayerStats之后加载！
+
+---
+
+## 嵌套类问题
+
+Godot 4.6不支持在脚本中嵌套定义新类（使用class_name + extends）。
+
+**错误写法:**
+```gdscript
+extends Node
+
+class_name WeatherType  # 嵌套类 - 不支持
+extends RefCounted
+
+const SUNNY: String = "sunny"
+```
+
+**正确写法:** 使用命名常量
+```gdscript
+extends Node
+
+const WEATHER_SUNNY: String = "sunny"
+const WEATHER_RAINY: String = "rainy"
+```
 
 ---
 
