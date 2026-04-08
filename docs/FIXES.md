@@ -337,6 +337,28 @@ const WEATHER_RAINY: String = "rainy"
 
 ---
 
+## 函数名与变量名冲突
+
+Godot不允许函数名与变量名相同。
+
+**错误写法:**
+```gdscript
+var has_player_override: bool = false
+
+func has_player_override() -> bool:  # 冲突!
+    return has_player_override
+```
+
+**正确写法:** 重命名函数或变量
+```gdscript
+var has_player_override: bool = false
+
+func has_player_weather_override() -> bool:  # 不同名
+    return has_player_override
+```
+
+---
+
 ## Godot 4.x 常见API差异
 
 | Godot 3.x | Godot 4.x |
