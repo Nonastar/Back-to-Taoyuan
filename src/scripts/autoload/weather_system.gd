@@ -220,6 +220,7 @@ func _roll_tomorrow_weather() -> void:
 	var season_idx = 0
 	var tomorrow_season_idx = 0
 	var day = 1
+	var tomorrow_day = 1
 
 	if TimeManager != null:
 		season_idx = TimeManager.current_season
@@ -227,7 +228,7 @@ func _roll_tomorrow_weather() -> void:
 		day = TimeManager.current_day
 
 		# 计算明日日期
-		var tomorrow_day = day + 1
+		tomorrow_day = day + 1
 		if tomorrow_day > 28:
 			tomorrow_day = 1
 			tomorrow_season_idx = (season_idx + 1) % 4
