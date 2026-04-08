@@ -1,0 +1,21 @@
+{
+	"tests": {
+		"directory": "res://tests/",
+		"file_pattern": "**/*.test.gd",
+		"include_subdirs": true,
+		"run_on_start": false,
+		"treat_error_as_fail": true,
+		"gut_version": "9.2.0"
+	},
+	"guis": {
+		"show_outputs": true,
+		"font_size": 16,
+		"hide_orphans": false
+	},
+	"opts": {
+		"ignore_pause": false,
+		"continue_on_failure": true,
+		"exit_on_success": false,
+		"log_level": 2
+	}
+}
