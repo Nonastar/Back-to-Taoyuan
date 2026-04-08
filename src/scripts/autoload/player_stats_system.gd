@@ -147,7 +147,7 @@ func _initialize() -> void:
 		return
 
 	# 从配置读取初始值
-	var config = ConfigManager.get_player_config()
+	var config = ConfigManager.get_config("player")
 	if config != null:
 		_apply_config(config)
 
