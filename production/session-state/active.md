@@ -1,45 +1,40 @@
 # Active Session State
 
 ## Current Task
-T05 Item Data System 已完成，代码审查通过，准备提交Git
+T06玩家属性系统已完成，等待Git推送
 
 ## Status
-进行中
+已完成本地提交，等待网络恢复
 
-## Sprint 1 Progress (T01-T05 Must Have)
+## Sprint 1 Progress (T01-T06)
 
-| Task | Status | Completed |
-|------|--------|-----------|
-| T01 Godot项目初始化 | ✅ | 2026-04-08 |
-| T02 Autoload系统框架 | ✅ | 2026-04-08 |
-| T03 F01时间/季节系统 | ✅ | 2026-04-08 |
-| T04 F04存档系统 | ✅ | 2026-04-08 |
-| T05 F03物品数据系统 | ✅ | 2026-04-08 |
+| Task | System | Status | Git |
+|------|--------|--------|-----|
+| T01 | Godot项目初始化 | ✅ | ✅ |
+| T02 | Autoload系统框架 | ✅ | ✅ |
+| T03 | F01时间/季节系统 | ✅ | ✅ |
+| T04 | F04存档系统 | ✅ | ✅ |
+| T05 | F03物品数据系统 | ✅ | ✅ |
+| T06 | C01玩家属性系统 | ✅ | 本地提交 |
 
-## Sprint 1 Files Modified
-- `src/scripts/autoload/item_data_system.gd` - 新建
-- `src/scripts/autoload/inventory_system.gd` - 新建
-- `src/resources/data/item_def.gd` - 新建
-- `src/resources/data/item_category.gd` - 新建
-- `src/resources/data/quality.gd` - 新建
-- `src/resources/configs/player_config.gd/.tres` - 新建
-- `docs/FIXES.md` - 更新
+## T06 Completed Features
+- 体力系统 (5档上限: 120/160/200/250/300)
+- HP系统 (基础100, 战斗等级加成)
+- 金钱系统 (开局500, spend/earn API)
+- 每日结算 (正常/晚睡/昏厥模式)
+- 昏厥惩罚 (50%体力, 扣10%金钱)
 
-## Key Decisions
-- ItemCategory/Quality使用int常量而非enum (避免Godot 4兼容问题)
-- ItemDef继承Resource作为数据定义接口
-- ItemDataSystem作为Autoload管理所有物品数据
+## Files Modified
+- `src/scripts/autoload/player_stats_system.gd` - 新建 (主系统)
+- `src/resources/configs/player_config.gd` - 更新 (配置)
+- `src/resources/configs/player_config.tres` - 更新 (配置)
+- `project.godot` - 注册Autoload
 
-## Code Review Results
-- T05 Item Data System: **APPROVED WITH SUGGESTIONS**
-- 建议：提取工厂方法减少重复代码（可选）
-
-## Next Steps
-1. 提交T01-T05完成的所有更改到GitHub
-2. 继续Should Have任务 (T06-T08)
-3. 或运行Gate Check验证项目状态
+## Pending
+- Git push (网络问题，需稍后重试)
+- T07 库存系统 (依赖T05, T06)
+- T08 音效系统
 
 ## Session Notes
-- 2026-04-08: Sprint 1所有Must Have任务(T01-T05)已完成
-- 代码审查通过，FIXES.md已完善
-- 等待用户确认提交Git
+- 2026-04-08: T06完成
+- GitHub连接失败，2个提交待推送
