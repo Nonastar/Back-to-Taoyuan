@@ -183,15 +183,21 @@ func get_stats() -> Dictionary:
 
 ## 处理一天结束
 func _process_day() -> void:
-	var is_rainy = false
-	if WeatherSystem and WeatherSystem.has_method("is_rainy_today"):
-		is_rainy = WeatherSystem.is_rainy_today()
+	# 检查是否为雨天（自动浇水日）
+	var is_auto_water_day = false
+	if WeatherSystem:
+		is_auto_water_day = WeatherSystem.is_auto_watering_day()
 
 	for plot in plots:
-		plot.process_day(is_rainy)
+		plot.process_day(is_auto_water_day)
 
-	print("[FarmManager] Day processed: ", get_stats())
+	# 发送日结算信号
 	day_processed.emit()
+
+	if is_auto_water_day:
+		print("[FarmManager] Rainy day - crops auto-watered: ", get_stats())
+	else:
+		print("[FarmManager] Day processed: ", get_stats())
 
 # ============ 存档/加载 ============
 

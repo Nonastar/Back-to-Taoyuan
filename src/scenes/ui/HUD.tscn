@@ -1,6 +1,302 @@
 [gd_scene format=3 uid="uid://dhud20240501"]
 
-[ext_resource type="Script" path="res://src/scripts/ui/hud.gd" id="1_hud001"]
+[ext_resource type="Script" uid="uid://dn6drji7u8kfw" path="res://src/scripts/ui/hud.gd" id="1_hud"]
 
-[node name="HUD" type="CanvasLayer"]
-script = ExtResource("1_hud001")
+[node name="HUD" type="CanvasLayer" unique_id=1736212149]
+script = ExtResource("1_hud")
+
+[node name="TopBarBG" type="ColorRect" parent="." unique_id=1321391734]
+offset_right = 1280.0
+offset_bottom = 64.0
+color = Color(0, 0, 0, 0.5)
+
+[node name="HotbarBG" type="ColorRect" parent="." unique_id=774921748]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -64.0
+grow_vertical = 0
+color = Color(1, 1, 1, 0.27058825)
+
+[node name="TopBar" type="HBoxContainer" parent="." unique_id=1472339194]
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 5.0
+offset_bottom = 45.0
+alignment = 1
+
+[node name="TimeContainer" type="HBoxContainer" parent="TopBar" unique_id=586770203]
+layout_mode = 2
+alignment = 1
+
+[node name="Label" type="Label" parent="TopBar/TimeContainer" unique_id=632886451]
+layout_mode = 2
+text = "时间"
+vertical_alignment = 1
+
+[node name="TimeLabel" type="Label" parent="TopBar/TimeContainer" unique_id=2131274514]
+layout_mode = 2
+text = "06:00"
+vertical_alignment = 1
+
+[node name="Spacer1" type="Control" parent="TopBar" unique_id=1587268306]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="WeatherContainer" type="HBoxContainer" parent="TopBar" unique_id=970705448]
+layout_mode = 2
+alignment = 1
+
+[node name="WeatherLabel" type="Label" parent="TopBar/WeatherContainer" unique_id=1371339010]
+layout_mode = 2
+text = "☀️"
+vertical_alignment = 1
+
+[node name="Spacer2" type="Control" parent="TopBar" unique_id=617828221]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="MoneyContainer" type="HBoxContainer" parent="TopBar" unique_id=87443001]
+layout_mode = 2
+alignment = 1
+
+[node name="MoneyLabel" type="Label" parent="TopBar/MoneyContainer" unique_id=257209482]
+layout_mode = 2
+text = "💰 500"
+vertical_alignment = 1
+
+[node name="Spacer3" type="Control" parent="TopBar" unique_id=1173265512]
+custom_minimum_size = Vector2(30, 0)
+layout_mode = 2
+
+[node name="StaminaContainer" type="VBoxContainer" parent="TopBar" unique_id=513279003]
+layout_mode = 2
+
+[node name="StaminaTitle" type="Label" parent="TopBar/StaminaContainer" unique_id=1424389761]
+layout_mode = 2
+text = "体力"
+horizontal_alignment = 1
+
+[node name="StaminaBar" type="ProgressBar" parent="TopBar/StaminaContainer" unique_id=284737444]
+custom_minimum_size = Vector2(160, 20)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="StaminaLabel" type="Label" parent="TopBar/StaminaContainer/StaminaBar" unique_id=213297156]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "120/120"
+horizontal_alignment = 1
+
+[node name="Spacer4" type="Control" parent="TopBar" unique_id=95150126]
+custom_minimum_size = Vector2(20, 0)
+layout_mode = 2
+
+[node name="HPContainer" type="VBoxContainer" parent="TopBar" unique_id=757372480]
+layout_mode = 2
+alignment = 2
+
+[node name="HPTitle" type="Label" parent="TopBar/HPContainer" unique_id=855681895]
+layout_mode = 2
+text = "HP"
+horizontal_alignment = 1
+
+[node name="HPBar" type="ProgressBar" parent="TopBar/HPContainer" unique_id=1485336489]
+custom_minimum_size = Vector2(160, 20)
+layout_mode = 2
+value = 100.0
+show_percentage = false
+
+[node name="HPLabel" type="Label" parent="TopBar/HPContainer/HPBar" unique_id=1205872640]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "100/100"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="LocationInfo" type="PanelContainer" parent="." unique_id=1118263264]
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 200.0
+offset_bottom = 90.0
+
+[node name="VBox" type="VBoxContainer" parent="LocationInfo" unique_id=465485367]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LocationRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=1466257707]
+layout_mode = 2
+
+[node name="LocationIcon" type="Label" parent="LocationInfo/VBox/LocationRow" unique_id=1792479633]
+layout_mode = 2
+text = "📍"
+
+[node name="LocationLabel" type="Label" parent="LocationInfo/VBox/LocationRow" unique_id=1257677040]
+layout_mode = 2
+text = "农场"
+
+[node name="DateRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=2135381439]
+layout_mode = 2
+
+[node name="DateIcon" type="Label" parent="LocationInfo/VBox/DateRow" unique_id=246892026]
+layout_mode = 2
+text = "📅"
+
+[node name="DateLabel" type="Label" parent="LocationInfo/VBox/DateRow" unique_id=398137702]
+layout_mode = 2
+text = "春第1天"
+
+[node name="SeasonRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=1985642283]
+layout_mode = 2
+
+[node name="SeasonLabel" type="Label" parent="LocationInfo/VBox/SeasonRow" unique_id=1109253294]
+layout_mode = 2
+text = "🌸"
+
+[node name="SkillPanel" type="PanelContainer" parent="." unique_id=1934201338]
+offset_left = 210.0
+offset_top = 650.0
+offset_right = 380.0
+offset_bottom = 720.0
+
+[node name="SkillVBox" type="VBoxContainer" parent="SkillPanel" unique_id=338759009]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SkillTitle" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=473281657]
+layout_mode = 2
+
+[node name="SkillIcon" type="Label" parent="SkillPanel/SkillVBox/SkillTitle" unique_id=880665760]
+layout_mode = 2
+text = "🌾"
+
+[node name="SkillNameLabel" type="Label" parent="SkillPanel/SkillVBox/SkillTitle" unique_id=1571376322]
+layout_mode = 2
+text = "农耕 Lv.0"
+
+[node name="ExpContainer" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=1124993091]
+layout_mode = 2
+
+[node name="ExpLabel" type="Label" parent="SkillPanel/SkillVBox/ExpContainer" unique_id=405150950]
+layout_mode = 2
+text = "经验: "
+
+[node name="ExpValueLabel" type="Label" parent="SkillPanel/SkillVBox/ExpContainer" unique_id=1790193763]
+layout_mode = 2
+text = "0/100"
+
+[node name="FarmingExpBar" type="ProgressBar" parent="SkillPanel/SkillVBox" unique_id=466847416]
+custom_minimum_size = Vector2(150, 10)
+layout_mode = 2
+show_percentage = false
+
+[node name="Hotbar" type="HBoxContainer" parent="." unique_id=908042295]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -66.0
+offset_bottom = -10.0
+grow_vertical = 0
+alignment = 1
+
+[node name="Slot_0" type="PanelContainer" parent="Hotbar" unique_id=1972434161]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_0" unique_id=1478931031]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="Hotbar/Slot_0/SlotContent" unique_id=1854180151]
+layout_mode = 2
+text = "🔨"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="Hotbar/Slot_0/SlotContent" unique_id=1086456219]
+layout_mode = 2
+text = "[1]锄头"
+horizontal_alignment = 1
+
+[node name="Slot_1" type="PanelContainer" parent="Hotbar" unique_id=641805389]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_1" unique_id=507864660]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="Hotbar/Slot_1/SlotContent" unique_id=1681660351]
+layout_mode = 2
+text = "💧"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="Hotbar/Slot_1/SlotContent" unique_id=1152483842]
+layout_mode = 2
+text = "[2]浇水壶"
+horizontal_alignment = 1
+
+[node name="Slot_2" type="PanelContainer" parent="Hotbar" unique_id=977089392]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_2" unique_id=377268590]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="Hotbar/Slot_2/SlotContent" unique_id=799531152]
+layout_mode = 2
+text = "🌰"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="Hotbar/Slot_2/SlotContent" unique_id=1509196935]
+layout_mode = 2
+text = "[3]种子"
+horizontal_alignment = 1
+
+[node name="Slot_3" type="PanelContainer" parent="Hotbar" unique_id=1125662682]
+custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
+
+[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_3" unique_id=2138604994]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="Hotbar/Slot_3/SlotContent" unique_id=210133840]
+layout_mode = 2
+text = "✋"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Name" type="Label" parent="Hotbar/Slot_3/SlotContent" unique_id=1634321212]
+layout_mode = 2
+text = "[4]手"
+horizontal_alignment = 1
+
+[node name="Notification" type="Label" parent="." unique_id=23264448]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -55.0
+offset_right = 200.0
+offset_bottom = -25.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_alignment = 1
+vertical_alignment = 1

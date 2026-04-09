@@ -89,11 +89,18 @@ func _handle_click(screen_pos: Vector2) -> void:
 		# 消耗体力（只有成功交互才消耗）
 		var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
 		if stamina_cost > 0 and PlayerStats:
-			var cost_int = int(stamina_cost)
-			if not PlayerStats.consume_stamina(cost_int):
+			# 应用天气修正
+			var weather_modifier = _get_weather_stamina_modifier()
+			var final_cost = max(1, int(stamina_cost * weather_modifier))
+
+			if not PlayerStats.consume_stamina(final_cost):
 				_show_message("体力不足!")
 				is_using_tool = false
 				return
+
+			# 如果天气有惩罚，显示提示
+			if weather_modifier > 1.0:
+				_show_message("天气炎热，体力消耗增加")
 		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
 		# 点击空白处不消耗体力，只显示提示
@@ -169,6 +176,12 @@ func _get_plots_at(world_pos: Vector2) -> Array:
 				if dist < 30:
 					plots.append(plot)
 	return plots
+
+## 获取天气体力消耗修正
+func _get_weather_stamina_modifier() -> float:
+	if WeatherSystem:
+		return WeatherSystem.get_stamina_modifier()
+	return 1.0
 
 func _find_farm_manager() -> Node:
 	var root = get_tree().root

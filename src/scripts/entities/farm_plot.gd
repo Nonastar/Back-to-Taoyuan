@@ -325,6 +325,10 @@ func process_day(is_rainy: bool = false) -> void:
 	is_watered = false
 	_update_display()
 
+	# 如果是雨天，自动显示提示
+	if is_rainy and (state == PlotState.PLANTED or state == PlotState.GROWING):
+		_send_message("雨天自动浇水！🌧️")
+
 # ============ 显示更新 ============
 
 func _update_display() -> void:
