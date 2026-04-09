@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://navpanel001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/navigation_panel.gd" id="1_nav"]
+
+[node name="NavigationPanel" type="CanvasLayer"]
+script = ExtResource("1_nav")

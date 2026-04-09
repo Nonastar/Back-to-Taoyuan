@@ -59,6 +59,9 @@ var hp_label: Label
 var location_label: Label
 var date_label: Label
 var season_label: Label
+var location_weather_icon: Label
+var location_weather_label: Label
+var region_label: Label
 
 ## 技能信息节点
 var skill_panel: PanelContainer
@@ -115,8 +118,11 @@ func _setup_node_references() -> void:
 
 	# 位置信息节点
 	location_label = $LocationInfo/VBox/LocationRow/LocationLabel
+	region_label = $LocationInfo/VBox/RegionRow/RegionLabel
 	date_label = $LocationInfo/VBox/DateRow/DateLabel
 	season_label = $LocationInfo/VBox/SeasonRow/SeasonLabel
+	location_weather_icon = $LocationInfo/VBox/WeatherRow/WeatherIcon
+	location_weather_label = $LocationInfo/VBox/WeatherRow/WeatherLabel
 
 	# 技能信息节点
 	skill_panel = $SkillPanel
@@ -155,8 +161,6 @@ func _connect_signals() -> void:
 			EventBus.time_changed.connect(_on_time_changed)
 		if EventBus.has_signal("day_changed"):
 			EventBus.day_changed.connect(_on_day_changed)
-		if EventBus.has_signal("weather_changed"):
-			EventBus.weather_changed.connect(_on_weather_changed)
 		if EventBus.has_signal("notification_requested"):
 			EventBus.notification_requested.connect(_on_notification_requested)
 		if EventBus.has_signal("plot_message_received"):
@@ -165,6 +169,16 @@ func _connect_signals() -> void:
 			EventBus.farming_exp_changed.connect(_on_farming_exp_changed)
 		if EventBus.has_signal("skill_level_up"):
 			EventBus.skill_level_up.connect(_on_skill_level_up)
+
+	# WeatherSystem 信号
+	if WeatherSystem and WeatherSystem.has_signal("weather_changed"):
+		WeatherSystem.weather_changed.connect(_on_weather_changed)
+
+	# NavigationSystem 信号
+	if NavigationSystem and NavigationSystem.has_signal("location_changed"):
+		NavigationSystem.location_changed.connect(_on_location_changed)
+	if EventBus and EventBus.has_signal("panel_changed"):
+		EventBus.panel_changed.connect(_on_panel_changed)
 
 	# 初始更新技能显示
 	_update_skill_display()
@@ -206,6 +220,12 @@ func _on_weather_changed(new_weather: String, old_weather: String) -> void:
 	_current_weather = new_weather
 	_update_weather_display()
 
+func _on_location_changed(new_group: int, old_group: int) -> void:
+	_update_location_display()
+
+func _on_panel_changed(panel_key: String) -> void:
+	_update_location_display()
+
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
 
@@ -244,6 +264,7 @@ func _update_from_systems() -> void:
 		_current_weather = WeatherSystem.today_weather
 
 	_update_display()
+	_update_location_display()
 
 func _update_display() -> void:
 	_update_time_display()
@@ -261,6 +282,18 @@ func _update_time_display() -> void:
 func _update_weather_display() -> void:
 	if weather_label:
 		weather_label.text = WEATHER_EMOJIS.get(_current_weather, "☀️")
+
+	# 更新 LocationInfo 天气图标和名称
+	if location_weather_icon:
+		location_weather_icon.text = WEATHER_EMOJIS.get(_current_weather, "☀️")
+
+	if location_weather_label:
+		var weather_name = ""
+		if WeatherSystem and WeatherSystem.has_method("get_weather_name"):
+			weather_name = WeatherSystem.get_weather_name(_current_weather)
+		else:
+			weather_name = WEATHER_EMOJIS.get(_current_weather, "☀️")
+		location_weather_label.text = weather_name
 
 func _update_money_display() -> void:
 	if money_label:
@@ -316,6 +349,29 @@ func _update_date_display() -> void:
 
 	if season_label:
 		season_label.text = SEASON_EMOJIS.get(_current_season, "🌸")
+
+func _update_location_display() -> void:
+	if not NavigationSystem:
+		return
+
+	# 更新位置名称（当前面板）
+	var panel_name = NavigationSystem.get_current_panel_name()
+	var panel_emoji = NavigationSystem.get_current_panel_emoji()
+
+	if location_label:
+		location_label.text = panel_name
+
+	# 更新区域名称（当前区域组）
+	var region_name = NavigationSystem.get_current_group_name()
+	var region_emoji = NavigationSystem.get_current_group_emoji()
+
+	if region_label:
+		region_label.text = "%s区域" % region_name
+
+	# 更新区域图标
+	var region_icon = $LocationInfo/VBox/RegionRow/RegionIcon if region_label else null
+	if region_icon:
+		region_icon.text = region_emoji
 
 func _update_skill_display() -> void:
 	if not skill_panel:

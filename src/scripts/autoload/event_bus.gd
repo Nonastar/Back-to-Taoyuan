@@ -135,8 +135,11 @@ signal load_completed(slot: int, success: bool)
 ## 提示信息显示 (message: String, duration: float)
 signal notification_show(message: String, duration: float)
 
-## 地块消息显示 (message: String)
+## 地点消息显示 (message: String)
 signal plot_message_received(message: String)
+
+## 面板变化 (panel_key: String)
+signal panel_changed(panel_key: String)
 
 ## 成就解锁 (achievement_id: String)
 signal achievement_unlocked(achievement_id: String)

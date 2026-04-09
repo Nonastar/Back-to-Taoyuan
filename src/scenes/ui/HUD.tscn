@@ -128,7 +128,7 @@ vertical_alignment = 1
 offset_left = 10.0
 offset_top = 10.0
 offset_right = 200.0
-offset_bottom = 90.0
+offset_bottom = 145.0
 
 [node name="VBox" type="VBoxContainer" parent="LocationInfo" unique_id=465485367]
 layout_mode = 2
@@ -145,6 +145,17 @@ text = "📍"
 layout_mode = 2
 text = "农场"
 
+[node name="RegionRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=1466257708]
+layout_mode = 2
+
+[node name="RegionIcon" type="Label" parent="LocationInfo/VBox/RegionRow" unique_id=1792479634]
+layout_mode = 2
+text = "🏠"
+
+[node name="RegionLabel" type="Label" parent="LocationInfo/VBox/RegionRow" unique_id=1257677041]
+layout_mode = 2
+text = "农场区域"
+
 [node name="DateRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=2135381439]
 layout_mode = 2
 
@@ -156,6 +167,17 @@ text = "📅"
 layout_mode = 2
 text = "春第1天"
 
+[node name="WeatherRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=1985642284]
+layout_mode = 2
+
+[node name="WeatherIcon" type="Label" parent="LocationInfo/VBox/WeatherRow" unique_id=1109253295]
+layout_mode = 2
+text = "☁️"
+
+[node name="WeatherLabel" type="Label" parent="LocationInfo/VBox/WeatherRow" unique_id=1985642286]
+layout_mode = 2
+text = "晴天"
+
 [node name="SeasonRow" type="HBoxContainer" parent="LocationInfo/VBox" unique_id=1985642283]
 layout_mode = 2
 
@@ -164,10 +186,10 @@ layout_mode = 2
 text = "🌸"
 
 [node name="SkillPanel" type="PanelContainer" parent="." unique_id=1934201338]
-offset_left = 210.0
-offset_top = 650.0
-offset_right = 380.0
-offset_bottom = 720.0
+offset_left = 1103.0
+offset_top = 72.0
+offset_right = 1273.0
+offset_bottom = 142.0
 
 [node name="SkillVBox" type="VBoxContainer" parent="SkillPanel" unique_id=338759009]
 layout_mode = 2
@@ -201,12 +223,12 @@ layout_mode = 2
 show_percentage = false
 
 [node name="Hotbar" type="HBoxContainer" parent="." unique_id=908042295]
-anchors_preset = 12
+anchors_preset = 2
 anchor_top = 1.0
-anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = -66.0
-offset_bottom = -10.0
+offset_top = -184.0
+offset_right = 248.0
+offset_bottom = -128.0
 grow_vertical = 0
 alignment = 1
 

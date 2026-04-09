@@ -8,12 +8,14 @@ class_name MainScene
 # ============ 常量 ============
 
 const HUD_SCENE_PATH: String = "res://src/scenes/ui/HUD.tscn"
+const NAV_PANEL_SCENE_PATH: String = "res://src/scenes/ui/NavigationPanel.tscn"
 
 # ============ 节点引用 ============
 
 var farm_manager: FarmManager
 var sleep_button: Button
 var hud: CanvasLayer
+var nav_panel: CanvasLayer
 
 # ============ 初始化 ============
 
@@ -40,6 +42,9 @@ func _initialize_game() -> void:
 	# 动态加载 HUD 场景
 	_load_hud()
 
+	# 动态加载导航面板
+	_load_navigation_panel()
+
 	# 创建农场管理器
 	_setup_farm()
 
@@ -65,6 +70,19 @@ func _load_hud() -> void:
 	else:
 		push_error("[Main] Failed to load HUD scene: " + HUD_SCENE_PATH)
 
+## 运行时加载导航面板
+func _load_navigation_panel() -> void:
+	var nav_scene = load(NAV_PANEL_SCENE_PATH)
+	if nav_scene:
+		nav_panel = nav_scene.instantiate() as CanvasLayer
+		if nav_panel:
+			add_child(nav_panel)
+			print("[Main] NavigationPanel loaded from scene")
+		else:
+			push_error("[Main] Failed to instantiate NavigationPanel")
+	else:
+		push_error("[Main] Failed to load NavigationPanel scene: " + NAV_PANEL_SCENE_PATH)
+
 func _setup_farm() -> void:
 	farm_manager = FarmManager.new()
 	farm_manager.name = "FarmManager"
@@ -88,7 +106,7 @@ func _add_starting_items() -> void:
 # ============ 检查单例 ============
 
 func _verify_autoloads() -> bool:
-	var required = ["GameManager", "TimeManager", "EventBus", "InventorySystem", "PlayerStats", "SkillSystem"]
+	var required = ["GameManager", "TimeManager", "EventBus", "InventorySystem", "PlayerStats", "SkillSystem", "NavigationSystem"]
 	for name in required:
 		if not has_node("/root/" + name):
 			push_error("[Main] Missing autoload: " + name)
