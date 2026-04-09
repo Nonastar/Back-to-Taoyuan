@@ -82,22 +82,21 @@ func _handle_click(screen_pos: Vector2) -> void:
 	# 获取世界坐标
 	var world_pos = _screen_to_world(screen_pos)
 
-	# 消耗体力
-	var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
-	if stamina_cost > 0 and PlayerStats:
-		var cost_int = int(stamina_cost)
-		if not PlayerStats.consume_stamina(cost_int):
-			_show_message("体力不足!")
-			is_using_tool = false
-			return
-
-	# 尝试交互
+	# 先尝试交互，只有成功时才消耗体力
 	var interacted = _try_interact_at(world_pos)
 
 	if interacted:
+		# 消耗体力（只有成功交互才消耗）
+		var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
+		if stamina_cost > 0 and PlayerStats:
+			var cost_int = int(stamina_cost)
+			if not PlayerStats.consume_stamina(cost_int):
+				_show_message("体力不足!")
+				is_using_tool = false
+				return
 		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
-		# 获取失败原因
+		# 点击空白处不消耗体力，只显示提示
 		var msg = _get_interact_fail_message(world_pos)
 		if msg != "":
 			_show_message(msg)

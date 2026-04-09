@@ -608,6 +608,63 @@ sprite.texture = _make_color_rect(Color(...), Vector2i(48, 48))
 
 ---
 
+### 问题24: HUD 场景加载顺序
+
+**问题:** HUD 脚本在 _ready() 时访问 Autoload 系统，但此时可能尚未初始化
+
+**错误写法:**
+```gdscript
+func _ready() -> void:
+    _setup_ui()
+    _connect_signals()
+    _update_from_systems()  # Autoload 可能还未就绪！
+
+func _update_from_systems() -> void:
+    _current_stamina = PlayerStats.stamina  # 可能报错
+```
+
+**正确写法:**
+```gdscript
+func _ready() -> void:
+    _setup_ui()
+    _connect_signals()
+
+    # 延迟初始化，等待 Autoload 系统就绪
+    await get_tree().process_frame
+    _update_from_systems()
+```
+
+**教训:** 使用 `await get_tree().process_frame` 确保 Autoload 系统完全初始化后再访问
+
+---
+
+### 问题25: CanvasLayer 没有 Control 锚点属性
+
+**问题:** HUD 继承自 CanvasLayer，但尝试使用 `anchors_preset` 或 `set_anchors_preset()` 导致错误
+
+**错误写法:**
+```gdscript
+extends CanvasLayer
+
+func _setup_ui() -> void:
+    anchors_preset = Control.PRESET_FULL_RECT  # 错误
+    set_anchors_preset(Control.PRESET_FULL_RECT)  # 错误
+```
+
+**正确写法:**
+```gdscript
+extends CanvasLayer
+
+func _setup_ui() -> void:
+    # CanvasLayer 自动覆盖全屏，不需要设置锚点
+    # 直接创建子节点即可
+    _create_top_bar()
+```
+
+**教训:** CanvasLayer 是独立的画布层，不需要也不支持 Control 的锚点属性
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -632,6 +689,8 @@ sprite.texture = _make_color_rect(Color(...), Vector2i(48, 48))
 - [ ] Sprite2D 必须设置 texture 才能显示
 - [ ] 位置偏移值与视口大小匹配
 - [ ] 区分 modulate（颜色）和 texture（形状）
+- [ ] 场景初始化时使用 await get_tree().process_frame 等待 Autoload 就绪
+- [ ] CanvasLayer 不需要也不支持 Control 锚点属性
 
 ---
 
