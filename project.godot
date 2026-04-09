@@ -28,6 +28,8 @@ PlayerStats="*res://src/scripts/autoload/player_stats_system.gd"
 ItemDataSystem="*res://src/scripts/autoload/item_data_system.gd"
 InventorySystem="*res://src/scripts/autoload/inventory_system.gd"
 WeatherSystem="*res://src/scripts/autoload/weather_system.gd"
+ToolSystem="*res://src/scripts/autoload/tool_system.gd"
+Player="*res://src/scripts/entities/player.gd"
 
 [display]
 
@@ -66,6 +68,11 @@ interact={
 inventory={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":4194306,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
+]
+}
+sprint={
+"deadzone": 0.5,
+"events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":true,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":0,"physical_keycode":16777244,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
 ]
 }
 

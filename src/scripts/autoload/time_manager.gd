@@ -203,7 +203,7 @@ func _do_day_transition() -> void:
 	_game_hour_accumulator = 0.0
 
 	# 发送日结算信号
-	EventBus.day_changed.emit(current_day, current_season)
+	EventBus.day_changed.emit(current_day, SEASON_NAMES[current_season])
 
 	# 发送睡眠结束信号 (带恢复率)
 	# EventBus.sleep_completed.emit(recovery_rate)

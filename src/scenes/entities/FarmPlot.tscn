@@ -1,0 +1,35 @@
+[gd_scene format=3 uid="uid://cplot1"]
+
+[ext_resource type="Script" path="res://src/scripts/entities/farm_plot.gd" id="1_plot"]
+
+[sub_resource type="RectangleShape2D" id="R1"]
+size = Vector2(48, 48)
+
+[node name="FarmPlot" type="Area2D"]
+script = ExtResource("1_plot")
+metadata/_edit_group_ = true
+
+[node name="Sprite" type="Sprite2D" parent="."]
+modulate = Color(0.5, 0.35, 0.2, 1)
+scale = Vector2(48, 48)
+
+[node name="WaterSprite" type="Sprite2D" parent="."]
+visible = false
+modulate = Color(0.3, 0.5, 0.9, 0.5)
+scale = Vector2(40, 40)
+
+[node name="CropSprite" type="Sprite2D" parent="."]
+visible = false
+position = Vector2(0, -16)
+scale = Vector2(24, 24)
+
+[node name="WeedSprite" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(16, 16)
+
+[node name="PestSprite" type="Sprite2D" parent="."]
+visible = false
+scale = Vector2(12, 12)
+
+[node name="Collision" type="CollisionShape2D" parent="."]
+shape = SubResource("R1")

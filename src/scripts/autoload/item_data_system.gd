@@ -45,10 +45,14 @@ func load_all_items() -> void:
 		push_warning("[ItemDataSystem] Items directory not found: %s" % ITEMS_DATA_PATH)
 		push_warning("[ItemDataSystem] Creating default items...")
 		_create_default_items()
+		_is_loaded = true
+		items_loaded.emit()
+		push_warning("[ItemDataSystem] Loaded %d default items" % _items.size())
 		return
 
 	dir.list_dir_begin()
 	var file_name = dir.get_next()
+	var items_loaded_count = 0
 
 	while file_name != "":
 		if file_name.ends_with(".tres"):
@@ -56,9 +60,15 @@ func load_all_items() -> void:
 			var item_def = load(item_path)
 			if item_def is ItemDef:
 				_register_item(item_def)
+				items_loaded_count += 1
 		file_name = dir.get_next()
 
 	dir.list_dir_end()
+
+	# 如果没有加载任何物品，创建默认物品
+	if items_loaded_count == 0:
+		push_warning("[ItemDataSystem] No items found, creating defaults...")
+		_create_default_items()
 
 	# 验证所有物品
 	var errors = _validate_all_items()
@@ -198,6 +208,8 @@ func _create_default_items() -> void:
 		_create_wheat(),
 		_create_rice(),
 		_create_tomato_seed(),
+		_create_carrot_seed(),
+		_create_tomato(),
 		_create_potato(),
 	]
 
@@ -327,12 +339,42 @@ func _create_tomato_seed() -> ItemDef:
 	var item = ItemDef.new()
 	item.id = "tomato_seed"
 	item.name = "番茄种子"
-	item.description = "可以种植番茄的种子。"
+	item.description = "可以种植番茄的种子。成熟需要4天。"
 	item.category = ItemCategory.SEED
 	item.sell_price = 10
 	item.icon_path = "res://assets/art/items/tomato_seed.png"
 	item.max_stack = SEED_STACK
 	item.tags = ["spring", "summer", "crop"]
+	item.growth_days = 4
+	return item
+
+## 创建胡萝卜种子定义
+func _create_carrot_seed() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "carrot_seed"
+	item.name = "胡萝卜种子"
+	item.description = "可以种植胡萝卜的种子。成熟需要3天。"
+	item.category = ItemCategory.SEED
+	item.sell_price = 5
+	item.icon_path = "res://assets/art/items/carrot_seed.png"
+	item.max_stack = SEED_STACK
+	item.tags = ["spring", "fall", "crop"]
+	item.growth_days = 3
+	return item
+
+## 创建番茄作物定义
+func _create_tomato() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "tomato"
+	item.name = "番茄"
+	item.description = "新鲜的红番茄，可食用或出售。"
+	item.category = ItemCategory.CROP
+	item.sell_price = 30
+	item.icon_path = "res://assets/art/items/tomato.png"
+	item.edible = true
+	item.stamina_restore = 20
+	item.health_restore = 10
+	item.max_stack = DEFAULT_MAX_STACK
 	return item
 
 ## 创建土豆定义

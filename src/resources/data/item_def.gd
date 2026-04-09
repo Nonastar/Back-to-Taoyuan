@@ -44,7 +44,12 @@ class_name ItemDef
 # ============ 物品标签 ============
 
 ## 物品标签 (用于复杂查询)
-@export var tags: Array[String] = []
+@export var tags: PackedStringArray = []
+
+# ============ 种植属性 ============
+
+## 生长天数 (用于种子类物品)
+@export var growth_days: int = 4
 
 # ============ 品质 ============
 

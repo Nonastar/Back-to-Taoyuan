@@ -284,6 +284,330 @@ func apply_config(config: PlayerConfig) -> void:
 
 ---
 
+### 问题11: 变量作用域与if块
+
+**错误:**
+```gdscript
+# 变量在if块内声明，但在块外使用
+if TimeManager != null:
+    var tomorrow_day = TimeManager.current_day + 1  # 作用域错误
+
+if tomorrow_day > 28:  # tomorrow_day 未声明
+    tomorrow_day = 1
+```
+
+**正确写法:**
+```gdscript
+# 在if块之前声明变量
+var tomorrow_day = 1
+
+if TimeManager != null:
+    tomorrow_day = TimeManager.current_day + 1
+
+if tomorrow_day > 28:
+    tomorrow_day = 1
+```
+
+**教训:** 如果变量在if块外使用，必须在if块之前声明并给出默认值
+
+---
+
+### 问题12: 调用不存在的API方法
+
+**错误:**
+```gdscript
+# 调用了不存在的方法
+var config = ConfigManager.get_player_config()
+
+# 编译错误
+Invalid call. Nonexistent function 'get_player_config' in base 'Node'.
+```
+
+**原因:** API方法名拼写错误或不存在
+
+**正确写法:**
+```gdscript
+# 查阅API文档确认正确的方法名
+var config = ConfigManager.get_config("player")
+```
+
+**教训:** 调用API前确认方法存在，或使用 `has_method()` 检查
+
+---
+
+### 问题13: Autoload 类引用
+
+**错误:**
+```gdscript
+# farm_plot.gd 中引用 Player 类
+match tool_type:
+    Player.ToolType.HOE:
+        return _till()
+
+# 编译错误
+Parse Error: Identifier "Player" not declared in the current scope.
+```
+
+**原因:** 引用了不在当前作用域的类
+
+**正确写法:**
+1. 将类添加到 Autoload (推荐):
+```gdscript
+# project.godot
+[autoload]
+Player="*res://src/scripts/entities/player.gd"
+```
+
+2. 或使用常量/枚举而非类引用:
+```gdscript
+# 定义全局常量
+const TOOL_HOE = 0
+const TOOL_WATER = 1
+
+# 直接使用数值
+match tool_type:
+    TOOL_HOE:
+        return _till()
+```
+
+**教训:** 非 Autoload 类需要通过 `class_name` 或 `extends` 声明后才能被其他脚本引用
+
+---
+
+### 问题14: TSCN 文件中 ext_resource 位置
+
+**错误:**
+```gdscript
+[gd_scene format=3]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("2_main")  # 错误：引用未声明的 ExtResource
+
+[ext_resource type="Script" path="res://main.gd" id="2_main"]
+```
+
+**正确写法:**
+```gdscript
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://main.gd" id="2_main"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("2_main")
+```
+
+**教训:** `[ext_resource]` 必须声明在引用它的节点之前
+
+---
+
+### 问题15: 返回类型不匹配 (null vs 具体类型)
+
+**错误:**
+```gdscript
+func _get_selected_seed() -> Dictionary:
+    if ItemDataSystem:
+        var tomato = ItemDataSystem.get_item_def("tomato_seed")
+        if tomato:
+            return {...}
+    return null  # 错误：返回 null 但类型声明是 Dictionary
+
+# 编译错误
+Cannot return value of type "null" because the function return type is "Dictionary".
+```
+
+**正确写法:**
+```gdscript
+func _get_selected_seed() -> Dictionary:
+    if ItemDataSystem:
+        var tomato = ItemDataSystem.get_item_def("tomato_seed")
+        if tomato:
+            return {...}
+    # 返回默认值而非 null
+    return {"id": "", "name": "", "count": 0, "growth_days": 4, "base_quality": 0}
+```
+
+**教训:** 函数返回类型声明后，必须返回对应类型；用空值/默认值代替 null
+
+---
+
+### 问题16: 空目录未触发默认物品创建
+
+**错误:**
+```gdscript
+# items/ 目录存在但为空时，不会创建默认物品
+var dir = DirAccess.open(ITEMS_DATA_PATH)
+if dir == null:  # 目录存在，所以这里不执行
+    _create_default_items()
+# 结果：没有物品被加载
+```
+
+**正确写法:**
+```gdscript
+var dir = DirAccess.open(ITEMS_DATA_PATH)
+var items_loaded_count = 0
+
+# ... 遍历加载文件 ...
+
+# 如果没有加载任何物品，创建默认物品
+if items_loaded_count == 0:
+    push_warning("[ItemDataSystem] No items found, creating defaults...")
+    _create_default_items()
+```
+
+**教训:** 目录存在不等于有内容，需要计数检查
+
+---
+
+### 问题17: Resource 不支持 Array\[String\]
+
+**错误:**
+```gdscript
+@export var tags: Array[String] = []  # Godot 4.x 错误
+
+item.tags = ["spring", "summer"]  # 编译错误
+```
+
+**正确写法:**
+```gdscript
+@export var tags: PackedStringArray = []
+
+item.tags = ["spring", "summer"]  # 正常工作
+```
+
+**教训:** Godot 4.x 使用 `PackedStringArray` 代替 `Array[String]`
+
+---
+
+### 问题18: 属性名不匹配
+
+**错误:**
+```gdscript
+PlayerStats.current_stamina  # 不存在
+PlayerStats.try_consume_stamina()  # 不存在
+```
+
+**正确写法:**
+```gdscript
+PlayerStats.stamina  # 正确
+PlayerStats.consume_stamina(amount)  # 正确
+```
+
+**教训:** 调用 API 前确认属性/方法名存在
+
+---
+
+### 问题19: 信号参数类型不匹配
+
+**错误:**
+```gdscript
+# TimeManager 发送
+EventBus.day_changed.emit(current_day, current_season)
+# current_season 是 Season 枚举 (int)
+
+# WeatherSystem 接收
+func _on_day_changed(day: int, season: String) -> void:
+    # 类型不匹配：int vs String
+```
+
+**正确写法:**
+```gdscript
+# 发送时转换为字符串
+EventBus.day_changed.emit(current_day, SEASON_NAMES[current_season])
+```
+
+**教训:** 信号参数类型必须完全匹配，包括枚举和字符串的转换
+
+---
+
+### 问题20: Sprite 没有纹理导致不显示
+
+**问题:** 创建 Sprite2D 后没有设置 texture，导致精灵不显示
+
+**错误:**
+```gdscript
+sprite = Sprite2D.new()
+sprite.name = "Sprite"
+sprite.centered = false
+add_child(sprite)
+# 没有设置 texture！
+```
+
+**正确写法:**
+```gdscript
+sprite = Sprite2D.new()
+sprite.name = "Sprite"
+sprite.centered = false
+sprite.texture = _make_color_rect(Color(0.5, 0.35, 0.2, 1), Vector2i(48, 48))
+add_child(sprite)
+```
+
+**教训:** Sprite2D 必须有 texture 才能显示
+
+---
+
+### 问题21: Godot 4.x match 表达式兼容性问题
+
+**问题:** match 表达式的 `_` 默认分支在某些情况下可能有问题
+
+**错误:**
+```gdscript
+var color = match state:
+    PlotState.WASTELAND: Color(0.5, 0.35, 0.2, 1)
+    # 使用 _ 作为默认分支可能有兼容性问题
+```
+
+**正确写法:**
+```gdscript
+var color = Color(0.5, 0.35, 0.2, 1)
+if state == PlotState.WASTELAND:
+    color = Color(0.5, 0.35, 0.2, 1)
+elif state == PlotState.TILLED:
+    color = Color(0.4, 0.3, 0.15, 1)
+# ...
+```
+
+**教训:** 使用 if-elif 代替 match 避免兼容性问题
+
+---
+
+### 问题22: 农场位置偏移计算错误
+
+**问题:** 农场起始偏移和地块位置计算导致地块不在屏幕中心
+
+**错误:**
+```gdscript
+# 视口 1280x720，屏幕中心是 (640, 360)
+# 但 FARM_OFFSET 设置为 (320, 180)
+const FARM_OFFSET: Vector2 = Vector2(320, 180)
+```
+
+**正确写法:**
+```gdscript
+# 使用实际屏幕中心作为偏移基准
+const FARM_OFFSET: Vector2 = Vector2(640, 360)
+```
+
+**教训:** 偏移值需要与视口大小匹配，居中时使用视口中心坐标
+
+---
+
+### 问题23: modate 和 texture 的区别
+
+**问题:** 修改 modulate 只改变颜色，不改变精灵大小
+
+**正确用法:**
+```gdscript
+# modulate 只改变颜色/透明度
+sprite.modulate = Color(0.5, 0.35, 0.2, 1)
+
+# texture 控制精灵的实际显示
+sprite.texture = _make_color_rect(Color(...), Vector2i(48, 48))
+```
+
+**教训:** modulate 是颜色叠加，texture 才是精灵的实际形状
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -295,6 +619,19 @@ func apply_config(config: PlayerConfig) -> void:
 - [ ] 变量先声明后使用
 - [ ] 接口方法已实现
 - [ ] Autoload依赖顺序正确
+- [ ] 变量在if块外使用时，在块前声明
+- [ ] API方法调用前确认方法存在
+- [ ] 没有嵌套类定义（使用常量代替）
+- [ ] 类引用通过Autoload或class_name声明
+- [ ] TSCN中ext_resource在节点引用之前
+- [ ] 返回类型与实际返回值匹配（用默认值代替null）
+- [ ] 空目录需要计数检查而非 null 检查
+- [ ] Godot 4.x 使用 PackedStringArray 而非 Array[String]
+- [ ] 属性/方法名与实际API一致
+- [ ] 信号参数类型完全匹配
+- [ ] Sprite2D 必须设置 texture 才能显示
+- [ ] 位置偏移值与视口大小匹配
+- [ ] 区分 modulate（颜色）和 texture（形状）
 
 ---
 
@@ -313,7 +650,9 @@ AudioManager → PlayerStats → ItemDataSystem → InventorySystem → WeatherS
 
 ---
 
-## 嵌套类问题
+## 嵌套类问题 (参考: 问题11详细说明)
+
+> ⚠️ 此为快速参考，详细说明见上方"问题11"
 
 Godot 4.6不支持在脚本中嵌套定义新类（使用class_name + extends）。
 
@@ -337,7 +676,9 @@ const WEATHER_RAINY: String = "rainy"
 
 ---
 
-## 函数名与变量名冲突
+## 函数名与变量名冲突 (参考: 问题13详细说明)
+
+> ⚠️ 此为快速参考，详细说明见上方"问题13"
 
 Godot不允许函数名与变量名相同。
 

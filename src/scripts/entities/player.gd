@@ -1,159 +1,205 @@
-extends CharacterBody2D
-class_name Player
+extends Node
 
-## Player - 玩家角色
-## 参考: ADR-0001 OOP架构, C01 玩家属性系统 GDD
+## Player - 全局工具定义
+## 提供工具类型枚举供其他脚本使用
+## 参考: C04 工具系统 GDD
 
-# ============ 移动配置 ============
+# ============ 工具类型 (全局枚举) ============
 
-## 移动速度 (像素/秒)
-const MOVE_SPEED: float = 200.0
+enum ToolType { HOE, WATERING_CAN, SEEDS, HAND }
 
-## 动画方向阈值
-const DIRECTION_THRESHOLD: float = 0.5
+## 工具名称映射
+const TOOL_NAMES: Dictionary = {
+	ToolType.HOE: "锄头",
+	ToolType.WATERING_CAN: "浇水壶",
+	ToolType.SEEDS: "种子",
+	ToolType.HAND: "手"
+}
+
+## 工具体力消耗
+const TOOL_STAMINA_COST: Dictionary = {
+	ToolType.HOE: 5.0,
+	ToolType.WATERING_CAN: 3.0,
+	ToolType.SEEDS: 2.0,
+	ToolType.HAND: 1.0
+}
+
+# ============ 信号 ============
+
+signal tool_changed(tool_type: ToolType)
+signal interaction_attempted(position: Vector2)
 
 # ============ 状态 ============
 
-## 玩家当前方向
-var facing_direction: Vector2 = Vector2.DOWN
+## 当前工具
+var current_tool: ToolType = ToolType.HOE
 
-## 是否可以移动
-var can_move: bool = true
-
-# ============ 节点引用 ============
-
-@onready var animation_player: AnimationPlayer = $AnimationPlayer
-@onready var sprite: Sprite2D = $Sprite2D
+## 是否正在使用工具
+var is_using_tool: bool = false
 
 # ============ 初始化 ============
 
 func _ready() -> void:
-	# 连接事件
-	EventBus.game_state_changed.connect(_on_game_state_changed)
-	EventBus.sleep_triggered.connect(_on_sleep_triggered)
-	print("[Player] Initialized")
+	print("[Player] Initialized (Click-to-Interact Mode)")
 
-func _process(delta: float) -> void:
-	if not can_move:
+# ============ 鼠标交互 ============
+
+func _input(event: InputEvent) -> void:
+	# 工具切换 (数字键 1-4)
+	if event is InputEventKey and event.pressed:
+		var key_index = _get_key_tool_index(event.keycode)
+		if key_index >= 0:
+			_switch_tool(key_index as ToolType)
+			return
+
+	# 鼠标点击交互
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_handle_click(event.position)
+
+	# 滚轮切换工具
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
+			_cycle_tool(-1)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
+			_cycle_tool(1)
+
+func _get_key_tool_index(keycode: int) -> int:
+	match keycode:
+		KEY_1: return 0
+		KEY_2: return 1
+		KEY_3: return 2
+		KEY_4: return 3
+	return -1
+
+func _handle_click(screen_pos: Vector2) -> void:
+	if is_using_tool:
 		return
-	_handle_movement_input()
 
-func _physics_process(delta: float) -> void:
-	if not can_move:
-		velocity = Vector2.ZERO
-		move_and_slide()
-		return
+	is_using_tool = true
+	interaction_attempted.emit(screen_pos)
 
-# ============ 移动控制 ============
+	# 获取世界坐标
+	var world_pos = _screen_to_world(screen_pos)
 
-func _handle_movement_input() -> void:
-	var input_dir = Vector2(
-		Input.get_axis("move_left", "move_right"),
-		Input.get_axis("move_up", "move_down")
-	)
+	# 消耗体力
+	var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
+	if stamina_cost > 0 and PlayerStats:
+		var cost_int = int(stamina_cost)
+		if not PlayerStats.consume_stamina(cost_int):
+			_show_message("体力不足!")
+			is_using_tool = false
+			return
 
-	if input_dir.length() > 0:
-		velocity = input_dir.normalized() * MOVE_SPEED
-		_update_facing_direction(input_dir)
-		_play_walk_animation()
+	# 尝试交互
+	var interacted = _try_interact_at(world_pos)
+
+	if interacted:
+		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
-		velocity = Vector2.ZERO
-		_play_idle_animation()
+		# 获取失败原因
+		var msg = _get_interact_fail_message(world_pos)
+		if msg != "":
+			_show_message(msg)
 
-func _update_facing_direction(dir: Vector2) -> void:
-	if abs(dir.x) > abs(dir.y):
-		if dir.x > 0:
-			facing_direction = Vector2.RIGHT
-		else:
-			facing_direction = Vector2.LEFT
-	else:
-		if dir.y > 0:
-			facing_direction = Vector2.DOWN
-		else:
-			facing_direction = Vector2.UP
+	await get_tree().create_timer(0.15).timeout
+	is_using_tool = false
 
-func _play_walk_animation() -> void:
-	var anim_name = _get_direction_animation_name("walk")
-	if animation_player.has_animation(anim_name):
-		animation_player.play(anim_name)
+func _screen_to_world(screen_pos: Vector2) -> Vector2:
+	var camera = get_viewport().get_camera_2d()
+	if camera:
+		return camera.get_global_mouse_position()
+	return screen_pos
 
-func _play_idle_animation() -> void:
-	var anim_name = _get_direction_animation_name("idle")
-	if animation_player.has_animation(anim_name):
-		animation_player.play(anim_name)
+func _try_interact_at(world_pos: Vector2) -> bool:
+	var plots = _get_plots_at(world_pos)
+	for plot in plots:
+		if plot.has_method("interact"):
+			if plot.interact(current_tool, Vector2.ZERO):
+				return true
+	return false
 
-func _get_direction_animation_name(prefix: String) -> String:
-	match facing_direction:
-		Vector2.UP:
-			return "%s_up" % prefix
-		Vector2.DOWN:
-			return "%s_down" % prefix
-		Vector2.LEFT:
-			return "%s_left" % prefix
-		Vector2.RIGHT:
-			return "%s_right" % prefix
-		_:
-			return "%s_down" % prefix
+func _get_interact_fail_message(world_pos: Vector2) -> String:
+	var plots = _get_plots_at(world_pos)
+	for plot in plots:
+		if plot.has_method("interact"):
+			# 尝试调用以获取提示
+			match current_tool:
+				Player.ToolType.HOE:
+					if plot.state == FarmPlot.PlotState.TILLED:
+						return "这里已经耕过了"
+					elif plot.state == FarmPlot.PlotState.PLANTED or plot.state == FarmPlot.PlotState.GROWING:
+						return "有作物，不能耕地"
+					elif plot.state == FarmPlot.PlotState.HARVESTABLE:
+						return "先收获作物"
+				Player.ToolType.WATERING_CAN:
+					if plot.state == FarmPlot.PlotState.WASTELAND:
+						return "先耕地"
+					elif plot.state == FarmPlot.PlotState.TILLED:
+						return "没有作物"
+					elif plot.is_watered:
+						return "已经浇过水了"
+				Player.ToolType.SEEDS:
+					if plot.state == FarmPlot.PlotState.WASTELAND:
+						return "先耕地"
+					elif plot.state == FarmPlot.PlotState.PLANTED or plot.state == FarmPlot.PlotState.GROWING:
+						return "已经有作物了"
+					elif plot.state == FarmPlot.PlotState.HARVESTABLE:
+						return "先收获"
+					elif InventorySystem.get_item_count("tomato_seed") < 1:
+						return "没有种子了！"
+				Player.ToolType.HAND:
+					if plot.state == FarmPlot.PlotState.WASTELAND:
+						return "先耕地"
+					elif plot.state == FarmPlot.PlotState.TILLED:
+						return "先播种"
+					elif plot.state == FarmPlot.PlotState.PLANTED or plot.state == FarmPlot.PlotState.GROWING:
+						return "作物还在生长中..."
+	return ""
 
-# ============ 交互 ============
+func _get_plots_at(world_pos: Vector2) -> Array:
+	var plots: Array = []
+	var farm = _find_farm_manager()
+	if farm and farm.has_method("get_plots"):
+		var all_plots = farm.get_plots()
+		for plot in all_plots:
+			if plot is Node2D:
+				var dist = world_pos.distance_to(plot.global_position)
+				if dist < 40:
+					plots.append(plot)
+	return plots
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact"):
-		_try_interact()
-	elif event.is_action_pressed("inventory"):
-		_toggle_inventory()
+func _find_farm_manager() -> Node:
+	var root = get_tree().root
+	if root.has_node("Main/FarmManager"):
+		return root.get_node("Main/FarmManager")
+	if root.has_node("FarmManager"):
+		return root.get_node("FarmManager")
+	if root.has_node("Main/FarmLayer/FarmManager"):
+		return root.get_node("Main/FarmLayer/FarmManager")
+	return null
 
-func _try_interact() -> void:
-	# TODO: 实现交互逻辑
-	# 发射射线检测可交互对象
-	# var space_state = get_world_2d().direct_space_state
-	# var query = PhysicsPointQueryParameters2D.new()
-	# query.position = global_position + facing_direction * 48
-	# var results = space_state.intersect_point(query, 5)
-	pass
+# ============ 工具系统 ============
 
-func _toggle_inventory() -> void:
-	# TODO: 切换背包UI
-	pass
+func _switch_tool(tool: ToolType) -> void:
+	if current_tool != tool:
+		current_tool = tool
+		tool_changed.emit(tool)
+		_show_message("切换到: %s" % TOOL_NAMES[tool])
 
-# ============ 事件处理 ============
+func _cycle_tool(direction: int) -> void:
+	var new_tool = (current_tool + direction) % ToolType.size()
+	if new_tool < 0:
+		new_tool = ToolType.size() - 1
+	_switch_tool(new_tool as ToolType)
 
-func _on_game_state_changed(from: int, to: int) -> void:
-	match to:
-		GameManager.GameState.PAUSED:
-			can_move = false
-			_play_idle_animation()
-		GameManager.GameState.PLAYING:
-			can_move = true
-		GameManager.GameState.INVENTORY_OPEN:
-			can_move = false
-
-func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
-	# 睡眠时玩家不可移动
-	can_move = false
-	_play_idle_animation()
-
-	# TODO: 播放睡眠动画或过渡效果
-	if forced:
-		print("[Player] Forced to faint!")
-	else:
-		print("[Player] Going to sleep at %d:00" % bedtime)
+func _show_message(msg: String) -> void:
+	print("[Player] %s" % msg)
 
 # ============ 公共方法 ============
 
-## 获取玩家位置
-func get_position() -> Vector2:
-	return global_position
+func get_current_tool() -> ToolType:
+	return current_tool
 
-## 设置玩家位置
-func set_position(pos: Vector2) -> void:
-	global_position = pos
-
-## 恢复玩家移动
-func enable_movement() -> void:
-	can_move = true
-
-## 禁止玩家移动
-func disable_movement() -> void:
-	can_move = false
-	velocity = Vector2.ZERO
+func get_current_tool_name() -> String:
+	return TOOL_NAMES.get(current_tool, "Unknown")
