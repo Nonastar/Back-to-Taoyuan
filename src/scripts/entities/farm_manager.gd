@@ -32,6 +32,8 @@ var plots: Array[FarmPlot] = []
 
 signal day_processed()
 signal plot_interacted(plot: FarmPlot, tool: int)
+signal plot_message_received(msg: String)
+signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)
 
 # ============ 初始化 ============
 
@@ -83,6 +85,8 @@ func _create_plot(pos: Vector2i) -> FarmPlot:
 	plot.plot_clicked.connect(_on_plot_clicked)
 	plot.crop_planted.connect(_on_crop_planted)
 	plot.crop_harvested.connect(_on_crop_harvested)
+	plot.plot_message.connect(_on_plot_message)
+	plot.farming_exp_changed.connect(_on_farming_exp_changed)
 
 	return plot
 
@@ -96,20 +100,30 @@ func _connect_event_signals() -> void:
 func _on_plot_clicked(position: Vector2) -> void:
 	# 找到被点击的地块
 	for plot in plots:
-		if plot.global_position.distance_to(position) < 40:
-			var tool: int = 0
-			if has_node("/root/Player"):
-				var player_node = get_node("/root/Player")
-				if player_node.has_method("get_current_tool"):
-					tool = player_node.get_current_tool()
-			plot_interacted.emit(plot, tool)
-			break
+		if plot.has_method("get_center"):
+			var plot_center = plot.get_center()
+			if position.distance_to(plot_center) < 30:
+				var tool: int = 0
+				if has_node("/root/Player"):
+					var player_node = get_node("/root/Player")
+					if player_node.has_method("get_current_tool"):
+						tool = player_node.get_current_tool()
+				plot_interacted.emit(plot, tool)
+				break
 
 func _on_crop_planted(crop_id: String, position: Vector2) -> void:
 	print("[FarmManager] Crop planted: %s" % crop_id)
 
 func _on_crop_harvested(crop_id: String, quantity: int, quality: int) -> void:
 	print("[FarmManager] Harvested: %d x %s (quality: %d)" % [quantity, crop_id, quality])
+
+func _on_plot_message(msg: String) -> void:
+	# 转发地块消息
+	plot_message_received.emit(msg)
+
+func _on_farming_exp_changed(skill_type: int, exp: int, leveled_up: bool) -> void:
+	# 转发技能经验变化信号
+	farming_exp_changed.emit(skill_type, exp, leveled_up)
 
 func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
 	_process_day()

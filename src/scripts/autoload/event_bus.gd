@@ -110,6 +110,12 @@ signal skill_unlocked(skill: String)
 ## 工具升级 (tool: String, new_level: int)
 signal tool_upgraded(tool: String, new_level: int)
 
+## 农耕经验变化 (skill_type: int, exp: int, leveled_up: bool)
+signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)
+
+## 技能升级 (skill_type: int, old_level: int, new_level: int)
+signal skill_level_up(skill_type: int, old_level: int, new_level: int)
+
 # ============ 存档事件 ============
 
 ## 保存开始 (slot: int)
@@ -128,6 +134,9 @@ signal load_completed(slot: int, success: bool)
 
 ## 提示信息显示 (message: String, duration: float)
 signal notification_show(message: String, duration: float)
+
+## 地块消息显示 (message: String)
+signal plot_message_received(message: String)
 
 ## 成就解锁 (achievement_id: String)
 signal achievement_unlocked(achievement_id: String)

@@ -162,9 +162,11 @@ func _get_plots_at(world_pos: Vector2) -> Array:
 	if farm and farm.has_method("get_plots"):
 		var all_plots = farm.get_plots()
 		for plot in all_plots:
-			if plot is Node2D:
-				var dist = world_pos.distance_to(plot.global_position)
-				if dist < 40:
+			if plot.has_method("get_center"):
+				# 使用地块接口获取中心点
+				var plot_center = plot.get_center()
+				var dist = world_pos.distance_to(plot_center)
+				if dist < 30:
 					plots.append(plot)
 	return plots
 

@@ -28,6 +28,7 @@ signal crop_planted(crop_id: String, position: Vector2)
 signal crop_harvested(crop_id: String, quantity: int, quality: int)
 signal plot_clicked(position: Vector2)
 signal plot_message(msg: String)  # 用于显示操作提示
+signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)  # 技能经验变化
 
 # ============ Emoji 配置 ============
 
@@ -136,14 +137,14 @@ func _till() -> bool:
 		state = PlotState.TILLED
 		_update_display()
 		plot_state_changed.emit(state)
-		plot_message.emit("耕地完成！")
+		_send_message("耕地完成！")
 		return true
 	elif state == PlotState.TILLED:
-		plot_message.emit("这里已经耕过了")
+		_send_message("这里已经耕过了")
 	elif state == PlotState.PLANTED or state == PlotState.GROWING:
-		plot_message.emit("有作物，不能耕地")
+		_send_message("有作物，不能耕地")
 	elif state == PlotState.HARVESTABLE:
-		plot_message.emit("先收获作物")
+		_send_message("先收获作物")
 	return false
 
 func _water() -> bool:
@@ -152,36 +153,36 @@ func _water() -> bool:
 			is_watered = true
 			_update_display()
 			plot_state_changed.emit(state)
-			plot_message.emit("浇水完成！💧")
+			_send_message("浇水完成！💧")
 			return true
 		else:
-			plot_message.emit("已经浇过水了")
+			_send_message("已经浇过水了")
 	elif state == PlotState.WASTELAND:
-		plot_message.emit("先耕地")
+		_send_message("先耕地")
 	elif state == PlotState.TILLED:
-		plot_message.emit("没有作物")
+		_send_message("没有作物")
 	elif state == PlotState.HARVESTABLE:
-		plot_message.emit("可以收获了！")
+		_send_message("可以收获了！")
 	return false
 
 func _plant() -> bool:
 	if state != PlotState.TILLED:
 		if state == PlotState.WASTELAND:
-			plot_message.emit("先耕地")
+			_send_message("先耕地")
 		elif state == PlotState.PLANTED or state == PlotState.GROWING:
-			plot_message.emit("已经有作物了")
+			_send_message("已经有作物了")
 		elif state == PlotState.HARVESTABLE:
-			plot_message.emit("先收获")
+			_send_message("先收获")
 		return false
 
 	# 检查种子
 	var seed_data = _get_selected_seed()
 	if seed_data == null or seed_data["count"] <= 0:
-		plot_message.emit("没有种子了！")
+		_send_message("没有种子了！")
 		return false
 
 	if InventorySystem.get_item_count(seed_data["id"]) < 1:
-		plot_message.emit("没有种子了！")
+		_send_message("没有种子了！")
 		return false
 
 	# 消耗种子
@@ -196,14 +197,23 @@ func _plant() -> bool:
 
 	_update_display()
 	plot_state_changed.emit(state)
-	plot_message.emit("播种成功！🌱")
+	_send_message("播种成功！🌱")
 	return true
 
 func _harvest() -> bool:
 	if state == PlotState.HARVESTABLE:
+		# 根据农耕技能等级计算品质加成
+		var final_quality = _calculate_harvest_quality()
+
+		# 添加物品到背包
 		var quantity = 1
-		InventorySystem.add_item(crop_id, quantity, quality)
-		crop_harvested.emit(crop_id, quantity, quality)
+		InventorySystem.add_item(crop_id, quantity, final_quality)
+
+		# 给予农耕经验
+		_add_farming_exp()
+
+		# 发送收获信号
+		crop_harvested.emit(crop_id, quantity, final_quality)
 
 		# 重置为已耕地
 		state = PlotState.TILLED
@@ -214,15 +224,62 @@ func _harvest() -> bool:
 
 		_update_display()
 		plot_state_changed.emit(state)
-		plot_message.emit("收获成功！🌾")
+		_send_message("收获成功！🌾 (品质: %s)" % _get_quality_name(final_quality))
 		return true
 	elif state == PlotState.WASTELAND:
-		plot_message.emit("先耕地")
+		_send_message("先耕地")
 	elif state == PlotState.TILLED:
-		plot_message.emit("先播种")
+		_send_message("先播种")
 	elif state == PlotState.PLANTED or state == PlotState.GROWING:
-		plot_message.emit("作物还在生长中...")
+		_send_message("作物还在生长中...")
 	return false
+
+## 计算收获品质
+func _calculate_harvest_quality() -> int:
+	var base_quality = 0  # 普通品质
+
+	# 获取农耕技能加成
+	if SkillSystem:
+		var farming_level = SkillSystem.get_level(SkillSystem.SkillType.FARMING)
+		var quality_bonus = SkillSystem.get_farming_quality_bonus()
+		var roll = randf()
+
+		# 9级+: 5% 概率出 Supreme (简化版)
+		if farming_level >= 9 and roll < 0.05 + quality_bonus * 0.5:
+			return 3  # Supreme
+		# 6级+: 15% 概率出 Excellent
+		elif farming_level >= 6 and roll < 0.15 + quality_bonus:
+			return 2  # Excellent
+		# 3级+: 30% 概率出 Fine
+		elif farming_level >= 3 and roll < 0.30 + quality_bonus:
+			return 1  # Fine
+
+	return base_quality  # Normal
+
+## 获取品质名称
+func _get_quality_name(q: int) -> String:
+	match q:
+		0: return "普通"
+		1: return "优秀"
+		2: return "精良"
+		3: return "史诗"
+		_: return "普通"
+
+## 添加农耕经验
+func _add_farming_exp() -> void:
+	if SkillSystem:
+		var base_exp = 15  # 每次收获获得15点经验
+		var result = SkillSystem.add_exp(SkillSystem.SkillType.FARMING, base_exp)
+
+		# 发送技能经验变化信号
+		var current_exp = SkillSystem.get_exp(SkillSystem.SkillType.FARMING)
+
+		# 通过 EventBus 发送
+		if EventBus.has_signal("farming_exp_changed"):
+			EventBus.farming_exp_changed.emit(SkillSystem.SkillType.FARMING, current_exp, result["leveled_up"])
+
+		if result["leveled_up"]:
+			_send_message("🌾 农耕升级！Lv.%d" % result["new_level"])
 
 func _get_selected_seed() -> Dictionary:
 	# 从物品数据系统获取番茄种子
@@ -329,6 +386,22 @@ func _make_color_rect(color: Color, size: Vector2i) -> ImageTexture:
 	img.fill(color)
 	var tex = ImageTexture.create_from_image(img)
 	return tex
+
+# ============ 公共方法 ============
+
+## 获取地块中心点（用于点击检测）
+func get_center() -> Vector2:
+	return global_position + PLOT_SIZE / 2
+
+## 获取地块大小
+func get_size() -> Vector2:
+	return PLOT_SIZE
+
+## 发送消息（同时通过本地信号和 EventBus）
+func _send_message(msg: String) -> void:
+	plot_message.emit(msg)
+	if EventBus and EventBus.has_signal("plot_message_received"):
+		EventBus.plot_message_received.emit(msg)
 
 # ============ 调试 ============
 

@@ -75,6 +75,9 @@ var location_label: Label
 var date_label: Label
 var season_label: Label
 
+## 技能信息节点
+var skill_panel: PanelContainer
+
 ## 快捷栏节点
 var hotbar: HBoxContainer
 var tool_slots: Array = []
@@ -113,6 +116,7 @@ func _setup_ui() -> void:
 
 	_create_top_bar()
 	_create_location_info()
+	_create_skill_panel()
 	_create_hotbar()
 	_create_notification_area()
 
@@ -251,6 +255,64 @@ func _create_location_info() -> void:
 	season_label.add_theme_font_size_override("font_size", 20)
 	season_container.add_child(season_label)
 	location_vbox.add_child(season_container)
+
+func _create_skill_panel() -> void:
+	# 技能信息面板
+	skill_panel = PanelContainer.new()
+	skill_panel.name = "SkillPanel"
+	skill_panel.position = Vector2(210, 650)
+	skill_panel.custom_minimum_size = Vector2(170, 60)
+	skill_panel.add_theme_stylebox_override("panel", _create_panel_style())
+	add_child(skill_panel)
+
+	var skill_vbox = VBoxContainer.new()
+	skill_vbox.name = "SkillVBox"
+	skill_vbox.add_theme_constant_override("separation", 2)
+	skill_panel.add_child(skill_vbox)
+
+	# 技能标题
+	var skill_title = HBoxContainer.new()
+	skill_title.name = "SkillTitle"
+	var skill_icon = _create_label("🌾")
+	skill_icon.add_theme_font_size_override("font_size", 14)
+	skill_title.add_child(skill_icon)
+	skill_title.add_child(_create_spacer(4))
+	var skill_title_label = _create_label("农耕 Lv.0")
+	skill_title_label.name = "SkillNameLabel"
+	skill_title_label.add_theme_font_size_override("font_size", 14)
+	skill_title.add_child(skill_title_label)
+	skill_vbox.add_child(skill_title)
+
+	# 经验条容器
+	var exp_container = HBoxContainer.new()
+	exp_container.name = "ExpContainer"
+	skill_vbox.add_child(exp_container)
+
+	# 经验标签
+	var exp_label = Label.new()
+	exp_label.name = "ExpLabel"
+	exp_label.text = "经验: "
+	exp_label.add_theme_font_size_override("font_size", 11)
+	exp_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 1))
+	exp_container.add_child(exp_label)
+
+	# 经验值标签
+	var exp_value_label = Label.new()
+	exp_value_label.name = "ExpValueLabel"
+	exp_value_label.text = "0/100"
+	exp_value_label.add_theme_font_size_override("font_size", 11)
+	exp_value_label.add_theme_color_override("font_color", Color(1, 0.84, 0, 1))
+	exp_container.add_child(exp_value_label)
+
+	# 经验条
+	var exp_bar = ProgressBar.new()
+	exp_bar.name = "FarmingExpBar"
+	exp_bar.max_value = 100
+	exp_bar.value = 0
+	exp_bar.custom_minimum_size = Vector2(150, 10)
+	exp_bar.add_theme_color_override("fill", Color(0.18, 0.8, 0.44, 1))  # 绿色
+	exp_bar.add_theme_color_override("background", Color(0.2, 0.2, 0.2, 0.8))
+	skill_vbox.add_child(exp_bar)
 
 func _create_hotbar() -> void:
 	# 快捷栏容器
@@ -414,8 +476,21 @@ func _connect_signals() -> void:
 		WeatherSystem.weather_changed.connect(_on_weather_changed)
 
 	# EventBus 信号
-	if EventBus and EventBus.has_signal("notification_requested"):
-		EventBus.notification_requested.connect(_on_notification_requested)
+	if EventBus:
+		if EventBus.has_signal("notification_requested"):
+			EventBus.notification_requested.connect(_on_notification_requested)
+		# 连接地块消息信号
+		if EventBus.has_signal("plot_message_received"):
+			EventBus.plot_message_received.connect(_on_plot_message_received)
+		# 连接技能经验变化信号
+		if EventBus.has_signal("farming_exp_changed"):
+			EventBus.farming_exp_changed.connect(_on_farming_exp_changed)
+		# 连接技能升级信号
+		if EventBus.has_signal("skill_level_up"):
+			EventBus.skill_level_up.connect(_on_skill_level_up)
+
+	# 初始更新技能显示
+	_update_skill_display()
 
 	# Player 工具变化信号
 	if Player and Player.has_signal("tool_changed"):
@@ -453,6 +528,23 @@ func _on_weather_changed(new_weather: String, old_weather: String) -> void:
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
 
+func _on_plot_message_received(msg: String) -> void:
+	# 显示地块操作消息
+	_show_notification(msg)
+
+func _on_farming_exp_changed(skill_type: int, exp: int, leveled_up: bool) -> void:
+	# 技能经验变化时更新显示
+	_update_skill_display()
+
+func _on_skill_level_up(skill_type: int, old_level: int, new_level: int) -> void:
+	# 更新技能显示
+	_update_skill_display()
+
+	# 显示升级提示
+	if SkillSystem:
+		var skill_name = SkillSystem.SKILL_NAMES.get(skill_type, "未知")
+		_show_notification("🌟 %s 升级！Lv.%d" % [skill_name, new_level])
+
 func _on_notification_requested(text: String, type: String) -> void:
 	_show_notification(text)
 
@@ -484,6 +576,7 @@ func _update_display() -> void:
 	_update_stamina_display()
 	_update_hp_display()
 	_update_date_display()
+	_update_skill_display()
 	_update_hotbar_display()
 
 func _update_time_display() -> void:
@@ -551,6 +644,35 @@ func _update_date_display() -> void:
 
 	if season_label:
 		season_label.text = SEASON_EMOJIS.get(_current_season, "🌸")
+
+func _update_skill_display() -> void:
+	if not skill_panel:
+		return
+
+	if not SkillSystem:
+		return
+
+	# 获取农耕技能信息
+	var farming_type = SkillSystem.SkillType.FARMING
+	var level = SkillSystem.get_level(farming_type)
+	var exp_percent = SkillSystem.get_exp_percent(farming_type)
+	var current_exp = SkillSystem.get_exp(farming_type)
+
+	# 更新技能名称标签
+	var skill_name_label = skill_panel.get_node_or_null("SkillVBox/SkillTitle/SkillNameLabel") as Label
+	if skill_name_label:
+		skill_name_label.text = "农耕 Lv.%d" % level
+
+	# 更新经验值标签
+	var exp_value_label = skill_panel.get_node_or_null("SkillVBox/ExpContainer/ExpValueLabel") as Label
+	if exp_value_label:
+		var next_level_exp = SkillSystem.EXP_TABLE[level + 1] if level < SkillSystem.MAX_LEVEL else SkillSystem.EXP_TABLE[SkillSystem.MAX_LEVEL]
+		exp_value_label.text = "%d/%d" % [current_exp, next_level_exp]
+
+	# 更新经验条
+	var exp_bar = skill_panel.get_node_or_null("SkillVBox/FarmingExpBar") as ProgressBar
+	if exp_bar:
+		exp_bar.value = exp_percent
 
 func _update_hotbar_display() -> void:
 	for i in range(tool_slots.size()):
