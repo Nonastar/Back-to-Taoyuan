@@ -161,7 +161,7 @@ signal exp_bonus_changed(new_bonus: float)
 
 ## 发出的信号
 
-signal skill_level_up(skill_type: SkillType, new_level: int)
+signal skill_level_up(skill_type: SkillType, old_level: int, new_level: int)
 signal perk_selected(skill_type: SkillType, perk_id: String)
 ```
 

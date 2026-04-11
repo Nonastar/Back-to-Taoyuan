@@ -40,7 +40,7 @@ var is_using_tool: bool = false
 # ============ 初始化 ============
 
 func _ready() -> void:
-	print("[Player] Initialized (Click-to-Interact Mode)")
+	push_warning("[Player] Initialized (Click-to-Interact Mode)")
 
 # ============ 鼠标交互 ============
 
@@ -101,7 +101,7 @@ func _handle_click(screen_pos: Vector2) -> void:
 			# 如果天气有惩罚，显示提示
 			if weather_modifier > 1.0:
 				_show_message("天气炎热，体力消耗增加")
-		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
+		push_warning("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
 		# 点击空白处不消耗体力，只显示提示
 		var msg = _get_interact_fail_message(world_pos)
@@ -121,9 +121,33 @@ func _try_interact_at(world_pos: Vector2) -> bool:
 	var plots = _get_plots_at(world_pos)
 	for plot in plots:
 		if plot.has_method("interact"):
-			if plot.interact(current_tool, Vector2.ZERO):
+			# 保存交互前的状态
+			var original_state = plot.state
+			# 执行交互
+			var success = plot.interact(current_tool, Vector2.ZERO)
+			# 确定动作类型
+			var action = _get_action_name(current_tool)
+			# 发出全局信号
+			if EventBus.has_signal("farm_interaction_result"):
+				EventBus.farm_interaction_result.emit(
+					plot.name,
+					current_tool,
+					action,
+					success,
+					original_state
+				)
+			if success:
 				return true
 	return false
+
+## 根据工具获取动作名称
+func _get_action_name(tool: ToolType) -> String:
+	match tool:
+		ToolType.HOE: return "till"
+		ToolType.WATERING_CAN: return "water"
+		ToolType.SEEDS: return "plant"
+		ToolType.HAND: return "harvest"
+	return "unknown"
 
 func _get_interact_fail_message(world_pos: Vector2) -> String:
 	var plots = _get_plots_at(world_pos)
@@ -208,7 +232,7 @@ func _cycle_tool(direction: int) -> void:
 	_switch_tool(new_tool as ToolType)
 
 func _show_message(msg: String) -> void:
-	print("[Player] %s" % msg)
+	push_warning("[Player] " + str(msg))
 
 # ============ 公共方法 ============
 

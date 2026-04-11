@@ -40,26 +40,31 @@ const GROUP_EMOJIS: Dictionary = {
 
 ## 地点面板定义
 const PANELS: Dictionary = {
-	# 农场区域
+	# 农场区域 (7个)
 	"farm": {"name": "农场", "group": LocationGroup.FARM, "emoji": "🌾"},
 	"animal": {"name": "畜棚", "group": LocationGroup.FARM, "emoji": "🐄"},
 	"home": {"name": "家中", "group": LocationGroup.FARM, "emoji": "🏠"},
-	"fishpond": {"name": "鱼塘", "group": LocationGroup.FARM, "emoji": "🐟"},
+	"cottage": {"name": "小屋", "group": LocationGroup.FARM, "emoji": "🏡"},
+	"workshop": {"name": "作坊", "group": LocationGroup.FARM, "emoji": "⚒️"},
+	"breeding": {"name": "育种室", "group": LocationGroup.FARM, "emoji": "🌱"},
+	"fishpond": {"name": "鱼塘", "group": LocationGroup.FARM, "emoji": "🐟", "scene": "res://src/scenes/interiors/fish_pond.tscn"},
 
-	# 桃源村
+	# 桃源村 (6个)
 	"village": {"name": "村落", "group": LocationGroup.VILLAGE, "emoji": "🏘️"},
-	"shop": {"name": "商店", "group": LocationGroup.VILLAGE, "emoji": "🛒"},
+	"shop": {"name": "商店", "group": LocationGroup.VILLAGE, "emoji": "🛒", "scene": "res://src/scenes/interiors/shop.tscn"},
 	"cooking": {"name": "烹饪", "group": LocationGroup.VILLAGE, "emoji": "🍳"},
 	"upgrade": {"name": "工坊", "group": LocationGroup.VILLAGE, "emoji": "🔧"},
+	"museum": {"name": "博物馆", "group": LocationGroup.VILLAGE, "emoji": "🏛️"},
+	"guild": {"name": "公会", "group": LocationGroup.VILLAGE, "emoji": "⚔️"},
 
-	# 野外
+	# 野外 (2个)
 	"forage": {"name": "采集", "group": LocationGroup.NATURE, "emoji": "🌿"},
 	"fishing": {"name": "钓鱼", "group": LocationGroup.NATURE, "emoji": "🎣"},
 
-	# 矿洞
+	# 矿洞 (1个)
 	"mining": {"name": "采矿", "group": LocationGroup.MINE, "emoji": "💎"},
 
-	# 瀚海
+	# 瀚海 (1个)
 	"hanhai": {"name": "瀚海", "group": LocationGroup.HANHAI, "emoji": "🏜️"}
 }
 
@@ -143,7 +148,7 @@ signal past_bedtime()
 func _ready() -> void:
 	current_panel = "farm"
 	current_group = LocationGroup.FARM
-	print("[NavigationSystem] Initialized at farm")
+	push_warning("[NavigationSystem] Initialized at farm")
 
 ## 获取面板所属组
 func _get_panel_group(panel_key: String) -> int:
@@ -176,6 +181,29 @@ func get_current_panel_emoji() -> String:
 	if panel_info:
 		return panel_info["emoji"]
 	return "🏠"
+
+## 获取当前地点组名称（公开 API）
+func get_current_location_group() -> String:
+	return get_current_group_name()
+
+## 检查面板是否可访问
+func is_panel_accessible(panel_key: String) -> Dictionary:
+	# 检查商店营业时间
+	var shop_check = _check_shop_hours(panel_key)
+	if not shop_check["accessible"]:
+		return {"accessible": false, "reason": shop_check["reason"]}
+
+	# 检查就寝时间
+	if TimeManager and TimeManager.current_hour >= 26:
+		return {"accessible": false, "reason": "已经深夜，无法出行"}
+
+	# 检查体力
+	var cost = get_travel_cost(panel_key)
+	if cost["stamina_cost"] > 0 and PlayerStats:
+		if PlayerStats.stamina < cost["stamina_cost"]:
+			return {"accessible": false, "reason": "体力不足"}
+
+	return {"accessible": true}
 
 ## 获取旅行消耗
 func get_travel_cost(target_panel: String) -> Dictionary:
@@ -359,6 +387,17 @@ func get_accessible_panels() -> Array:
 			result.append(panel_key)
 	return result
 
+## 获取面板场景路径
+func get_panel_scene(panel_key: String) -> String:
+	var panel_info = PANELS.get(panel_key, null)
+	if panel_info and panel_info.has("scene"):
+		return panel_info["scene"]
+	return ""
+
+## 获取面板完整信息
+func get_panel_info(panel_key: String) -> Dictionary:
+	return PANELS.get(panel_key, {})
+
 ## 获取当前组的所有面板
 func get_panels_in_current_group() -> Array:
 	var result = []
@@ -388,7 +427,7 @@ func return_to_farm() -> void:
 	is_paused = false
 	location_changed.emit(current_group, LocationGroup.FARM)
 	EventBus.panel_changed.emit("farm")
-	print("[NavigationSystem] Returned to farm")
+	push_warning("[NavigationSystem] Returned to farm")
 
 # ============ 存档支持 ============
 
@@ -404,4 +443,4 @@ func load_save_data(data: Dictionary) -> void:
 	current_group = data.get("current_group", LocationGroup.FARM)
 	has_horse = data.get("has_horse", false)
 	is_paused = false
-	print("[NavigationSystem] Loaded: panel=%s, group=%s" % [current_panel, GROUP_NAMES[current_group]])
+	push_warning("[NavigationSystem] Loaded: panel=%s, group=%s" % [current_panel, GROUP_NAMES[current_group]])

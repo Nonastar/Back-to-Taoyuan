@@ -8,7 +8,7 @@
 
 ## Overview
 
-导航系统管理玩家在游戏世界中的地点切换。系统维护5个地点组（farm农场、village_area桃源村、nature野外、mine矿洞、hanhai瀚海），共24个地点面板。玩家在不同地点组之间旅行时消耗时间和体力，同一组内切换无消耗。系统处理就寝时间检查、商店营业时间验证、旅行速度加成（马匹、装备）等。
+导航系统管理玩家在游戏世界中的地点切换。系统维护5个地点组（farm农场、village_area桃源村、nature野外、mine矿洞、hanhai瀚海），共17个地点面板。玩家在不同地点组之间旅行时消耗时间和体力，同一组内切换无消耗。系统处理就寝时间检查、商店营业时间验证、旅行速度加成（马匹、装备）等。
 
 系统是游戏核心循环的关键基础设施——它连接所有活动系统（农场、钓鱼、采矿、NPC社交等），并通过旅行消耗塑造玩家的时间管理决策。
 
@@ -28,7 +28,7 @@
 ### Core Rules
 
 1. **地点面板系统**
-   - 游戏共有 24 个地点面板，分布在 5 个地点组中
+   - 游戏共有 17 个地点面板，分布在 5 个地点组中
    - 同组内面板切换不消耗时间/体力
 
 2. **地点分组定义**
@@ -274,7 +274,7 @@ signal hour_changed(new_hour: int)
 
 ## 发出的信号
 
-signal location_changed(new_group: String, old_group: String)
+signal location_changed(new_group: int, old_group: int)
 signal travel_started(time_cost: float, stamina_cost: int)
 signal travel_completed(panel_key: String)
 signal shop_access_denied(panel_key: String, reason: String)

@@ -404,8 +404,8 @@ func get_size() -> Vector2:
 ## 发送消息（同时通过本地信号和 EventBus）
 func _send_message(msg: String) -> void:
 	plot_message.emit(msg)
-	if EventBus and EventBus.has_signal("plot_message_received"):
-		EventBus.plot_message_received.emit(msg)
+	if EventBus and EventBus.has_signal("farm_message"):
+		EventBus.farm_message.emit(msg)
 
 # ============ 调试 ============
 

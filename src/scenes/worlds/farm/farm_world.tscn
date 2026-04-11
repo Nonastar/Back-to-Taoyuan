@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://farmworld001"]
+
+[ext_resource type="Script" path="res://src/scripts/entities/farm_manager.gd" id="1_farm_mgr"]
+
+[node name="FarmWorld" type="Node2D"]
+
+[node name="FarmGround" type="ColorRect" parent="."]
+z_index = -10
+mouse_filter = 2
+offset_left = -100.0
+offset_top = -50.0
+offset_right = 1380.0
+offset_bottom = 770.0
+color = Color(0.4, 0.65, 0.3, 1)
+
+[node name="FarmPath" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 200.0
+offset_top = 500.0
+offset_right = 1080.0
+offset_bottom = 600.0
+color = Color(0.45, 0.35, 0.25, 1)
+
+[node name="FarmArea" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 300.0
+offset_top = 200.0
+offset_right = 900.0
+offset_bottom = 500.0
+color = Color(0.35, 0.55, 0.25, 1)
+
+[node name="Barn" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 900.0
+offset_top = 250.0
+offset_right = 1050.0
+offset_bottom = 400.0
+color = Color(0.6, 0.3, 0.2, 1)
+
+[node name="BarnRoof" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 880.0
+offset_top = 200.0
+offset_right = 1070.0
+offset_bottom = 260.0
+rotation = 0.1
+color = Color(0.5, 0.25, 0.15, 1)
+
+[node name="House" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 100.0
+offset_top = 280.0
+offset_right = 280.0
+offset_bottom = 450.0
+color = Color(0.7, 0.6, 0.5, 1)
+
+[node name="HouseRoof" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 80.0
+offset_top = 220.0
+offset_right = 300.0
+offset_bottom = 290.0
+rotation = -0.1
+color = Color(0.5, 0.35, 0.2, 1)
+
+[node name="Well" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 500.0
+offset_top = 320.0
+offset_right = 560.0
+offset_bottom = 380.0
+color = Color(0.4, 0.4, 0.45, 1)
+
+[node name="Fence1" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 280.0
+offset_top = 180.0
+offset_right = 920.0
+offset_bottom = 200.0
+color = Color(0.5, 0.35, 0.2, 1)
+
+[node name="Fence2" type="ColorRect" parent="."]
+mouse_filter = 2
+offset_left = 280.0
+offset_top = 500.0
+offset_right = 920.0
+offset_bottom = 520.0
+color = Color(0.5, 0.35, 0.2, 1)
+
+[node name="FarmManager" type="Node2D" parent="."]
+script = ExtResource("1_farm_mgr")
+
+[node name="WorldInfo" type="Label" parent="."]
+mouse_filter = 2
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 220.0
+offset_bottom = 60.0
+text = "农场"

@@ -162,7 +162,7 @@ func _on_scene_changed(new_scene):
 | **F01 时间季节** | `season_changed(season)` | 季节图标 |
 | **F02 天气** | `weather_changed(weather)` | 天气图标 |
 | **C02 库存** | `hotbar_selection_changed(slot_index)` | 选中槽位高亮 |
-| **C05 导航** | `location_changed(location_id, location_name)` | 位置信息 |
+| **C05 导航** | `location_changed(new_group: int, old_group: int)` | 位置组变化 |
 | **P08 任务** | `quest_updated(quest_id)` | 任务按钮闪烁 |
 | **任意系统** | `notification_requested(text, type)` | 飘字显示 |
 | **任意系统** | `icon_flash_requested(icon_id)` | 图标闪烁 |
@@ -280,7 +280,7 @@ alpha = lerp(1.0, 0.0, elapsed_time / FLOAT_DURATION)
 | **F01 时间季节** | 硬依赖 | 时间/日期/季节 | `time_changed(hour, minute)`, `day_changed(day, season)`, `season_changed(season)` |
 | **F02 天气** | 硬依赖 | 天气类型 | `weather_changed(weather)` |
 | **C02 库存** | 硬依赖 | 快捷栏选中 | `hotbar_selection_changed(slot_index)` |
-| **C05 导航** | 硬依赖 | 当前位置 | `location_changed(location_id, location_name)` |
+| **C05 导航** | 硬依赖 | 当前位置 | `location_changed(new_group: int, old_group: int)` |
 | **P08 任务** | 软依赖 | 任务更新 | `quest_updated(quest_id)` |
 
 ### 下游依赖 (其他系统依赖 U01)

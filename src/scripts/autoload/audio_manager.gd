@@ -201,8 +201,8 @@ func _connect_signals() -> void:
 	# 连接TimeManager信号
 	if EventBus.has_signal("season_changed"):
 		EventBus.season_changed.connect(_on_season_changed)
-	if EventBus.has_signal("hour_changed"):
-		EventBus.hour_changed.connect(_on_hour_changed)
+	if EventBus.has_signal("time_hour_changed"):
+		EventBus.time_hour_changed.connect(_on_hour_changed)
 
 	# 连接WeatherSystem信号
 	if EventBus.has_signal("weather_changed"):
@@ -315,7 +315,7 @@ func _play_bgm(bgm_name: String) -> void:
 	#     _apply_crossfade(stream)
 
 	if _debug_mode:
-		print("[AudioManager] Playing BGM: ", bgm_name)
+		push_warning("[AudioManager] Playing BGM: " + str(bgm_name))
 	bgm_changed.emit(bgm_name)
 
 ## 应用交叉淡入淡出
@@ -421,7 +421,7 @@ func end_battle_bgm() -> void:
 func play_ambient(ambient_name: String) -> void:
 	# TODO: 加载并播放氛围音
 	if _debug_mode:
-		print("[AudioManager] Playing ambient: ", ambient_name)
+		push_warning("[AudioManager] Playing ambient: " + str(ambient_name))
 
 ## 停止氛围音
 func stop_ambient() -> void:
@@ -455,7 +455,7 @@ func play_sfx(sfx_name: String, volume_db: float = 0.0) -> void:
 	# _play_sfx_stream(stream, volume_db)
 
 	if _debug_mode:
-		print("[AudioManager] Playing SFX: ", sfx_name)
+		push_warning("[AudioManager] Playing SFX: " + str(sfx_name))
 	sfx_triggered.emit(sfx_name)
 
 ## 检查SFX是否被节流
@@ -500,7 +500,7 @@ func play_voice(voice_name: String) -> void:
 		return
 	# TODO: 加载并播放语音
 	if _debug_mode:
-		print("[AudioManager] Playing voice: ", voice_name)
+		push_warning("[AudioManager] Playing voice: " + str(voice_name))
 
 ## 停止语音
 func stop_voice() -> void:
@@ -587,7 +587,7 @@ func _on_season_changed(season: String, year: int) -> void:
 	if _current_bgm_state == "normal" and _is_bgm_playing:
 		switch_to_seasonal_bgm()
 	if _debug_mode:
-		print("[AudioManager] Season changed to: ", season)
+		push_warning("[AudioManager] Season changed to: " + str(season))
 
 func _on_hour_changed(hour: int) -> void:
 	var new_period = _get_time_period(hour)
@@ -596,7 +596,7 @@ func _on_hour_changed(hour: int) -> void:
 		if _current_bgm_state == "normal" and _is_bgm_playing:
 			switch_to_seasonal_bgm()
 	if _debug_mode:
-		print("[AudioManager] Hour changed: ", hour, " -> period: ", new_period)
+		push_warning("[AudioManager] Hour changed: %d -> %s" % [hour, new_period])
 
 func _on_weather_changed(new_weather: String, old_weather: String) -> void:
 	_current_weather = new_weather
@@ -604,7 +604,7 @@ func _on_weather_changed(new_weather: String, old_weather: String) -> void:
 	if _current_bgm_state == "normal" and _is_bgm_playing:
 		switch_to_seasonal_bgm()
 	if _debug_mode:
-		print("[AudioManager] Weather changed: ", old_weather, " -> ", new_weather)
+		push_warning("[AudioManager] Weather changed: %s -> %s" % [old_weather, new_weather])
 
 ## 根据小时获取时段
 func _get_time_period(hour: int) -> String:

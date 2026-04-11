@@ -1,0 +1,152 @@
+[gd_scene format=3 uid="uid://0phiucwn7q5u"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/fishing_mini_game.gd" id="1_fishing"]
+
+[node name="FishingMiniGame" type="CanvasLayer"]
+script = ExtResource("1_fishing")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -250.0
+offset_right = 300.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Title" type="Label" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+text = "钓鱼中..."
+horizontal_alignment = 1
+
+[node name="TimingSection" type="VBoxContainer" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="InstructionLabel" type="Label" parent="Panel/MarginContainer/VBox/TimingSection"]
+layout_mode = 2
+text = "等待鱼儿上钩..."
+horizontal_alignment = 1
+
+[node name="BobberContainer" type="MarginContainer" parent="Panel/MarginContainer/VBox/TimingSection"]
+layout_mode = 2
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="BobberBar" type="ProgressBar" parent="Panel/MarginContainer/VBox/TimingSection/BobberContainer"]
+layout_mode = 2
+max_value = 100.0
+value = 0.0
+show_percentage = false
+
+[node name="FishingSection" type="VBoxContainer" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="FightProgressContainer" type="MarginContainer" parent="Panel/MarginContainer/VBox/FishingSection"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+
+[node name="FightProgressBg" type="ColorRect" parent="Panel/MarginContainer/VBox/FishingSection/FightProgressContainer"]
+layout_mode = 2
+color = Color(0.2, 0.2, 0.2, 1.0)
+
+[node name="FishIndicator" type="Label" parent="Panel/MarginContainer/VBox/FishingSection/FightProgressContainer"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 20.0
+offset_bottom = 40.0
+grow_horizontal = 2
+text = "●"
+horizontal_alignment = 1
+
+[node name="FightStats" type="HBoxContainer" parent="Panel/MarginContainer/VBox/FishingSection"]
+layout_mode = 2
+
+[node name="StaminaLabel" type="Label" parent="Panel/MarginContainer/VBox/FishingSection/FightStats"]
+layout_mode = 2
+text = "鱼的力量:"
+
+[node name="StaminaBar" type="ProgressBar" parent="Panel/MarginContainer/VBox/FishingSection/FightStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 100.0
+show_percentage = true
+
+[node name="PressureLabel" type="Label" parent="Panel/MarginContainer/VBox/FishingSection/FightStats"]
+layout_mode = 2
+text = "压力:"
+
+[node name="PressureBar" type="ProgressBar" parent="Panel/MarginContainer/VBox/FishingSection/FightStats"]
+layout_mode = 2
+size_flags_horizontal = 3
+max_value = 100.0
+value = 0.0
+show_percentage = true
+
+[node name="ResultLabel" type="Label" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="ButtonSection" type="HBoxContainer" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="ReelButton" type="Button" parent="Panel/MarginContainer/VBox/ButtonSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "提竿！[空格]"
+
+[node name="CancelButton" type="Button" parent="Panel/MarginContainer/VBox/ButtonSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "取消[ESC]"
+
+[node name="TouchControls" type="HBoxContainer" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+visible = false
+theme_override_constants/separation = 30
+
+[node name="LeftButton" type="Button" parent="Panel/MarginContainer/VBox/TouchControls"]
+layout_mode = 2
+text = "← 收线"
+
+[node name="Spacer" type="Control" parent="Panel/MarginContainer/VBox/TouchControls"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightButton" type="Button" parent="Panel/MarginContainer/VBox/TouchControls"]
+layout_mode = 2
+text = "收线 →"
+
+[node name="HintLabel" type="Label" parent="Panel/MarginContainer/VBox"]
+layout_mode = 2
+text = "按 ← → 或 A D 收线"
+horizontal_alignment = 1

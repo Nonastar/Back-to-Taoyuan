@@ -263,10 +263,10 @@ if weather == green_rain:
 class_name WeatherSystem extends Node
 
 ## 数据访问
-func get_today_weather() -> WeatherType:
+func get_today_weather() -> String:
     """返回当前日天气类型"""
 
-func get_tomorrow_weather() -> WeatherType:
+func get_tomorrow_weather() -> String:
     """返回明日天气预报"""
 
 func is_rainy() -> bool:
@@ -295,7 +295,7 @@ func is_lightning_risk() -> bool:
     """返回当前是否有雷击风险（stormy + 室外）"""
 
 ## 玩家交互
-func set_tomorrow_weather(weather: WeatherType) -> void:
+func set_tomorrow_weather(weather: String) -> void:
     """玩家通过物品（如雨图腾）强制指定明日天气"""
 
 func clear_tomorrow_weather_override() -> void:
@@ -305,8 +305,8 @@ func has_player_override() -> bool:
     """返回是否有玩家强制天气"""
 
 ## 信号定义
-signal weather_changed(new_weather: WeatherType, old_weather: WeatherType)
-signal forecast_updated(tomorrow_weather: WeatherType)
+signal weather_changed(new_weather: String, old_weather: String)
+signal forecast_updated(tomorrow_weather: String)
 signal lightning_strike_warning()
 ```
 

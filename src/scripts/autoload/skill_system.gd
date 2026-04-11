@@ -103,7 +103,7 @@ func _initialize() -> void:
 			_skills[skill_type] = SkillState.new()
 
 	_initialized = true
-	print("[SkillSystem] Initialized")
+	push_warning("[SkillSystem] Initialized")
 
 # ============ 经验操作 ============
 
@@ -130,7 +130,7 @@ func add_exp(skill_type: int, base_amount: int) -> Dictionary:
 	var old_level = skill.level
 	var result = _check_level_up(skill_type)
 
-	print("[SkillSystem] %s +%d exp (total: %d/%d)" % [
+	push_warning("[SkillSystem] %s +%d exp (total: %d/%d)" % [
 		SKILL_NAMES[skill_type], actual_exp, skill.exp, EXP_TABLE[skill.level]])
 
 	return result
@@ -149,7 +149,7 @@ func _check_level_up(skill_type: int) -> Dictionary:
 		# 通过 EventBus 发送，供其他系统接收
 		if EventBus.has_signal("skill_level_up"):
 			EventBus.skill_level_up.emit(skill_type, old_level, skill.level)
-		print("[SkillSystem] %s leveled up to Lv.%d!" % [SKILL_NAMES[skill_type], skill.level])
+		push_warning("[SkillSystem] %s leveled up to Lv.%d!" % [SKILL_NAMES[skill_type], skill.level])
 
 	return {
 		"leveled_up": leveled_up,
@@ -253,7 +253,7 @@ func set_perk_5(skill_type: int, perk_id: String) -> bool:
 
 	skill.perk_5 = perk_id
 	perk_selected.emit(skill_type, perk_id)
-	print("[SkillSystem] %s Lv5 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
+	push_warning("[SkillSystem] %s Lv5 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
 	return true
 
 ## 设置10级天赋
@@ -274,7 +274,7 @@ func set_perk_10(skill_type: int, perk_id: String) -> bool:
 
 	skill.perk_10 = perk_id
 	perk_selected.emit(skill_type, perk_id)
-	print("[SkillSystem] %s Lv10 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
+	push_warning("[SkillSystem] %s Lv10 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
 	return true
 
 # ============ 经验加成 (来自装备) ============
@@ -282,7 +282,7 @@ func set_perk_10(skill_type: int, perk_id: String) -> bool:
 ## 设置经验加成
 func set_exp_bonus(bonus: float) -> void:
 	_exp_bonus = max(0.0, bonus)
-	print("[SkillSystem] Exp bonus: %.0f%%" % (_exp_bonus * 100))
+	push_warning("[SkillSystem] Exp bonus: %.0f%%" % (_exp_bonus * 100))
 
 ## 获取经验加成
 func get_exp_bonus() -> float:
@@ -329,7 +329,7 @@ func deserialize(data: Dictionary) -> void:
 	_exp_bonus = data.get("exp_bonus", 0.0)
 
 	_initialized = true
-	print("[SkillSystem] Loaded skills data")
+	push_warning("[SkillSystem] Loaded skills data")
 
 # ============ 调试方法 ============
 
@@ -343,7 +343,7 @@ func debug_set_level(skill_type: int, level: int) -> void:
 	if skill:
 		skill.level = clampi(level, 0, MAX_LEVEL)
 		skill.exp = EXP_TABLE[skill.level]
-		print("[SkillSystem] Debug: %s set to Lv.%d" % [SKILL_NAMES[skill_type], skill.level])
+		push_warning("[SkillSystem] Debug: %s set to Lv.%d" % [SKILL_NAMES[skill_type], skill.level])
 
 ## 调试：获取所有技能信息
 func debug_get_all_skills() -> Dictionary:

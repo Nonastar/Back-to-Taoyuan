@@ -12,8 +12,15 @@ const SAVE_SLOT_COUNT: int = 3
 ## 存档目录名称
 const SAVE_DIR: String = "user://saves/"
 
-## 存档文件后缀
-const SAVE_EXTENSION: String = ".json"
+## 加密文件后缀
+const ENCRYPTED_EXTENSION: String = ".sav"
+
+## 加密启用标志
+const ENCRYPTION_ENABLED: bool = true
+
+## 加密密钥 (32字节用于AES-256)
+## 实际项目建议使用动态生成的密钥并安全存储
+var _encryption_key: PackedByteArray = PackedByteArray([0x23, 0x48, 0x5F, 0x72, 0x3A, 0x7C, 0x1E, 0x45, 0x92, 0x0D, 0xF8, 0x4A, 0x6B, 0x1F, 0x3D, 0x8C, 0x52, 0x9E, 0xB1, 0x67, 0x20, 0xC3, 0x5A, 0x8F, 0x1B, 0x4D, 0x7E, 0x2A, 0x9C, 0x63, 0xD5, 0x0F])
 
 # ============ 存档槽元数据 ============
 
@@ -36,7 +43,11 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
 	# 加载存档槽信息
 	_refresh_save_slots()
-	print("[SaveManager] Initialized")
+
+	if ENCRYPTION_ENABLED:
+		push_warning("[SaveManager] Initialized with AES-256 encryption")
+	else:
+		push_warning("[SaveManager] Initialized without encryption")
 
 # ============ 存档操作 ============
 
@@ -64,21 +75,19 @@ func save_game(slot: int) -> bool:
 	# 生成文件路径
 	var file_path = _get_save_path(slot)
 
-	# 写入文件
-	var file = FileAccess.open(file_path, FileAccess.WRITE)
-	if file == null:
-		push_error("[SaveManager] Failed to open save file for writing")
+	# 写入并加密文件
+	var success = _write_encrypted_file(file_path, json_str)
+
+	if not success:
+		push_error("[SaveManager] Failed to save game to slot %d" % slot)
 		EventBus.save_completed.emit(slot, false)
 		return false
-
-	file.store_string(json_str)
-	file.close()
 
 	# 更新存档槽信息
 	_refresh_save_slots()
 
 	EventBus.save_completed.emit(slot, true)
-	print("[SaveManager] Game saved to slot %d" % slot)
+	push_warning("[SaveManager] Game saved to slot %d" % slot)
 	return true
 
 ## 加载游戏存档
@@ -96,15 +105,13 @@ func load_game(slot: int) -> bool:
 	# 生成文件路径
 	var file_path = _get_save_path(slot)
 
-	# 读取文件
-	var file = FileAccess.open(file_path, FileAccess.READ)
-	if file == null:
-		push_error("[SaveManager] Failed to open save file for reading")
+	# 读取并解密文件
+	var json_str = _read_encrypted_file(file_path)
+
+	if json_str == "":
+		push_error("[SaveManager] Failed to load game from slot %d" % slot)
 		EventBus.load_completed.emit(slot, false)
 		return false
-
-	var json_str = file.get_as_text()
-	file.close()
 
 	# 解析JSON
 	var json = JSON.new()
@@ -119,7 +126,7 @@ func load_game(slot: int) -> bool:
 	_apply_save_data(save_data)
 
 	EventBus.load_completed.emit(slot, true)
-	print("[SaveManager] Game loaded from slot %d" % slot)
+	push_warning("[SaveManager] Game loaded from slot %d" % slot)
 	return true
 
 ## 删除存档
@@ -132,7 +139,7 @@ func delete_save(slot: int) -> bool:
 	if FileAccess.file_exists(file_path):
 		DirAccess.remove_absolute(file_path)
 		_refresh_save_slots()
-		print("[SaveManager] Save deleted from slot %d" % slot)
+		push_warning("[SaveManager] Save deleted from slot %d" % slot)
 		return true
 
 	return false
@@ -145,7 +152,60 @@ func has_save(slot: int) -> bool:
 
 ## 获取存档文件路径
 func _get_save_path(slot: int) -> String:
-	return SAVE_DIR + "save_slot_%d%s" % [slot, SAVE_EXTENSION]
+	return SAVE_DIR + "save_slot_%d%s" % [slot, ENCRYPTED_EXTENSION]
+
+# ============ 加密/解密操作 ============
+
+## 写入加密文件
+func _write_encrypted_file(file_path: String, data: String) -> bool:
+	if not ENCRYPTION_ENABLED:
+		# 不加密，直接写入
+		var file = FileAccess.open(file_path, FileAccess.WRITE)
+		if file == null:
+			return false
+		file.store_string(data)
+		file.close()
+		return true
+
+	# 使用FileAccess.open_encrypted()进行AES加密
+	var file = FileAccess.open_encrypted(file_path, FileAccess.WRITE, _encryption_key)
+	if file == null:
+		push_error("[SaveManager] Failed to open encrypted file for writing")
+		return false
+
+	file.store_string(data)
+	file.close()
+	return true
+
+## 读取并解密文件
+func _read_encrypted_file(file_path: String) -> String:
+	if not FileAccess.file_exists(file_path):
+		return ""
+
+	if not ENCRYPTION_ENABLED:
+		# 不加密，直接读取
+		var file = FileAccess.open(file_path, FileAccess.READ)
+		if file == null:
+			return ""
+		var content = file.get_as_text()
+		file.close()
+		return content
+
+	# 使用FileAccess.open_encrypted()读取
+	var file = FileAccess.open_encrypted(file_path, FileAccess.READ, _encryption_key)
+	if file == null:
+		# 可能是旧版本未加密的存档，尝试直接读取
+		push_warning("[SaveManager] Decryption failed, trying raw read...")
+		file = FileAccess.open(file_path, FileAccess.READ)
+		if file == null:
+			return ""
+		var content = file.get_as_text()
+		file.close()
+		return content
+
+	var content = file.get_as_text()
+	file.close()
+	return content
 
 # ============ 数据收集与应用 ============
 
@@ -206,17 +266,16 @@ func _load_slot_metadata(slot: int) -> SaveSlotData:
 	slot_data.slot_index = slot
 
 	var file_path = _get_save_path(slot)
-	var file = FileAccess.open(file_path, FileAccess.READ)
+	var json_str = _read_encrypted_file(file_path)
 
-	if file:
-		var json_str = file.get_as_text()
-		file.close()
+	if json_str == "":
+		return slot_data
 
-		var json = JSON.new()
-		if json.parse(json_str) == OK and "meta" in json.data:
-			var meta = json.data["meta"]
-			slot_data.save_timestamp = meta.get("timestamp", 0)
-			slot_data.day = json.data.get("player", {}).get("day", 1)
+	var json = JSON.new()
+	if json.parse(json_str) == OK and "meta" in json.data:
+		var meta = json.data["meta"]
+		slot_data.save_timestamp = meta.get("timestamp", 0)
+		slot_data.day = json.data.get("player", {}).get("day", 1)
 
 	return slot_data
 

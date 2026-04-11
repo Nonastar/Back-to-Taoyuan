@@ -107,7 +107,7 @@ var _pending_season: Season = Season.SPRING
 func _ready() -> void:
 	# 默认暂停状态，等待游戏开始
 	time_state = TimeState.TIME_PAUSED
-	print("[TimeManager] Initialized: Year %d, %s Day %d, %02d:00" % [
+	push_warning("[TimeManager] Initialized: Year %d, %s Day %d, %02d:00" % [
 		current_year, SEASON_NAMES[current_season], current_day, current_hour])
 
 # ============ 时间处理 ============
@@ -139,14 +139,14 @@ func _advance_hour() -> void:
 		# TODO: 显示午夜警告UI
 
 	# 发送小时变化信号
-	EventBus.hour_changed.emit(current_hour)
+	EventBus.time_hour_changed.emit(current_hour)
 
 	# 发送时间变化信号 (与其他信号统一)
 	EventBus.time_changed.emit(current_day, current_hour, 0)
 
 ## 状态变化处理
 func _state_changed(from: TimeState, to: TimeState) -> void:
-	print("[TimeManager] State: %s -> %s" % [TimeState.keys()[from], TimeState.keys()[to]])
+	push_warning("[TimeManager] State: %s -> %s" % [TimeState.keys()[from], TimeState.keys()[to]])
 
 	if to == TimeState.TIME_PAUSED:
 		EventBus.time_paused.emit()
@@ -169,7 +169,7 @@ func _trigger_sleep(forced: bool = false) -> void:
 		recovery_rate = 0.50  # 强制睡眠
 
 	# 发送睡眠信号
-	EventBus.sleep_triggered.emit(current_hour, forced)
+	EventBus.time_sleep_triggered.emit(current_hour, forced)
 
 	# 执行日结算
 	_do_day_transition()
@@ -203,14 +203,14 @@ func _do_day_transition() -> void:
 	_game_hour_accumulator = 0.0
 
 	# 发送日结算信号
-	EventBus.day_changed.emit(current_day, SEASON_NAMES[current_season])
+	EventBus.time_day_changed.emit(current_day, SEASON_NAMES[current_season], current_year)
 
 	# 发送睡眠结束信号 (带恢复率)
 	# EventBus.sleep_completed.emit(recovery_rate)
 
 	# 继续游戏
 	time_state = TimeState.TIME_RUNNING
-	print("[TimeManager] New day: Year %d, %s Day %d, %02d:00" % [
+	push_warning("[TimeManager] New day: Year %d, %s Day %d, %02d:00" % [
 		current_year, SEASON_NAMES[current_season], current_day, current_hour])
 
 ## 季节切换
@@ -226,9 +226,9 @@ func _do_season_transition() -> void:
 		EventBus.year_changed.emit(current_year)
 
 	# 发送季节变化信号
-	EventBus.season_changed.emit(SEASON_NAMES[current_season], current_year)
+	EventBus.time_season_changed.emit(SEASON_NAMES[current_season], current_year)
 
-	print("[TimeManager] Season changed: %s -> %s (Year %d)" % [
+	push_warning("[TimeManager] Season changed: %s -> %s (Year %d)" % [
 		SEASON_NAMES[old_season], SEASON_NAMES[current_season], current_year])
 
 # ============ 公共API ============
@@ -328,7 +328,7 @@ func set_time(year: int, season: Season, day: int, hour: int) -> void:
 	_game_hour_accumulator = 0.0
 
 	EventBus.time_changed.emit(current_day, current_hour, 0)
-	print("[TimeManager] Time set: %s" % get_full_date_string())
+	push_warning("[TimeManager] Time set: " + get_full_date_string())
 
 ## 推进指定分钟数 (用于操作时间消耗)
 func advance_minutes(minutes: int) -> void:

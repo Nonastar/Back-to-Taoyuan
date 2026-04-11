@@ -6,8 +6,14 @@ extends CanvasLayer
 
 # ============ 常量 ============
 
-## 工具数量
-const TOOL_COUNT: int = 4
+## 快捷栏槽位数量 (设计要求12格)
+const HOTBAR_SLOTS: int = 12
+
+## 快捷键映射 (1-9, 0, -, =)
+const HOTBAR_KEYS: Array = [
+	KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9,
+	KEY_0, KEY_MINUS, KEY_EQUAL
+]
 
 ## 天气 Emoji
 const WEATHER_EMOJIS: Dictionary = {
@@ -71,6 +77,13 @@ var hotbar: HBoxContainer
 var tool_slots: Array = []
 var selected_slot: int = 0
 
+## QuickButtons节点
+var quick_buttons: VBoxContainer
+var button_inventory: PanelContainer
+var button_map: PanelContainer
+var button_quest: PanelContainer
+var button_menu: PanelContainer
+
 ## 工具信息
 const TOOL_EMOJIS: Array = ["🔨", "💧", "🌰", "✋"]
 const TOOL_NAMES: Array = ["锄头", "浇水壶", "种子", "手"]
@@ -103,7 +116,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_update_from_systems()
 
-	print("[HUD] Initialized from scene")
+	push_warning("[HUD] Initialized from scene")
 
 ## 设置节点引用
 func _setup_node_references() -> void:
@@ -129,12 +142,29 @@ func _setup_node_references() -> void:
 
 	# 快捷栏节点
 	hotbar = $Hotbar
-	for i in range(TOOL_COUNT):
+	for i in range(HOTBAR_SLOTS):
 		var slot = hotbar.get_node_or_null("Slot_%d" % i)
 		if slot:
 			tool_slots.append(slot)
 			# 连接鼠标点击信号
 			slot.gui_input.connect(_on_slot_input.bind(i))
+
+	# QuickButtons节点
+	quick_buttons = $QuickButtons
+	button_inventory = quick_buttons.get_node_or_null("BtnInventory") if quick_buttons else null
+	button_map = quick_buttons.get_node_or_null("BtnMap") if quick_buttons else null
+	button_quest = quick_buttons.get_node_or_null("BtnQuest") if quick_buttons else null
+	button_menu = quick_buttons.get_node_or_null("BtnMenu") if quick_buttons else null
+
+	# 连接按钮点击信号
+	if button_inventory:
+		button_inventory.gui_input.connect(_on_quick_button_input.bind("inventory"))
+	if button_map:
+		button_map.gui_input.connect(_on_quick_button_input.bind("map"))
+	if button_quest:
+		button_quest.gui_input.connect(_on_quick_button_input.bind("quest"))
+	if button_menu:
+		button_menu.gui_input.connect(_on_quick_button_input.bind("menu"))
 
 	# 通知标签
 	notification_label = $Notification
@@ -155,16 +185,16 @@ func _connect_signals() -> void:
 
 	# EventBus 时间信号
 	if EventBus:
-		if EventBus.has_signal("hour_changed"):
-			EventBus.hour_changed.connect(_on_hour_changed)
+		if EventBus.has_signal("time_hour_changed"):
+			EventBus.time_hour_changed.connect(_on_hour_changed)
 		if EventBus.has_signal("time_changed"):
 			EventBus.time_changed.connect(_on_time_changed)
-		if EventBus.has_signal("day_changed"):
-			EventBus.day_changed.connect(_on_day_changed)
-		if EventBus.has_signal("notification_requested"):
-			EventBus.notification_requested.connect(_on_notification_requested)
-		if EventBus.has_signal("plot_message_received"):
-			EventBus.plot_message_received.connect(_on_plot_message_received)
+		if EventBus.has_signal("time_day_changed"):
+			EventBus.time_day_changed.connect(_on_day_changed)
+		if EventBus.has_signal("ui_notification"):
+			EventBus.ui_notification.connect(_on_ui_notification)
+		if EventBus.has_signal("farm_message"):
+			EventBus.farm_message.connect(_on_farm_message)
 		if EventBus.has_signal("farming_exp_changed"):
 			EventBus.farming_exp_changed.connect(_on_farming_exp_changed)
 		if EventBus.has_signal("skill_level_up"):
@@ -203,7 +233,7 @@ func _on_money_changed(amount: int) -> void:
 	_money = amount
 	_update_money_display()
 
-func _on_day_changed(day: int, season: String) -> void:
+func _on_day_changed(day: int, season: String, year: int) -> void:
 	_current_day = day
 	_current_season = season
 	_update_date_display()
@@ -229,7 +259,7 @@ func _on_panel_changed(panel_key: String) -> void:
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
 
-func _on_plot_message_received(msg: String) -> void:
+func _on_farm_message(msg: String) -> void:
 	_show_notification(msg)
 
 func _on_farming_exp_changed(skill_type: int, exp: int, leveled_up: bool) -> void:
@@ -241,8 +271,8 @@ func _on_skill_level_up(skill_type: int, old_level: int, new_level: int) -> void
 		var skill_name = SkillSystem.SKILL_NAMES.get(skill_type, "未知")
 		_show_notification("🌟 %s 升级！Lv.%d" % [skill_name, new_level])
 
-func _on_notification_requested(text: String, type: String) -> void:
-	_show_notification(text)
+func _on_ui_notification(message: String, duration: float = 2.0, priority: int = 0) -> void:
+	_show_notification(message)
 
 # ============ 显示更新 ============
 
@@ -487,18 +517,26 @@ func _on_notification_finished() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
+		# 检查快捷键映射
+		for i in range(HOTBAR_KEYS.size()):
+			if event.keycode == HOTBAR_KEYS[i]:
+				_on_hotbar_key(i)
+				return
+
+		# QuickButtons 快捷键
 		match event.keycode:
-			KEY_1: _on_hotbar_key(0)
-			KEY_2: _on_hotbar_key(1)
-			KEY_3: _on_hotbar_key(2)
-			KEY_4: _on_hotbar_key(3)
+			KEY_B: _on_quick_button_pressed("inventory")
+			KEY_M: _on_quick_button_pressed("map")
+			KEY_J: _on_quick_button_pressed("quest")
+			KEY_ESCAPE: _on_quick_button_pressed("menu")
 
 func _on_hotbar_key(index: int) -> void:
-	if index < 0 or index >= tool_slots.size():
+	if index < 0 or index >= HOTBAR_SLOTS or index >= tool_slots.size():
 		return
 
 	_select_slot(index)
 
+	# 通知 Player 切换工具 (仅当槽位有对应工具时)
 	if Player and Player.has_method("_switch_tool"):
 		Player._switch_tool(index)
 
@@ -523,6 +561,60 @@ func _on_slot_clicked(slot_index: int) -> void:
 	# 显示提示
 	var tool_name = TOOL_NAMES[slot_index] if slot_index < TOOL_NAMES.size() else "未知"
 	_show_notification("已选择: %s" % tool_name)
+
+## QuickButtons 输入处理
+func _on_quick_button_input(event: InputEvent, button_id: String) -> void:
+	if event is InputEventMouseButton:
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			_on_quick_button_pressed(button_id)
+
+## QuickButton 被按下
+func _on_quick_button_pressed(button_id: String) -> void:
+	# 播放音效
+	if AudioManager and AudioManager.has_method("play_ui_click"):
+		AudioManager.play_ui_click()
+
+	# 发送信号通知其他系统
+	if EventBus and EventBus.has_signal("quick_button_pressed"):
+		EventBus.quick_button_pressed.emit(button_id)
+
+	# 显示提示
+	match button_id:
+		"inventory":
+			_show_notification("📦 背包 (B)")
+		"map":
+			_show_notification("🗺️ 地图 (M)")
+		"quest":
+			_show_notification("📋 任务 (J)")
+		"menu":
+			_show_notification("⚙️ 菜单 (ESC)")
+
+	# TODO: 实际打开对应的UI面板
+	match button_id:
+		"inventory":
+			_open_inventory()
+		"map":
+			_open_map()
+		"quest":
+			_open_quest()
+		"menu":
+			_open_menu()
+
+## 打开背包UI (占位，待实现)
+func _open_inventory() -> void:
+	push_warning("[HUD] Open inventory - TODO: Implement inventory UI")
+
+## 打开地图UI (占位，待实现)
+func _open_map() -> void:
+	push_warning("[HUD] Open map - TODO: Implement map UI")
+
+## 打开任务UI (占位，待实现)
+func _open_quest() -> void:
+	push_warning("[HUD] Open quest - TODO: Implement quest UI")
+
+## 打开菜单UI (占位，待实现)
+func _open_menu() -> void:
+	push_warning("[HUD] Open menu - TODO: Implement menu UI")
 
 # ============ 公共方法 ============
 

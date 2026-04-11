@@ -7,17 +7,25 @@
       "WebFetch",
       "Bash(dir:*)",
       "Bash(for:*)",
-      "Skill(architecture-decision)",
-      "Skill(architecture-decision:*)",
-      "Skill(prototype)",
-      "Skill(prototype:*)",
-      "Skill(sprint-plan)",
-      "Skill(sprint-plan:*)"
+      "Bash(git:*)",
+      "Bash(echo:*)",
+      "Bash(cd:*)",
+      "Bash(test:*)",
+      "Bash(grep:*)",
+      "Bash(while read:*)",
+      "Bash(xargs -n1 basename)",
+      "Skill(code-review)",
+      "Skill(code-review:*)",
+      "mcp__acp__Edit",
+      "Skill(retrospective)",
+      "Skill(retrospective:*)",
+      "mcp__acp__Write"
     ]
   },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true
   },
+  "outputStyle": "Structural Thinking",
   "apiBaseUrl": "https://code.newcli.com/claude/aws/v1",
   "apiKey": "sk-ant-oat01-4QeMBOe-wsk17pooJylM5c4_ZE39aFjKEKqw5Qko25FxddrRXepM9oSs9kckuQIwL9nJm1xcTpColJeMhtkkFPXmc1fVhAA"
 }

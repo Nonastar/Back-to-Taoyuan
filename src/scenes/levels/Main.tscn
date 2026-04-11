@@ -1,42 +1,64 @@
 [gd_scene format=3 uid="uid://g160ja0thg31"]
 
 [ext_resource type="Script" uid="uid://jsjkyh2r8tk8" path="res://src/scripts/main.gd" id="2_main"]
+[ext_resource type="PackedScene" uid="uid://0phiucwn7q5u" path="res://src/scenes/ui/FishingMiniGame.tscn" id="3_fishing"]
+[ext_resource type="Script" path="res://src/scripts/entities/fishing_spot.gd" id="4_fishing_spot"]
 
-[node name="Main" type="Node2D" unique_id=2083334665]
+[sub_resource type="CircleShape2D" id="CircleShape2D_1"]
+radius = 50.0
+
+[node name="Main" type="Node2D" unique_id=1733890836]
 script = ExtResource("2_main")
 
-[node name="Background" type="ColorRect" parent="." unique_id=80561397]
+[node name="Background" type="ColorRect" parent="." unique_id=1351970011]
 z_index = -10
 offset_right = 1280.0
 offset_bottom = 720.0
 color = Color(0.4, 0.7, 0.4, 1)
 
-[node name="FarmLayer" type="Node2D" parent="." unique_id=642380795]
+[node name="WorldLayer" type="Node2D" parent="." unique_id=1925469170]
 
-[node name="UILayer" type="CanvasLayer" parent="." unique_id=747985671]
+[node name="FarmLayer" type="Node2D" parent="."]
 
-[node name="InstructionsPanel" type="PanelContainer" parent="UILayer" unique_id=1608647198]
+[node name="FishingSpot" type="Area2D" parent="WorldLayer" unique_id=1234567890]
+script = ExtResource("4_fishing_spot")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldLayer/FishingSpot" unique_id=1234567891]
+position = Vector2(900, 300)
+shape = SubResource("CircleShape2D_1")
+
+[node name="SpriteMarker" type="Sprite2D" parent="WorldLayer/FishingSpot" unique_id=1234567892]
+modulate = Color(0.3, 0.5, 0.8, 0.6)
+position = Vector2(900, 300)
+scale = Vector2(60, 40)
+
+[node name="UILayer" type="CanvasLayer" parent="." unique_id=1393822068]
+
+[node name="FishingMiniGame" parent="UILayer" unique_id=548802932 instance=ExtResource("3_fishing")]
+visible = false
+
+[node name="InstructionsPanel" type="PanelContainer" parent="UILayer" unique_id=735659191]
 offset_left = 3.0
 offset_top = 237.0
 offset_right = 193.0
 offset_bottom = 477.0
 
-[node name="MarginContainer" type="MarginContainer" parent="UILayer/InstructionsPanel" unique_id=1144032196]
+[node name="MarginContainer" type="MarginContainer" parent="UILayer/InstructionsPanel" unique_id=1048230268]
 layout_mode = 2
 theme_override_constants/margin_left = 10
 theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="VBox" type="VBoxContainer" parent="UILayer/InstructionsPanel/MarginContainer" unique_id=1679066788]
+[node name="VBox" type="VBoxContainer" parent="UILayer/InstructionsPanel/MarginContainer" unique_id=858055853]
 layout_mode = 2
 
-[node name="Title" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=295837232]
+[node name="Title" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=34496041]
 layout_mode = 2
 text = "操作说明"
 horizontal_alignment = 1
 
-[node name="Controls" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=1956921115]
+[node name="Controls" type="Label" parent="UILayer/InstructionsPanel/MarginContainer/VBox" unique_id=1345202422]
 layout_mode = 2
 text = "鼠标点击 - 使用工具
 1/2/3/4 - 切换工具
@@ -44,7 +66,7 @@ text = "鼠标点击 - 使用工具
 空格 - 暂停/继续
 睡觉按钮 - 跳过一天"
 
-[node name="SleepButton" type="Button" parent="UILayer" unique_id=1914066360]
+[node name="SleepButton" type="Button" parent="UILayer" unique_id=1117480677]
 offset_left = 21.0
 offset_top = 495.0
 offset_right = 161.0

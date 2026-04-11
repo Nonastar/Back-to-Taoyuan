@@ -156,8 +156,12 @@ func _initialize() -> void:
 ## 连接信号
 func _connect_signals() -> void:
 	# 监听睡眠触发信号
-	if EventBus.has_signal("sleep_triggered"):
-		EventBus.sleep_triggered.connect(_on_sleep_triggered)
+	if EventBus.has_signal("time_sleep_triggered"):
+		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
+
+	# 监听农场交互信号
+	if EventBus.has_signal("farm_interaction_result"):
+		EventBus.farm_interaction_result.connect(_on_farm_interaction)
 
 # ============ 配置应用 ============
 
@@ -424,49 +428,33 @@ func set_gender(g: String) -> void:
 # ============ 每日结算 ============
 
 ## 每日重置
-func daily_reset(bed_hour: int = 24) -> Dictionary:
-	var mode = "normal"
-	var recovery_pct = 1.0
-	var money_lost = 0
-
-	# 确定就寝模式
-	if bed_hour < 24:
-		mode = "normal"
-		recovery_pct = 1.0
-	elif bed_hour < 25:
-		mode = "late"
-		var t = clamp(bed_hour - 24, 0, 1)
-		recovery_pct = LATE_NIGHT_RECOVERY_MAX - t * (LATE_NIGHT_RECOVERY_MAX - LATE_NIGHT_RECOVERY_MIN)
-	else:
-		mode = "passout"
-		recovery_pct = PASSOUT_STAMINA_RECOVERY
-		# 昏厥扣钱
-		money_lost = mini(int(floor(money * PASSOUT_MONEY_PENALTY_RATE)), PASSOUT_MONEY_PENALTY_CAP)
-		money = money - money_lost
+## forced 参数表示是否强制（体力耗尽昏厥）
+func daily_reset(bed_hour: int = 24, forced: bool = false) -> Dictionary:
+	var sleep_info = _calculate_sleep_recovery(bed_hour, forced)
 
 	# 计算恢复量
 	var max_s = get_max_stamina()
-	var recovered = int(max_s * recovery_pct)
+	var recovered = int(max_s * sleep_info.recovery_pct)
 
 	# 加上房屋加成
 	if house_stamina_bonus > 0:
 		recovered = mini(recovered + int(max_s * house_stamina_bonus), max_s)
 
-	# 恢复体力
-	stamina = recovered
+	# 恢复体力（累加而非替换，上限为最大体力）
+	stamina = mini(stamina + recovered, max_s)
 
 	# 恢复HP
 	current_hp = get_max_hp()
 
 	# 扣钱
-	if money_lost > 0:
+	if sleep_info.money_lost > 0:
 		_emit_money_changed()
 
 	# 发送信号
 	var result = {
-		"mode": mode,
-		"recovery_pct": recovery_pct,
-		"money_lost": money_lost,
+		"mode": sleep_info.mode,
+		"recovery_pct": sleep_info.recovery_pct,
+		"money_lost": sleep_info.money_lost,
 		"stamina_recovered": stamina,
 		"hp_restored": current_hp
 	}
@@ -476,6 +464,36 @@ func daily_reset(bed_hour: int = 24) -> Dictionary:
 	daily_reset_completed.emit(result)
 
 	return result
+
+## 计算睡眠恢复信息
+class SleepInfo:
+	var mode: String
+	var recovery_pct: float
+	var money_lost: int
+
+func _calculate_sleep_recovery(bed_hour: int, forced: bool) -> SleepInfo:
+	var info = SleepInfo.new()
+
+	# 确定就寝模式
+	if forced:
+		info.mode = "passout"
+		info.recovery_pct = PASSOUT_STAMINA_RECOVERY
+		info.money_lost = mini(int(floor(money * PASSOUT_MONEY_PENALTY_RATE)), PASSOUT_MONEY_PENALTY_CAP)
+		money -= info.money_lost
+	elif bed_hour >= 6 and bed_hour <= 26:
+		info.mode = "normal"
+		info.recovery_pct = 0.9
+		info.money_lost = 0
+	elif bed_hour > 26:
+		info.mode = "late"
+		info.recovery_pct = 0.5
+		info.money_lost = 0
+	else:
+		info.mode = "passout"
+		info.recovery_pct = PASSOUT_STAMINA_RECOVERY
+		info.money_lost = 0
+
+	return info
 
 # ============ 状态查询 ============
 
@@ -500,9 +518,42 @@ func get_state() -> String:
 
 ## 睡眠触发回调
 func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
-	var mode = "passout" if forced else "normal"
 	var hour = bedtime if bedtime > 0 else 24
-	daily_reset(hour)
+	daily_reset(hour, forced)
+
+## 农场交互回调 - 消耗体力
+func _on_farm_interaction(plot_id: String, tool: int, action: String, success: bool, original_state: int) -> void:
+	if not success:
+		return
+
+	# 根据动作和原始状态判断是否消耗体力
+	var should_consume = _should_consume_stamina(action, original_state)
+	if should_consume:
+		var cost = _get_stamina_cost_for_action(action)
+		if cost > 0:
+			consume_stamina(cost)
+
+## 判断是否应该消耗体力
+func _should_consume_stamina(action: String, original_state: int) -> bool:
+	match action:
+		"till":
+			return original_state == 0  # WASTELAND
+		"water":
+			return original_state in [2, 3]  # PLANTED, GROWING
+		"plant":
+			return original_state == 1  # TILLED
+		"harvest":
+			return original_state == 4  # HARVESTABLE
+	return false
+
+## 获取动作的体力消耗
+func _get_stamina_cost_for_action(action: String) -> int:
+	match action:
+		"till": return 5
+		"water": return 3
+		"plant": return 2
+		"harvest": return 1
+	return 0
 
 # ============ 内部方法 ============
 

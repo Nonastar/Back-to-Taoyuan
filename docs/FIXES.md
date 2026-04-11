@@ -665,6 +665,114 @@ func _setup_ui() -> void:
 
 ---
 
+### 问题26: TSCN 文件中不能使用 `#` 注释
+
+**问题:** `.tscn` 场景文件中使用 `#` 注释导致解析错误
+
+**错误:**
+```gdscript
+[gd_scene format=3 uid="uid://0phiucwn7q5u"]
+
+[node name="Foo" type="Node"]
+# 这是一个注释
+```
+
+**错误日志:**
+```
+Parse Error: Parse error. [Resource file res://src/scenes/ui/FishingMiniGame.tscn:8]
+```
+
+**正确写法:**
+```gdscript
+[gd_scene format=3 uid="uid://0phiucwn7q5u"]
+
+[node name="Foo" type="Node"]
+```
+
+**教训:** `.tscn` 文件只支持 Godot 格式的节点定义，不支持 `#` 注释
+
+---
+
+### 问题27: `pass` 关键字不能加下划线
+
+**问题:** 在 `match` 语句中使用 `_pass` 而非 `pass`
+
+**错误:**
+```gdscript
+match state:
+    State.IDLE:
+        _pass  # 错误: _pass 不是有效关键字
+```
+
+**正确写法:**
+```gdscript
+match state:
+    State.IDLE:
+        pass  # 正确
+```
+
+**教训:** GDScript 中空语句块使用 `pass`，不是 `_pass`
+
+---
+
+### 问题28: TextureProgressBar 需要配置纹理
+
+**问题:** 使用 `TextureProgressBar` 但没有配置纹理，导致不显示
+
+**错误:**
+```gdscript
+var _bobber_bar: TextureProgressBar
+# 编译错误
+Trying to assign value of type 'ProgressBar' to a variable of type 'TextureProgressBar'.
+```
+
+**正确写法:**
+```gdscript
+# 方案1: 使用 ProgressBar（更简单）
+var _bobber_bar: ProgressBar
+
+# 方案2: 使用 TextureProgressBar 但配置纹理
+var _bobber_bar: TextureProgressBar
+_bobber_bar.texture_under = load("res://path/to/under.png")
+_bobber_bar.texture_progress = load("res://path/to/progress.png")
+```
+
+**教训:** `TextureProgressBar` 需要配置纹理才可用；简单场景用 `ProgressBar` 更方便
+
+---
+
+### 问题29: 设计文档参数与实际可玩性不匹配
+
+**问题:** 钓鱼小游戏的设计文档参数导致游戏不可玩
+
+**错误设计:**
+```
+时机窗口 = 0.3s + (难度 × 0.05s)  # 难度1只有0.35秒
+浮标下沉时间 = ~0.5s              # 太快消失
+时机窗口触发 = BITE阶段开始立即触发
+```
+
+**错误现象:**
+```
+timing window: 0.35s
+timing_result: "too_late"  # 玩家还没反应过来就过期了
+```
+
+**正确设计:**
+```
+时机窗口 = 1.0s + (难度 × 0.1s)，最长2.0s  # 玩家有反应时间
+浮标下沉速度 = delta / 2.5  # 2.5秒完全消失
+时机窗口触发 = 下沉超过70%时触发
+判定容错 = 时机窗口结束后、浮标消失前提竿 → 进入搏鱼
+```
+
+**教训:**
+1. 设计文档的参数需要考虑人类反应时间（通常 > 0.5秒）
+2. 玩家体验优先于"精确"的数值模拟
+3. 给予容错空间比严格判定更能提升游戏体验
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -691,6 +799,10 @@ func _setup_ui() -> void:
 - [ ] 区分 modulate（颜色）和 texture（形状）
 - [ ] 场景初始化时使用 await get_tree().process_frame 等待 Autoload 就绪
 - [ ] CanvasLayer 不需要也不支持 Control 锚点属性
+- [ ] TSCN 文件中不能使用 `#` 注释
+- [ ] `pass` 关键字没有下划线
+- [ ] TextureProgressBar 配置了纹理或使用 ProgressBar
+- [ ] 游戏参数考虑人类反应时间和可玩性
 
 ---
 

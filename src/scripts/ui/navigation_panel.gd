@@ -49,6 +49,12 @@ var current_panel: String = "farm"
 var _expanded: bool = false
 var _current_group: String = "farm"
 
+## 需要钓鱼按钮的场景
+const FISHING_BUTTON_SCENES: Array = ["fishpond", "fishing"]
+
+## 需要工具栏的场景
+const TOOLBAR_SCENES: Array = ["farm"]
+
 # ============ 初始化 ============
 
 func _ready() -> void:
@@ -166,7 +172,23 @@ func _connect_signals() -> void:
 
 ## 面板按钮被点击
 func _on_panel_button_pressed(panel_key: String) -> void:
+	# 钓鱼面板特殊处理
+	if panel_key == "fishing":
+		_on_fishing_selected()
+		return
+
 	if not NavigationSystem:
+		return
+
+	# 检查是否是室内场景
+	var scene_path = NavigationSystem.get_panel_scene(panel_key)
+	if _is_interior_panel(panel_key):
+		_load_interior(panel_key, scene_path)
+		return
+
+	# 检查是否是世界场景（室内场景返回 false）
+	if _is_world_panel(panel_key):
+		_switch_world(panel_key, scene_path)
 		return
 
 	# 获取旅行消耗预览
@@ -198,16 +220,73 @@ func _on_panel_button_pressed(panel_key: String) -> void:
 		var reason = result.get("reason", "无法前往")
 		_show_error_message(reason)
 
+## 检查是否为室内面板
+func _is_interior_panel(panel_key: String) -> bool:
+	# 检查是否是室内场景（通过 NavigationSystem 的 scene 字段判断）
+	if NavigationSystem:
+		var panel_data = NavigationSystem.get_panel_info(panel_key)
+		if panel_data and panel_data.has("scene"):
+			return not panel_data["scene"].is_empty()
+	# 如果没有 scene 字段，检查是否在室内路径表中
+	if SceneManager and SceneManager.INTERIOR_PATHS.has(panel_key):
+		return true
+	return false
+
+## 检查是否是世界场景
+func _is_world_panel(panel_key: String) -> bool:
+	# 检查是否在 WorldPaths 中
+	if SceneManager and SceneManager.WORLD_PATHS.has(panel_key):
+		return true
+	# 检查是否没有 scene 字段且不是室内
+	if NavigationSystem:
+		var panel_data = NavigationSystem.get_panel_info(panel_key)
+		if panel_data.is_empty():
+			return false
+		# 如果没有 scene 字段，检查是否是导航区域组
+		if not panel_data.has("scene") or panel_data["scene"].is_empty():
+			var group = panel_data.get("group", -1)
+			# 农场、村落、野外、矿洞、瀚海都是世界区域
+			return group in [0, 1, 2, 3, 4]
+	return false
+
+## 加载室内场景
+func _load_interior(panel_key: String, scene_path: String) -> void:
+	if SceneManager:
+		var success = SceneManager.load_interior(panel_key)
+		if success:
+			_show_travel_message("进入%s" % PANEL_INFO.get(panel_key, {}).get("name", panel_key))
+		else:
+			_show_error_message("无法进入该地点")
+	else:
+		push_error("[NavigationPanel] SceneManager not found")
+
+## 切换世界场景
+func _switch_world(panel_key: String, scene_path: String) -> void:
+	push_warning("[NavigationPanel] Switching world: " + str(panel_key))
+
+	if SceneManager:
+		var success = SceneManager.switch_world(panel_key)
+		if success:
+			_show_travel_message("前往%s" % PANEL_INFO.get(panel_key, {}).get("name", panel_key))
+		else:
+			_show_error_message("无法前往该地点")
+	else:
+		push_error("[NavigationPanel] SceneManager not found")
+
 ## 面板变化回调
 func _on_panel_changed(panel_key: String) -> void:
 	current_panel = panel_key
 	_update_button_styles()
+	_update_fishing_button_visibility()
+	_update_toolbar_visibility()
 
 ## 位置变化回调
 func _on_location_changed(new_group: int, old_group: int) -> void:
 	var group_name = NavigationSystem.get_current_group_name().to_lower()
 	_current_group = group_name
 	_update_button_styles()
+	_update_fishing_button_visibility()
+	_update_toolbar_visibility()
 
 ## 旅行开始
 func _on_travel_started(time_cost: float, stamina_cost: int) -> void:
@@ -222,6 +301,83 @@ func _on_shop_access_denied(panel_key: String, reason: String) -> void:
 func _on_past_bedtime() -> void:
 	_show_error_message("已经深夜，无法出行！")
 
+## 钓鱼按钮点击
+func _on_fishing_selected() -> void:
+	print("[NavPanel] _on_fishing_selected called")
+	print("[NavPanel]   current_panel: " + str(current_panel))
+	print("[NavPanel]   current_interior: " + str(SceneManager.get_current_interior() if SceneManager else "N/A"))
+
+	# 获取当前钓鱼地点
+	var fishing_location = _get_current_fishing_location()
+	print("[NavPanel] Fishing location: " + str(fishing_location))
+
+	# 检查是否已经在该钓鱼场景内
+	if SceneManager and SceneManager.get_current_interior() == fishing_location:
+		print("[NavPanel] Already in fishing interior, just starting fishing system")
+		# 已经在鱼塘内，直接启动钓鱼系统（如果尚未开始）
+		if FishingSystem and not FishingSystem.is_fishing():
+			FishingSystem.start_fishing(fishing_location)
+			print("[NavPanel] Fishing started (was already in location)")
+			_show_travel_message("开始钓鱼: " + _get_location_display_name(fishing_location))
+	else:
+		# 加载鱼塘室内场景（这会卸载农场场景）
+		print("[NavPanel] Loading new interior: " + str(fishing_location))
+		if SceneManager:
+			var success = SceneManager.load_interior(fishing_location)
+			print("[NavPanel] load_interior result: " + str(success))
+			if not success:
+				_show_error_message("无法进入钓鱼区域")
+				_update_fishing_button_visibility()
+				return
+
+		# 启动钓鱼系统
+		if FishingSystem:
+			FishingSystem.start_fishing(fishing_location)
+			print("[NavPanel] Fishing started at: " + str(fishing_location))
+			_show_travel_message("开始钓鱼: " + _get_location_display_name(fishing_location))
+		else:
+			push_error("[NavPanel] FishingSystem not found!")
+
+	# 确保钓鱼按钮保持可见
+	_update_fishing_button_visibility()
+
+## 获取当前钓鱼地点
+func _get_current_fishing_location() -> String:
+	# 根据当前位置组确定钓鱼地点
+	# 注意：如果已经在鱼塘内，返回 fishpond
+	if SceneManager:
+		var current_int = SceneManager.get_current_interior()
+		if current_int in ["fishpond", "river", "forest_pond", "mountain_lake", "ocean"]:
+			return current_int
+
+	if NavigationSystem:
+		var group = NavigationSystem.get_current_group_name().to_lower()
+		match group:
+			"farm":
+				return "fishpond"
+			"village":
+				return "river"
+			"nature":
+				return "forest_pond"
+			"mine":
+				return "mountain_lake"
+			"hanhai":
+				return "ocean"
+	return "fishpond"  # 默认返回鱼塘
+
+## 获取地点显示名称
+func _get_location_display_name(location_id: String) -> String:
+	var names: Dictionary = {
+		"fishpond": "鱼塘",
+		"river": "河流",
+		"forest_pond": "森林池塘",
+		"mountain_lake": "高山湖泊",
+		"ocean": "海洋",
+		"witch_swamp": "女巫沼泽",
+		"secret_pond": "隐秘池塘"
+	}
+	return names.get(location_id, location_id)
+
 # ============ 显示更新 ============
 
 ## 更新显示
@@ -230,6 +386,56 @@ func _update_display() -> void:
 		current_panel = NavigationSystem.current_panel
 	_current_group = _get_panel_group(current_panel)
 	_update_button_styles()
+	_update_fishing_button_visibility()
+	_update_toolbar_visibility()
+
+## 更新钓鱼按钮可见性
+func _update_fishing_button_visibility() -> void:
+	if not panel_buttons.has("fishing"):
+		return
+
+	var fishing_btn = panel_buttons["fishing"]
+	var should_show = current_panel in FISHING_BUTTON_SCENES
+
+	if fishing_btn.visible != should_show:
+		fishing_btn.visible = should_show
+
+## 更新工具栏可见性
+func _update_toolbar_visibility() -> void:
+	var should_show = current_panel in TOOLBAR_SCENES
+
+	# 动态查找 HUD 节点
+	var hud = _find_hud()
+	if hud:
+		if hud.has_method("set_farming_tools_visible"):
+			hud.set_farming_tools_visible(should_show)
+	else:
+		push_warning("[NavigationPanel] HUD node not found")
+
+## 查找 HUD 节点
+func _find_hud() -> Node:
+	# 方法1: 通过节点组（最可靠）
+	var hud = get_tree().get_first_node_in_group("hud")
+	if hud:
+		return hud
+
+	# 方法2: 尝试从当前节点向上查找
+	var current = get_node(".")
+	while current:
+		if current.name == "HUD":
+			return current
+		current = current.get_parent()
+
+	# 方法3: 直接尝试常见路径
+	var root = get_tree().root
+	var main = root.get_node_or_null("Main")
+	if main:
+		var ui_layer = main.get_node_or_null("UILayer")
+		if ui_layer:
+			return ui_layer.get_node_or_null("HUD")
+		return main.get_node_or_null("HUD")
+
+	return null
 
 ## 更新按钮样式
 func _update_button_styles() -> void:
@@ -237,6 +443,10 @@ func _update_button_styles() -> void:
 		var btn = panel_buttons[panel_key]
 		var info = PANEL_INFO.get(panel_key, {})
 		var group = info.get("group", "farm")
+
+		# 钓鱼按钮永远不禁用
+		if panel_key == "fishing":
+			btn.disabled = false
 
 		# 创建样式
 		var style = StyleBoxFlat.new()

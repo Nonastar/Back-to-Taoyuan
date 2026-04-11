@@ -40,7 +40,7 @@ signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)
 func _ready() -> void:
 	_setup_farm()
 	_connect_event_signals()
-	print("[FarmManager] Initialized with %d plots" % plots.size())
+	push_warning("[FarmManager] Initialized with %d plots" % plots.size())
 
 func _setup_farm() -> void:
 	# 查找 FarmLayer 节点
@@ -92,8 +92,8 @@ func _create_plot(pos: Vector2i) -> FarmPlot:
 
 func _connect_event_signals() -> void:
 	# 连接睡眠/日结算信号
-	if EventBus.has_signal("sleep_triggered"):
-		EventBus.sleep_triggered.connect(_on_sleep_triggered)
+	if EventBus.has_signal("time_sleep_triggered"):
+		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
 
 # ============ 事件处理 ============
 
@@ -112,10 +112,10 @@ func _on_plot_clicked(position: Vector2) -> void:
 				break
 
 func _on_crop_planted(crop_id: String, position: Vector2) -> void:
-	print("[FarmManager] Crop planted: %s" % crop_id)
+	push_warning("[FarmManager] Crop planted: " + str(crop_id))
 
 func _on_crop_harvested(crop_id: String, quantity: int, quality: int) -> void:
-	print("[FarmManager] Harvested: %d x %s (quality: %d)" % [quantity, crop_id, quality])
+	push_warning("[FarmManager] Harvested: %d x %s (quality: %d)" % [quantity, crop_id, quality])
 
 func _on_plot_message(msg: String) -> void:
 	# 转发地块消息
@@ -195,9 +195,9 @@ func _process_day() -> void:
 	day_processed.emit()
 
 	if is_auto_water_day:
-		print("[FarmManager] Rainy day - crops auto-watered: ", get_stats())
+		push_warning("[FarmManager] Rainy day - crops auto-watered: " + str(get_stats()))
 	else:
-		print("[FarmManager] Day processed: ", get_stats())
+		push_warning("[FarmManager] Day processed: " + str(get_stats()))
 
 # ============ 存档/加载 ============
 
@@ -236,4 +236,4 @@ func load_save_data(data: Dictionary) -> void:
 			plot.quality = d["quality"]
 			plot._update_sprite()
 
-	print("[FarmManager] Loaded %d plots" % plot_dict.size())
+	push_warning("[FarmManager] Loaded %d plots" % plot_dict.size())

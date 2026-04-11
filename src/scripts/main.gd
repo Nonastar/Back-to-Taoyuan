@@ -12,7 +12,6 @@ const NAV_PANEL_SCENE_PATH: String = "res://src/scenes/ui/NavigationPanel.tscn"
 
 # ============ 节点引用 ============
 
-var farm_manager: FarmManager
 var sleep_button: Button
 var hud: CanvasLayer
 var nav_panel: CanvasLayer
@@ -44,9 +43,6 @@ func _initialize_game() -> void:
 
 	# 动态加载导航面板
 	_load_navigation_panel()
-
-	# 创建农场管理器
-	_setup_farm()
 
 	# 连接事件信号
 	_setup_event_signals()
@@ -83,20 +79,6 @@ func _load_navigation_panel() -> void:
 	else:
 		push_error("[Main] Failed to load NavigationPanel scene: " + NAV_PANEL_SCENE_PATH)
 
-func _setup_farm() -> void:
-	farm_manager = FarmManager.new()
-	farm_manager.name = "FarmManager"
-	farm_manager.farm_name = "Home Farm"
-
-	# 添加到 FarmLayer
-	var farm_layer = $FarmLayer
-	if farm_layer:
-		farm_layer.add_child(farm_manager)
-	else:
-		add_child(farm_manager)
-
-	print("[Main] FarmManager created")
-
 func _add_starting_items() -> void:
 	if InventorySystem:
 		InventorySystem.add_item("tomato_seed", 15, 0)
@@ -116,9 +98,12 @@ func _verify_autoloads() -> bool:
 # ============ 事件连接 ============
 
 func _setup_event_signals() -> void:
-	EventBus.hour_changed.connect(_on_hour_changed)
-	EventBus.day_changed.connect(_on_day_changed)
-	EventBus.sleep_triggered.connect(_on_sleep_triggered)
+	if EventBus.has_signal("time_hour_changed"):
+		EventBus.time_hour_changed.connect(_on_hour_changed)
+	if EventBus.has_signal("time_day_changed"):
+		EventBus.time_day_changed.connect(_on_day_changed)
+	if EventBus.has_signal("time_sleep_triggered"):
+		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
 
 # ============ 输入处理 ============
 
@@ -162,13 +147,16 @@ func _on_hour_changed(hour: int) -> void:
 	if hour == 24:
 		print("[Main] 午夜了！")
 
-func _on_day_changed(day: int, season: String) -> void:
-	print("[Main] 新的一天: %s 第%d天" % [season, day])
+func _on_day_changed(day: int, season: String, year: int) -> void:
+	print("[Main] 新的一天: " + season + " 第" + str(day) + "天")
 
 func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
 	var msg = "晚安！" if not forced else "昏倒了..."
-	print("[Main] %s" % msg)
+	print("[Main] " + msg)
 
-	# 处理农场日常
-	if farm_manager:
-		farm_manager._process_day()
+	# 处理农场日常（从 FarmLayer 获取 FarmManager）
+	var farm_layer = get_node_or_null("FarmLayer")
+	if farm_layer:
+		var farm_manager = farm_layer.get_node_or_null("FarmManager")
+		if farm_manager:
+			farm_manager._process_day()
