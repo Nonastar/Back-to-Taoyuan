@@ -21,7 +21,7 @@ var fishing_spot_positions: Array[Vector2] = []
 
 func _ready() -> void:
 	_setup_fishing_spots()
-	push_warning("[FishPond] Initialized")
+	print("[FishPond] Initialized")
 
 ## 设置钓鱼点
 func _setup_fishing_spots() -> void:
@@ -31,7 +31,7 @@ func _setup_fishing_spots() -> void:
 		var marker = water_area.get_node_or_null(marker_name)
 		if marker:
 			fishing_spot_positions.append(marker.position)
-			push_warning("[FishPond] Found fishing marker at: " + str(marker.position))
+			print("[FishPond] Found fishing marker at: " + str(marker.position))
 
 # ============ 交互 ============
 

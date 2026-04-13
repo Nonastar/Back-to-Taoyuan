@@ -262,7 +262,7 @@ func _load_interior(panel_key: String, scene_path: String) -> void:
 
 ## 切换世界场景
 func _switch_world(panel_key: String, scene_path: String) -> void:
-	push_warning("[NavigationPanel] Switching world: " + str(panel_key))
+	print("[NavigationPanel] Switching world: " + str(panel_key))
 
 	if SceneManager:
 		var success = SceneManager.switch_world(panel_key)
@@ -410,7 +410,7 @@ func _update_toolbar_visibility() -> void:
 		if hud.has_method("set_farming_tools_visible"):
 			hud.set_farming_tools_visible(should_show)
 	else:
-		push_warning("[NavigationPanel] HUD node not found")
+		print("[NavigationPanel] HUD node not found")
 
 ## 查找 HUD 节点
 func _find_hud() -> Node:

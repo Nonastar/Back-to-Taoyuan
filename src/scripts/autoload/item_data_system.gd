@@ -42,12 +42,12 @@ func load_all_items() -> void:
 	# 加载所有物品定义文件
 	var dir = DirAccess.open(ITEMS_DATA_PATH)
 	if dir == null:
-		push_warning("[ItemDataSystem] Items directory not found: %s" % ITEMS_DATA_PATH)
-		push_warning("[ItemDataSystem] Creating default items...")
+		print("[ItemDataSystem] Items directory not found: %s" % ITEMS_DATA_PATH)
+		print("[ItemDataSystem] Creating default items...")
 		_create_default_items()
 		_is_loaded = true
 		items_loaded.emit()
-		push_warning("[ItemDataSystem] Loaded %d default items" % _items.size())
+		print("[ItemDataSystem] Loaded %d default items" % _items.size())
 		return
 
 	dir.list_dir_begin()
@@ -67,7 +67,7 @@ func load_all_items() -> void:
 
 	# 如果没有加载任何物品，创建默认物品
 	if items_loaded_count == 0:
-		push_warning("[ItemDataSystem] No items found, creating defaults...")
+		print("[ItemDataSystem] No items found, creating defaults...")
 		_create_default_items()
 
 	# 验证所有物品
@@ -77,7 +77,7 @@ func load_all_items() -> void:
 
 	_is_loaded = true
 	items_loaded.emit()
-	push_warning("[ItemDataSystem] Loaded %d items" % _items.size())
+	print("[ItemDataSystem] Loaded %d items" % _items.size())
 
 # ============ 物品注册 ============
 

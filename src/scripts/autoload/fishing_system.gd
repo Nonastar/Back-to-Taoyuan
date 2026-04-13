@@ -118,7 +118,7 @@ func start_fishing(spot_id: String) -> void:
 	## 检查是否有鱼可钓
 	var available = get_available_fish(spot_id)
 	if available.is_empty():
-		push_warning("[FishingSystem] No fish available at spot: " + str(spot_id))
+		print("[FishingSystem] No fish available at spot: " + str(spot_id))
 		return
 
 	## 检查并消耗鱼饵
@@ -135,7 +135,7 @@ func start_fishing(spot_id: String) -> void:
 	## 随机选择要钓的鱼
 	_current_fish_id = roll_fish(spot_id)
 	if _current_fish_id.is_empty():
-		push_warning("[FishingSystem] Failed to roll fish")
+		print("[FishingSystem] Failed to roll fish")
 		_is_fishing = false
 		return
 
@@ -344,7 +344,7 @@ func _show_fishing_minigame() -> void:
 		mini_game.start_minigame(_current_fish_data, _assist_mode)
 		print("[FishingSystem] FishingMiniGame started (assist=" + str(_assist_mode) + ")")
 	else:
-		push_warning("[FishingSystem] FishingMiniGame not found or invalid")
+		print("[FishingSystem] FishingMiniGame not found or invalid")
 
 func _hide_fishing_minigame() -> void:
 	var mini_game = _get_mini_game()

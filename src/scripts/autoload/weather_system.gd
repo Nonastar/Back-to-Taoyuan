@@ -210,7 +210,7 @@ func _check_green_rain() -> void:
 		today_weather = WEATHER_GREEN_RAIN
 		is_green_rain_active = true
 		if _debug_mode:
-			push_warning("[WeatherSystem] Green rain triggered: Year %d, Summer Day %d" % [year, day])
+			print("[WeatherSystem] Green rain triggered: Year %d, Summer Day %d" % [year, day])
 
 # ============ 天气生成 ============
 
@@ -257,7 +257,7 @@ func _roll_tomorrow_weather() -> void:
 	forecast_updated.emit(tomorrow_weather)
 
 	if _debug_mode:
-		push_warning("[WeatherSystem] Tomorrow weather rolled: " + str(tomorrow_weather))
+		print("[WeatherSystem] Tomorrow weather rolled: " + str(tomorrow_weather))
 
 ## 根据季节概率表生成天气
 func _roll_weather_by_season(season_idx: int) -> String:
@@ -426,7 +426,7 @@ func set_tomorrow_weather(weather: String) -> void:
 	forecast_updated.emit(tomorrow_weather)
 
 	if _debug_mode:
-		push_warning("[WeatherSystem] Player override: tomorrow = " + str(weather))
+		print("[WeatherSystem] Player override: tomorrow = " + str(weather))
 
 ## 清除玩家天气覆盖
 func clear_tomorrow_weather_override() -> void:
@@ -444,7 +444,7 @@ func has_player_weather_override() -> bool:
 func set_rain_boost_active(active: bool) -> void:
 	_rain_boost_active = active
 	if _debug_mode:
-		push_warning("[WeatherSystem] Rain boost: " + str(active))
+		print("[WeatherSystem] Rain boost: " + str(active))
 
 ## 唤雨能力是否激活
 func is_rain_boost_active() -> bool:
@@ -518,7 +518,7 @@ func load_save_data(data: Dictionary) -> void:
 	is_green_rain_active = data.get("is_green_rain_active", false)
 
 	if _debug_mode:
-		push_warning("[WeatherSystem] Loaded: today=%s, tomorrow=%s" % [today_weather, tomorrow_weather])
+		print("[WeatherSystem] Loaded: today=%s, tomorrow=%s" % [today_weather, tomorrow_weather])
 
 # ============ 调试 ============
 

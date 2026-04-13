@@ -132,7 +132,7 @@ func can_build() -> bool:
 ## 建造鱼塘
 func build_pond() -> bool:
 	if not can_build():
-		push_warning("[FishPondSystem] Cannot build pond")
+		print("[FishPondSystem] Cannot build pond")
 		return false
 
 	## 扣除费用
@@ -159,11 +159,11 @@ func can_add_fish(fish_id: String) -> bool:
 		return false
 
 	if not PONDABLE_FISH.has(fish_id):
-		push_warning("[FishPondSystem] Fish not pondable: " + str(fish_id))
+		print("[FishPondSystem] Fish not pondable: " + str(fish_id))
 		return false
 
 	if _fish_in_pond.size() >= _capacity:
-		push_warning("[FishPondSystem] Pond is full")
+		print("[FishPondSystem] Pond is full")
 		return false
 
 	## 检查背包中是否有这条鱼

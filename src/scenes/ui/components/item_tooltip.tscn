@@ -1,0 +1,67 @@
+[gd_scene load_steps=3 format=3 uid="uid://item_tooltip_001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/components/item_tooltip.gd" id="1_script"]
+[ext_resource type="Texture2D" uid="uid://tooltip_bg" path="res://assets/art/ui/tooltip_bg.png" id="2_bg"]
+
+[node name="ItemTooltip" type="PanelContainer"]
+visible = false
+offset_right = 280.0
+offset_bottom = 200.0
+script = ExtResource("1_script")
+
+[node name="Background" type="NinePatchRect" parent="."]
+layout_mode = 2
+texture = ExtResource("2_bg")
+patch_margin_left = 12
+patch_margin_top = 12
+patch_margin_right = 12
+patch_margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="NameLabel" type="RichTextLabel" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/normal_font_size = 16
+bbcode_enabled = true
+
+[node name="TypeLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+
+[node name="Separator1" type="HSeparator" parent="Content"]
+layout_mode = 2
+theme_override_styles/separator/sep_dir = 0
+theme_override_styles/separator/sep_margin = 4
+
+[node name="DescLabel" type="RichTextLabel" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/normal_font_size = 13
+bbcode_enabled = true
+
+[node name="StatsContainer" type="VBoxContainer" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="Separator2" type="HSeparator" parent="Content"]
+layout_mode = 2
+
+[node name="SourceLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.55, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+
+[node name="PriceLabel" type="Label" parent="Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.75, 0.5, 1)
+theme_override_font_sizes/font_size = 12

@@ -34,7 +34,7 @@ var current_save_slot: int = -1
 func _ready() -> void:
 	# 初始化完成，进入标题画面
 	current_state = GameState.TITLE
-	push_warning("[GameManager] %s v%s initialized" % [GAME_NAME, GAME_VERSION])
+	print("[GameManager] %s v%s initialized" % [GAME_NAME, GAME_VERSION])
 
 func _state_changed(from: GameState, to: GameState) -> void:
 	EventBus.game_state_changed.emit(from, to)
@@ -85,5 +85,5 @@ func resume_game() -> void:
 
 ## 退出游戏
 func quit_game() -> void:
-	push_warning("[GameManager] Quitting game...")
+	print("[GameManager] Quitting game...")
 	get_tree().quit()

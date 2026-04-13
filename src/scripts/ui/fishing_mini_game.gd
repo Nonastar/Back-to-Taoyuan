@@ -250,7 +250,7 @@ func _connect_signals() -> void:
 ## assist_mode: 是否启用辅助模式（可选，默认为false）
 func start_minigame(fish_data: Dictionary, assist_mode: bool = false) -> void:
 	if _current_state != State.IDLE:
-		push_warning("[FishingMiniGame] Already active, ignoring start_minigame")
+		print("[FishingMiniGame] Already active, ignoring start_minigame")
 		return
 
 	_fish_data = fish_data

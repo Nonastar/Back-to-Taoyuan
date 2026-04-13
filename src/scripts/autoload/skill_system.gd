@@ -104,14 +104,14 @@ func _initialize() -> void:
 			_skills[skill_type] = SkillState.new()
 
 	_initialized = true
-	push_warning("[SkillSystem] Initialized")
+	print("[SkillSystem] Initialized")
 
 # ============ 经验操作 ============
 
 ## 添加经验
 func add_exp(skill_type: int, base_amount: int) -> Dictionary:
 	if not _is_valid_skill_type(skill_type):
-		push_warning("[SkillSystem] Invalid skill type: %d" % skill_type)
+		print("[SkillSystem] Invalid skill type: %d" % skill_type)
 		return {"leveled_up": false, "new_level": 0, "old_level": 0}
 
 	var skill = _get_skill(skill_type)
@@ -134,7 +134,7 @@ func add_exp(skill_type: int, base_amount: int) -> Dictionary:
 	# 发送经验变化信号
 	exp_changed.emit(skill_type, skill.exp, actual_exp)
 
-	push_warning("[SkillSystem] %s +%d exp (total: %d/%d)" % [
+	print("[SkillSystem] %s +%d exp (total: %d/%d)" % [
 		SKILL_NAMES[skill_type], actual_exp, skill.exp, EXP_TABLE[skill.level]])
 
 	return result
@@ -153,7 +153,7 @@ func _check_level_up(skill_type: int) -> Dictionary:
 		# 通过 EventBus 发送，供其他系统接收
 		if EventBus.has_signal("skill_level_up"):
 			EventBus.skill_level_up.emit(skill_type, old_level, skill.level)
-		push_warning("[SkillSystem] %s leveled up to Lv.%d!" % [SKILL_NAMES[skill_type], skill.level])
+		print("[SkillSystem] %s leveled up to Lv.%d!" % [SKILL_NAMES[skill_type], skill.level])
 
 	return {
 		"leveled_up": leveled_up,
@@ -247,17 +247,17 @@ func set_perk_5(skill_type: int, perk_id: String) -> bool:
 
 	# 检查等级是否足够
 	if skill.level < 5:
-		push_warning("[SkillSystem] Cannot set perk: level %d < 5" % skill.level)
+		print("[SkillSystem] Cannot set perk: level %d < 5" % skill.level)
 		return false
 
 	# 检查是否已选择
 	if skill.perk_5 != "":
-		push_warning("[SkillSystem] Perk 5 already selected: %s" % skill.perk_5)
+		print("[SkillSystem] Perk 5 already selected: %s" % skill.perk_5)
 		return false
 
 	skill.perk_5 = perk_id
 	perk_selected.emit(skill_type, perk_id)
-	push_warning("[SkillSystem] %s Lv5 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
+	print("[SkillSystem] %s Lv5 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
 	return true
 
 ## 设置10级天赋
@@ -268,17 +268,17 @@ func set_perk_10(skill_type: int, perk_id: String) -> bool:
 
 	# 检查等级是否足够
 	if skill.level < 10:
-		push_warning("[SkillSystem] Cannot set perk: level %d < 10" % skill.level)
+		print("[SkillSystem] Cannot set perk: level %d < 10" % skill.level)
 		return false
 
 	# 检查是否已选择
 	if skill.perk_10 != "":
-		push_warning("[SkillSystem] Perk 10 already selected: %s" % skill.perk_10)
+		print("[SkillSystem] Perk 10 already selected: %s" % skill.perk_10)
 		return false
 
 	skill.perk_10 = perk_id
 	perk_selected.emit(skill_type, perk_id)
-	push_warning("[SkillSystem] %s Lv10 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
+	print("[SkillSystem] %s Lv10 perk selected: %s" % [SKILL_NAMES[skill_type], perk_id])
 	return true
 
 # ============ 经验加成 (来自装备) ============
@@ -286,7 +286,7 @@ func set_perk_10(skill_type: int, perk_id: String) -> bool:
 ## 设置经验加成
 func set_exp_bonus(bonus: float) -> void:
 	_exp_bonus = max(0.0, bonus)
-	push_warning("[SkillSystem] Exp bonus: %.0f%%" % (_exp_bonus * 100))
+	print("[SkillSystem] Exp bonus: %.0f%%" % (_exp_bonus * 100))
 
 ## 获取经验加成
 func get_exp_bonus() -> float:
@@ -315,7 +315,7 @@ func serialize() -> Dictionary:
 ## 反序列化加载数据
 func deserialize(data: Dictionary) -> void:
 	if data.is_empty():
-		push_warning("[SkillSystem] Empty save data, using defaults")
+		print("[SkillSystem] Empty save data, using defaults")
 		return
 
 	# 加载技能数据
@@ -333,7 +333,7 @@ func deserialize(data: Dictionary) -> void:
 	_exp_bonus = data.get("exp_bonus", 0.0)
 
 	_initialized = true
-	push_warning("[SkillSystem] Loaded skills data")
+	print("[SkillSystem] Loaded skills data")
 
 # ============ 调试方法 ============
 
@@ -347,7 +347,7 @@ func debug_set_level(skill_type: int, level: int) -> void:
 	if skill:
 		skill.level = clampi(level, 0, MAX_LEVEL)
 		skill.exp = EXP_TABLE[skill.level]
-		push_warning("[SkillSystem] Debug: %s set to Lv.%d" % [SKILL_NAMES[skill_type], skill.level])
+		print("[SkillSystem] Debug: %s set to Lv.%d" % [SKILL_NAMES[skill_type], skill.level])
 
 ## 调试：获取所有技能信息
 func debug_get_all_skills() -> Dictionary:

@@ -1,0 +1,82 @@
+[gd_scene load_steps=5 format=3 uid="uid://item_slot_001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/components/item_slot.gd" id="1_slot"]
+[ext_resource type="Texture2D" uid="uid://slot_bg_default" path="res://assets/art/ui/slot_default.png" id="2_bg_default"]
+[ext_resource type="Texture2D" uid="uid://slot_bg_hover" path="res://assets/art/ui/slot_hover.png" id="3_bg_hover"]
+[ext_resource type="Texture2D" uid="uid://slot_bg_selected" path="res://assets/art/ui/slot_selected.png" id="4_bg_selected"]
+
+[node name="ItemSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(56, 56)
+offset_right = 56.0
+offset_bottom = 56.0
+script = ExtResource("1_slot")
+
+[node name="Background" type="NinePatchRect" parent="."]
+layout_mode = 2
+texture = ExtResource("2_bg_default")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 4
+patch_margin_bottom = 4
+
+[node name="Icon" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Count" type="Label" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 8
+size_flags_vertical = 8
+theme_override_font_sizes/font_size = 14
+text = "x99"
+horizontal_alignment = 2
+vertical_alignment = 2
+
+[node name="LockIcon" type="TextureRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -18.0
+offset_top = 2.0
+offset_right = -4.0
+offset_bottom = 16.0
+grow_horizontal = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="QualityBorder" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_styles/normal/corner_radius_top_left = 4
+theme_override_styles/normal/corner_radius_top_right = 4
+theme_override_styles/normal/corner_radius_bottom_right = 4
+theme_override_styles/normal/corner_radius_bottom_left = 4
+
+[node name="Selection" type="NinePatchRect" parent="."]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+texture = ExtResource("4_bg_selected")
+patch_margin_left = 4
+patch_margin_top = 4
+patch_margin_right = 4
+patch_margin_bottom = 4
+
+[node name="HoverDetector" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ContextMenuHost" type="Control" parent="."]
+layout_mode = 2
+mouse_filter = 2

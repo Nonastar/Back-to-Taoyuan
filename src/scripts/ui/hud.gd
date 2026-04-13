@@ -91,6 +91,10 @@ const TOOL_NAMES: Array = ["锄头", "浇水壶", "种子", "手"]
 ## 通知标签
 var notification_label: Label
 
+## 库存面板引用 (动态加载)
+var inventory_panel: CanvasLayer = null
+const INVENTORY_SCENE_PATH: String = "res://src/scenes/ui/inventory_panel.tscn"
+
 ## 状态追踪
 var _current_stamina: int = 0
 var _max_stamina: int = 100
@@ -116,7 +120,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_update_from_systems()
 
-	push_warning("[HUD] Initialized from scene")
+	print("[HUD] Initialized from scene")
 
 ## 设置节点引用
 func _setup_node_references() -> void:
@@ -626,21 +630,37 @@ func _on_quick_button_pressed(button_id: String) -> void:
 		"menu":
 			_open_menu()
 
-## 打开背包UI (占位，待实现)
+## 打开背包UI (动态加载)
 func _open_inventory() -> void:
-	push_warning("[HUD] Open inventory - TODO: Implement inventory UI")
+	# 首次打开时动态加载
+	if inventory_panel == null:
+		var packed_scene = load(INVENTORY_SCENE_PATH)
+		if packed_scene:
+			inventory_panel = packed_scene.instantiate()
+			add_child(inventory_panel)
+		else:
+			push_error("[HUD] Failed to load inventory panel: " + INVENTORY_SCENE_PATH)
+			return
+
+	if inventory_panel.has_method("show_panel"):
+		if inventory_panel.visible:
+			inventory_panel.hide_panel()
+		else:
+			inventory_panel.show_panel()
+	else:
+		inventory_panel.visible = not inventory_panel.visible
 
 ## 打开地图UI (占位，待实现)
 func _open_map() -> void:
-	push_warning("[HUD] Open map - TODO: Implement map UI")
+	print("[HUD] Open map - TODO: Implement map UI")
 
 ## 打开任务UI (占位，待实现)
 func _open_quest() -> void:
-	push_warning("[HUD] Open quest - TODO: Implement quest UI")
+	print("[HUD] Open quest - TODO: Implement quest UI")
 
 ## 打开菜单UI (占位，待实现)
 func _open_menu() -> void:
-	push_warning("[HUD] Open menu - TODO: Implement menu UI")
+	print("[HUD] Open menu - TODO: Implement menu UI")
 
 # ============ 公共方法 ============
 

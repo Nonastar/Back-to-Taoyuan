@@ -81,7 +81,7 @@ func _load_initial_world() -> void:
 ## 切换世界
 func switch_world(target: String) -> bool:
 	if is_transitioning:
-		push_warning("[SceneManager] Already transitioning, ignoring switch request")
+		print("[SceneManager] Already transitioning, ignoring switch request")
 		return false
 
 	if not WORLD_PATHS.has(target):
@@ -119,7 +119,7 @@ func switch_world(target: String) -> bool:
 			EventBus.panel_changed.emit(target)
 
 	world_changed.emit(target, old_world)
-	push_warning("[SceneManager] Switched to world: " + str(target))
+	print("[SceneManager] Switched to world: " + str(target))
 
 	return true
 
@@ -163,7 +163,7 @@ func load_interior(building_id: String) -> bool:
 ## 退出室内场景
 func exit_interior() -> void:
 	if current_interior.is_empty():
-		push_warning("[SceneManager] Not in an interior")
+		print("[SceneManager] Not in an interior")
 		return
 
 	var old_interior = current_interior
@@ -186,7 +186,7 @@ func exit_interior() -> void:
 	_load_farm_layer()
 
 	interior_exited.emit(old_interior)
-	push_warning("[SceneManager] Exited interior: " + str(old_interior))
+	print("[SceneManager] Exited interior: " + str(old_interior))
 
 ## 获取当前世界
 func get_current_world() -> String:
@@ -205,7 +205,7 @@ func teleport_player(position: Vector2) -> void:
 	# 注意：Player 是 Autoload，这里只是记录位置
 	saved_world_position = position
 	player_teleported.emit(position)
-	push_warning("[SceneManager] Player teleported to: " + str(position))
+	print("[SceneManager] Player teleported to: " + str(position))
 
 # ============ 内部方法 ============
 
@@ -255,7 +255,7 @@ func _load_farm_layer() -> void:
 	farm_manager.farm_name = "Home Farm"
 	farm_layer.add_child(farm_manager)
 
-	push_warning("[SceneManager] FarmManager reloaded")
+	print("[SceneManager] FarmManager reloaded")
 
 func _unload_current_interior() -> void:
 	if current_interior.is_empty():
@@ -319,12 +319,12 @@ func _get_world_layer() -> Node2D:
 
 ## 调试函数：列出所有可用场景
 func debug_list_scenes() -> void:
-	push_warning("[SceneManager] Available worlds:")
+	print("[SceneManager] Available worlds:")
 	for world_id in WORLD_PATHS:
 		var prefix = "  " if world_id != current_world else " * "
-		push_warning("%s%s: %s" % [prefix, world_id, WORLD_PATHS[world_id]])
+		print(prefix + world_id + ": " + WORLD_PATHS[world_id])
 
-	push_warning("[SceneManager] Available interiors:")
+	print("[SceneManager] Available interiors:")
 	for interior_id in INTERIOR_PATHS:
 		var prefix = "  " if interior_id != current_interior else " * "
-		push_warning("%s%s: %s" % [prefix, interior_id, INTERIOR_PATHS[interior_id]])
+		print(prefix + interior_id + ": " + INTERIOR_PATHS[interior_id])

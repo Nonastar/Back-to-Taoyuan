@@ -75,7 +75,7 @@ var _debug_mode: bool = false
 
 func _ready() -> void:
 	if _debug_mode:
-		push_warning("[EventBus] Initialized")
+		print("[EventBus] Initialized")
 
 func enable_debug() -> void:
 	_debug_mode = true

@@ -33,7 +33,7 @@ var selected_seed_id: String = "tomato_seed"
 
 func _ready() -> void:
 	_initialize_tools()
-	push_warning("[ToolSystem] Initialized")
+	print("[ToolSystem] Initialized")
 
 func _initialize_tools() -> void:
 	_register_tool(ToolDef.new("hoe", "锄头", ToolType.HOE, 5.0))

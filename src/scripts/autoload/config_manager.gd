@@ -36,7 +36,7 @@ func _ready() -> void:
 ## 注册可配置系统
 func register_configurable(system_name: String, node: Node) -> void:
 	_configurable_systems[system_name] = node
-	push_warning("[ConfigManager] Registered configurable system: %s" % system_name)
+	print("[ConfigManager] Registered configurable system: %s" % system_name)
 
 ## 注销可配置系统
 func unregister_configurable(system_name: String) -> void:
@@ -71,7 +71,7 @@ func _load_all_configs() -> void:
 
 	_apply_configs()
 	configs_loaded.emit()
-	push_warning("[ConfigManager] All configs loaded successfully")
+	print("[ConfigManager] All configs loaded successfully")
 
 ## 加载单个配置
 func _load_config(config_class: GDScript, path: String) -> Resource:
@@ -111,7 +111,7 @@ func _save_config(config: Resource, config_name: String) -> bool:
 	var err = ResourceSaver.save(config, path)
 	if err == OK:
 		config_saved.emit(config_name)
-		push_warning("[ConfigManager] Config saved: %s" % config_name)
+		print("[ConfigManager] Config saved: %s" % config_name)
 		return true
 	else:
 		push_error("[ConfigManager] Failed to save config: %s (error: %d)" % [config_name, err])

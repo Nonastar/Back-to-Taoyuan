@@ -148,7 +148,7 @@ signal past_bedtime()
 func _ready() -> void:
 	current_panel = "farm"
 	current_group = LocationGroup.FARM
-	push_warning("[NavigationSystem] Initialized at farm")
+	print("[NavigationSystem] Initialized at farm")
 
 ## 获取面板所属组
 func _get_panel_group(panel_key: String) -> int:
@@ -427,7 +427,7 @@ func return_to_farm() -> void:
 	is_paused = false
 	location_changed.emit(current_group, LocationGroup.FARM)
 	EventBus.panel_changed.emit("farm")
-	push_warning("[NavigationSystem] Returned to farm")
+	print("[NavigationSystem] Returned to farm")
 
 # ============ 存档支持 ============
 
@@ -443,4 +443,4 @@ func load_save_data(data: Dictionary) -> void:
 	current_group = data.get("current_group", LocationGroup.FARM)
 	has_horse = data.get("has_horse", false)
 	is_paused = false
-	push_warning("[NavigationSystem] Loaded: panel=%s, group=%s" % [current_panel, GROUP_NAMES[current_group]])
+	print("[NavigationSystem] Loaded: panel=%s, group=%s" % [current_panel, GROUP_NAMES[current_group]])

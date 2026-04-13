@@ -40,7 +40,7 @@ var is_using_tool: bool = false
 # ============ 初始化 ============
 
 func _ready() -> void:
-	push_warning("[Player] Initialized (Click-to-Interact Mode)")
+	print("[Player] Initialized (Click-to-Interact Mode)")
 
 # ============ 鼠标交互 ============
 
@@ -101,7 +101,7 @@ func _handle_click(screen_pos: Vector2) -> void:
 			# 如果天气有惩罚，显示提示
 			if weather_modifier > 1.0:
 				_show_message("天气炎热，体力消耗增加")
-		push_warning("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
+		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
 		# 点击空白处不消耗体力，只显示提示
 		var msg = _get_interact_fail_message(world_pos)
@@ -222,7 +222,7 @@ func _find_farm_manager() -> Node:
 func _switch_tool(tool: ToolType) -> void:
 	## 边界检查：确保工具索引在有效范围内
 	if tool < 0 or tool >= ToolType.size():
-		push_warning("[Player] Invalid tool type: " + str(tool))
+		print("[Player] Invalid tool type: " + str(tool))
 		return
 
 	if current_tool != tool:
@@ -237,7 +237,7 @@ func _cycle_tool(direction: int) -> void:
 	_switch_tool(new_tool as ToolType)
 
 func _show_message(msg: String) -> void:
-	push_warning("[Player] " + str(msg))
+	print("[Player] " + str(msg))
 
 # ============ 公共方法 ============
 

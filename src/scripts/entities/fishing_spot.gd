@@ -179,7 +179,7 @@ func stop_fishing() -> void:
 func _show_message(msg: String) -> void:
 	if EventBus:
 		EventBus.notification_show.emit(msg, 2.0)
-	push_warning("[FishingSpot] " + str(msg))
+	print("[FishingSpot] " + str(msg))
 
 # ============ 状态更新 ============
 

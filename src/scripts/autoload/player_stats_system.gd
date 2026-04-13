@@ -181,7 +181,7 @@ func apply_config(config: PlayerConfig) -> void:
 	# 金钱配置
 	money = config.initial_money
 
-	push_warning("[PlayerStats] Config applied: max_stamina=%d, max_hp=%d" % [get_max_stamina(), get_max_hp()])
+	print("[PlayerStats] Config applied: max_stamina=%d, max_hp=%d" % [get_max_stamina(), get_max_hp()])
 
 ## 应用配置 (内部)
 func _apply_config(config: PlayerConfig) -> void:
@@ -297,7 +297,7 @@ func restore_stamina(amount: int) -> void:
 ## 提升体力上限等级
 func upgrade_max_stamina() -> bool:
 	if stamina_cap_level >= STAMINA_CAPS.size() - 1:
-		push_warning("[PlayerStats] Max stamina level already reached")
+		print("[PlayerStats] Max stamina level already reached")
 		return false
 
 	stamina_cap_level += 1
@@ -391,7 +391,7 @@ func spend_money(amount: int) -> bool:
 		return true
 
 	if money < amount:
-		push_warning("[PlayerStats] Not enough money: have %d, need %d" % [money, amount])
+		print("[PlayerStats] Not enough money: have %d, need %d" % [money, amount])
 		return false
 
 	money -= amount
@@ -615,7 +615,7 @@ func serialize() -> Dictionary:
 ## 反序列化加载数据
 func deserialize(data: Dictionary) -> void:
 	if data.is_empty():
-		push_warning("[PlayerStats] Empty save data, using defaults")
+		print("[PlayerStats] Empty save data, using defaults")
 		_initialize()
 		return
 
@@ -642,5 +642,5 @@ func deserialize(data: Dictionary) -> void:
 	_emit_hp_changed()
 	_emit_money_changed()
 
-	push_warning("[PlayerStats] Loaded: stamina=%d/%d, hp=%d/%d, money=%d" % [
+	print("[PlayerStats] Loaded: stamina=%d/%d, hp=%d/%d, money=%d" % [
 		stamina, get_max_stamina(), current_hp, get_max_hp(), money])

@@ -178,10 +178,10 @@ func validate() -> bool:
 		return false
 
 	if locations.is_empty():
-		push_warning("[FishDef] Warning: %s has no locations" % id)
+		print("[FishDef] Warning: %s has no locations" % id)
 
 	if seasons.is_empty():
-		push_warning("[FishDef] Warning: %s has no seasons" % id)
+		print("[FishDef] Warning: %s has no seasons" % id)
 
 	return true
 

@@ -49,7 +49,7 @@ signal queue_changed(queue_size: int)
 func _ready() -> void:
 	_connect_signals()
 	if _debug_mode:
-		push_warning("[NotificationManager] Initialized")
+		print("[NotificationManager] Initialized")
 
 ## 连接EventBus信号
 func _connect_signals() -> void:
@@ -110,7 +110,7 @@ func clear_queue() -> void:
 	_queue.clear()
 	queue_changed.emit(_queue.size())
 	if _debug_mode:
-		push_warning("[NotificationManager] Queue cleared")
+		print("[NotificationManager] Queue cleared")
 
 ## 获取队列长度
 func get_queue_size() -> int:
@@ -128,7 +128,7 @@ func _add_to_queue(notification: Dictionary) -> void:
 	if _queue.size() >= MAX_QUEUE_SIZE:
 		_queue.pop_front()
 		if _debug_mode:
-			push_warning("[NotificationManager] Queue full, removing oldest")
+			print("[NotificationManager] Queue full, removing oldest")
 
 	# 按优先级插入 (高优先级在前)
 	var inserted = false
@@ -182,7 +182,7 @@ func _show_notification(text: String, duration: float, color: Color) -> void:
 ## 备用通知显示 (无HUD时)
 func _show_fallback_notification(text: String, duration: float, color: Color) -> void:
 	# 直接打印到控制台作为后备
-	push_warning("[Notification] " + text)
+	print("[Notification] " + text)
 	notification_finished.emit(text)
 	_show_next()
 

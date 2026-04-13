@@ -107,7 +107,7 @@ var _pending_season: Season = Season.SPRING
 func _ready() -> void:
 	# 默认暂停状态，等待游戏开始
 	time_state = TimeState.TIME_PAUSED
-	push_warning("[TimeManager] Initialized: Year %d, %s Day %d, %02d:00" % [
+	print("[TimeManager] Initialized: Year %d, %s Day %d, %02d:00" % [
 		current_year, SEASON_NAMES[current_season], current_day, current_hour])
 
 # ============ 时间处理 ============
@@ -146,7 +146,7 @@ func _advance_hour() -> void:
 
 ## 状态变化处理
 func _state_changed(from: TimeState, to: TimeState) -> void:
-	push_warning("[TimeManager] State: %s -> %s" % [TimeState.keys()[from], TimeState.keys()[to]])
+	print("[TimeManager] State: %s -> %s" % [TimeState.keys()[from], TimeState.keys()[to]])
 
 	if to == TimeState.TIME_PAUSED:
 		EventBus.time_paused.emit()
@@ -210,7 +210,7 @@ func _do_day_transition() -> void:
 
 	# 继续游戏
 	time_state = TimeState.TIME_RUNNING
-	push_warning("[TimeManager] New day: Year %d, %s Day %d, %02d:00" % [
+	print("[TimeManager] New day: Year %d, %s Day %d, %02d:00" % [
 		current_year, SEASON_NAMES[current_season], current_day, current_hour])
 
 ## 季节切换
@@ -228,7 +228,7 @@ func _do_season_transition() -> void:
 	# 发送季节变化信号
 	EventBus.time_season_changed.emit(SEASON_NAMES[current_season], current_year)
 
-	push_warning("[TimeManager] Season changed: %s -> %s (Year %d)" % [
+	print("[TimeManager] Season changed: %s -> %s (Year %d)" % [
 		SEASON_NAMES[old_season], SEASON_NAMES[current_season], current_year])
 
 # ============ 公共API ============
@@ -328,7 +328,7 @@ func set_time(year: int, season: Season, day: int, hour: int) -> void:
 	_game_hour_accumulator = 0.0
 
 	EventBus.time_changed.emit(current_day, current_hour, 0)
-	push_warning("[TimeManager] Time set: " + get_full_date_string())
+	print("[TimeManager] Time set: " + get_full_date_string())
 
 ## 推进指定分钟数 (用于操作时间消耗)
 func advance_minutes(minutes: int) -> void:
@@ -363,5 +363,5 @@ func apply_config(config: TimeConfig) -> void:
 	recovery_rate = config.early_bed_recovery_rate
 	time_scale = config.default_time_scale
 
-	push_warning("[TimeManager] Config applied: hour_duration=%sms, days_per_season=%d" % [
+	print("[TimeManager] Config applied: hour_duration=%sms, days_per_season=%d" % [
 		hour_duration_ms, days_per_season])

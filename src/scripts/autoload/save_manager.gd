@@ -45,9 +45,9 @@ func _ready() -> void:
 	_refresh_save_slots()
 
 	if ENCRYPTION_ENABLED:
-		push_warning("[SaveManager] Initialized with AES-256 encryption")
+		print("[SaveManager] Initialized without encryption")
 	else:
-		push_warning("[SaveManager] Initialized without encryption")
+		print("[SaveManager] Initialized without encryption")
 
 # ============ 存档操作 ============
 
@@ -87,7 +87,7 @@ func save_game(slot: int) -> bool:
 	_refresh_save_slots()
 
 	EventBus.save_completed.emit(slot, true)
-	push_warning("[SaveManager] Game saved to slot %d" % slot)
+	print("[SaveManager] Game saved to slot %d" % slot)
 	return true
 
 ## 加载游戏存档
@@ -126,7 +126,7 @@ func load_game(slot: int) -> bool:
 	_apply_save_data(save_data)
 
 	EventBus.load_completed.emit(slot, true)
-	push_warning("[SaveManager] Game loaded from slot %d" % slot)
+	print("[SaveManager] Game loaded from slot %d" % slot)
 	return true
 
 ## 删除存档
@@ -139,7 +139,7 @@ func delete_save(slot: int) -> bool:
 	if FileAccess.file_exists(file_path):
 		DirAccess.remove_absolute(file_path)
 		_refresh_save_slots()
-		push_warning("[SaveManager] Save deleted from slot %d" % slot)
+		print("[SaveManager] Decryption failed, trying raw read...")
 		return true
 
 	return false
@@ -195,7 +195,7 @@ func _read_encrypted_file(file_path: String) -> String:
 	var file = FileAccess.open_encrypted(file_path, FileAccess.READ, _encryption_key)
 	if file == null:
 		# 可能是旧版本未加密的存档，尝试直接读取
-		push_warning("[SaveManager] Decryption failed, trying raw read...")
+		print("[SaveManager] Decryption failed, trying raw read...")
 		file = FileAccess.open(file_path, FileAccess.READ)
 		if file == null:
 			return ""

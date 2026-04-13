@@ -69,7 +69,7 @@ func validate() -> bool:
 		return false
 
 	if edible and stamina_restore <= 0 and health_restore <= 0:
-		push_warning("[ItemDef] Warning: edible item %s has no restore values" % id)
+		print("[ItemDef] Warning: edible item %s has no restore values" % id)
 
 	return true
 

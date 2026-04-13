@@ -373,7 +373,7 @@ func sort_items() -> void:
 ## 扩展背包容量 (+4格)
 func expand_capacity() -> bool:
 	if backpack_size >= MAX_CAPACITY:
-		push_warning("[InventorySystem] Already at max capacity: %d" % MAX_CAPACITY)
+		print("[InventorySystem] Already at max capacity: %d" % MAX_CAPACITY)
 		return false
 
 	var new_size = mini(backpack_size + EXPANSION_AMOUNT, MAX_CAPACITY)
@@ -636,7 +636,7 @@ func apply_config(config: PlayerConfig) -> void:
 
 	max_stack_size = config.max_stack_size
 
-	push_warning("[InventorySystem] Config applied: backpack_size=%d" % backpack_size)
+	print("[InventorySystem] Config applied: backpack_size=%d" % backpack_size)
 
 # ============ 仓库支持 (预留) ============
 

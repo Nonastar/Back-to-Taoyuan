@@ -773,6 +773,271 @@ timing_result: "too_late"  # 玩家还没反应过来就过期了
 
 ---
 
+### 问题30: Tween API 错误 (Godot 4.6)
+
+**问题:** `Tween.TRANS_EASE_OUT` 和 `Tween.TRANSITION_EASE_OUT` 都不存在
+
+**错误:**
+```gdscript
+# 错误: TRANS_EASE_OUT 不存在
+tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_EASE_OUT)
+
+# 错误: TRANSITION_EASE_OUT 不存在
+tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANSITION_EASE_OUT)
+```
+
+**正确写法:**
+```gdscript
+# Godot 4.x 需要分开设置 TRANS 和 EASE
+tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+```
+
+**教训:** Godot 4.x 中 `set_trans()` 需要 `TransitionType`，`set_ease()` 需要 `EaseType`，必须分开调用
+
+---
+
+### 问题31: CanvasLayer 没有 modulate 属性
+
+**问题:** `CanvasLayer` 继承自 `Node2D`，没有 `modulate` 属性
+
+**错误:**
+```gdscript
+extends CanvasLayer
+
+func show_panel() -> void:
+    modulate.a = 0.0  # 错误: CanvasLayer 没有 modulate
+    tween.tween_property(self, "modulate:a", 1.0, 0.2)
+```
+
+**正确写法:**
+```gdscript
+extends CanvasLayer
+
+func show_panel() -> void:
+    # 只使用 scale 动画
+    scale = Vector2(0.95, 0.95)
+    var tween = create_tween()
+    tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2)
+```
+
+**教训:** `CanvasLayer` 是独立的画布层，没有 `modulate`、`anchors_preset` 等 Control 属性
+
+---
+
+### 问题32: CanvasLayer 没有 grab_focus() 方法
+
+**问题:** `CanvasLayer` 没有 `grab_focus()` 方法
+
+**错误:**
+```gdscript
+extends CanvasLayer
+
+func _grab_focus() -> void:
+    grab_focus()  # 错误: CanvasLayer 没有此方法
+```
+
+**正确写法:**
+```gdscript
+extends CanvasLayer
+
+func _grab_focus() -> void:
+    # 启用面板的焦点模式
+    if main_panel:
+        main_panel.set_focus_mode(Control.FOCUS_ALL)
+
+func _release_focus() -> void:
+    if main_panel:
+        main_panel.release_focus()
+```
+
+**教训:** `CanvasLayer` 不是 Control，需要通过子节点来管理焦点
+
+---
+
+### 问题33: TextureRect 没有 text 属性
+
+**问题:** 尝试给 `TextureRect` 设置 `text` 属性
+
+**错误:**
+```gdscript
+var icon = TextureRect.new()
+icon.text = "📦"  # 错误: TextureRect 没有 text 属性
+```
+
+**正确写法:**
+```gdscript
+var icon = Label.new()
+icon.text = "📦"
+icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+```
+
+**教训:** 显示文本使用 `Label`，显示图片使用 `TextureRect`
+
+---
+
+### 问题34: StyleBoxFlat.set_border_color_all 方法不存在
+
+**问题:** `StyleBoxFlat` 没有 `set_border_color_all()` 方法
+
+**错误:**
+```gdscript
+var style = StyleBoxFlat.new()
+style.set_border_color_all(COLORS["border_light"])  # 错误
+style.set_border_width_all(1)  # 错误
+```
+
+**正确写法:**
+```gdscript
+var style = StyleBoxFlat.new()
+style.border_color = COLORS["border_light"]
+style.border_width_left = 1
+style.border_width_top = 1
+style.border_width_right = 1
+style.border_width_bottom = 1
+```
+
+**教训:** `StyleBoxFlat` 需要单独设置每条边框的颜色和宽度
+
+---
+
+### 问题35: TSCN 文件 instance 引用错误
+
+**问题:** HUD.tscn 中 InventoryPanel 的实例化引用配置错误
+
+**错误:**
+```gdscript
+[gd_scene format=3]
+
+# 没有声明 ext_resource
+[node name="InventoryPanel" type="Node2D" parent="." instance=ExtResource("2_inventory")]
+```
+
+**正确写法:**
+```gdscript
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://src/scenes/ui/inventory_panel.tscn" id="2_inventory"]
+
+[node name="HUD" type="CanvasLayer"]
+[node name="InventoryPanel" parent="." instance=ExtResource("2_inventory")]
+```
+
+**教训:** 使用 `instance=` 前必须先声明 `[ext_resource type="PackedScene"]`
+
+---
+
+### 问题36: 重复的函数定义
+
+**问题:** 同一个脚本中存在重复的函数定义
+
+**错误:**
+```gdscript
+# 文件中有两个 _switch_tab 函数
+func _switch_tab(tab_id: int) -> void:  # 第1个
+    ...
+
+func _switch_tab(tab_index: int) -> void:  # 第2个 - 冲突!
+    ...
+```
+
+**错误日志:**
+```
+Parse Error: Function "_switch_tab" has the same name as a previously declared function.
+```
+
+**正确写法:**
+```gdscript
+# 只保留一个函数定义
+func _switch_tab(tab_id: int) -> void:
+    ...
+```
+
+**教训:** 检查脚本中是否有重复的函数定义，删除多余的
+
+---
+
+### 问题37: TSCN 文件中的重复节点
+
+**问题:** HUD.tscn 中存在重复的 Notification 节点定义
+
+**错误:**
+```gdscript
+[node name="Notification" type="Label" parent="." unique_id=23264448"]
+...
+
+[node name="Notification" type="Label" parent="." unique_id=23264448"]  # 重复!
+...
+```
+
+**错误日志:**
+```
+Parse Error: Parse error. [Resource file res://src/scenes/ui/HUD.tscn:600]
+```
+
+**正确写法:**
+```gdscript
+[node name="Notification" type="Label" parent="." unique_id=23264448"]
+...
+[node name="InventoryPanel" parent="." instance=ExtResource("2_inventory")]
+```
+
+**教训:** 检查 TSCN 文件中是否有重复的节点定义
+
+---
+
+### 问题38: push_warning 用于非重要日志
+
+**问题:** 项目规范要求非重要日志使用 `print`，而非 `push_warning`
+
+**错误:**
+```gdscript
+push_warning("[GameManager] %s v%s initialized" % [GAME_NAME, GAME_VERSION])
+push_warning("[HUD] InventoryPanel not found in scene")
+push_warning("[SkillSystem] %s leveled up to Lv.%d!")
+```
+
+**正确写法:**
+```gdscript
+print("[GameManager] %s v%s initialized" % [GAME_NAME, GAME_VERSION])
+print("[HUD] InventoryPanel not found in scene")
+print("[SkillSystem] %s leveled up to Lv.%d!")
+```
+
+**教训:** 项目规范：重要警告用 `push_warning`，普通调试信息用 `print`
+
+---
+
+### 问题39: UTF-8 编码损坏的 TSCN 文件
+
+**问题:** 场景文件被损坏，包含无效的 UTF-8 字节序列
+
+**错误:**
+```
+Parse Error: Expected identifier (tag name)
+```
+
+**受影响的文件:**
+- `src/scenes/ui/components/item_slot.tscn`
+- `src/scenes/ui/components/equipment_slot.tscn`
+- `src/scenes/ui/components/item_tooltip.tscn`
+- `src/scenes/ui/components/preset_card.tscn`
+
+**正确写法:**
+```gdscript
+[gd_scene load_steps=5 format=3 uid="uid://item_slot_001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/components/item_slot.gd" id="1_slot"]
+
+[node name="ItemSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(56, 56)
+...
+```
+
+**教训:** 定期备份重要文件，避免文件损坏；损坏后需要重新创建文件
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -803,6 +1068,15 @@ timing_result: "too_late"  # 玩家还没反应过来就过期了
 - [ ] `pass` 关键字没有下划线
 - [ ] TextureProgressBar 配置了纹理或使用 ProgressBar
 - [ ] 游戏参数考虑人类反应时间和可玩性
+- [ ] Tween 动画分开调用 set_trans() 和 set_ease()
+- [ ] CanvasLayer 没有 modulate 属性，使用 scale 代替
+- [ ] CanvasLayer 没有 grab_focus()，通过子节点管理焦点
+- [ ] 显示文本用 Label，显示图片用 TextureRect
+- [ ] StyleBoxFlat 单独设置每条边框颜色和宽度
+- [ ] TSCN 中 instance 前必须声明 ext_resource
+- [ ] 检查脚本中是否有重复的函数定义
+- [ ] 检查 TSCN 中是否有重复的节点定义
+- [ ] 非重要日志用 print，重要警告用 push_warning
 
 ---
 
