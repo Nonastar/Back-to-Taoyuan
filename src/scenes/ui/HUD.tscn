@@ -186,39 +186,70 @@ layout_mode = 2
 text = "🌸"
 
 [node name="SkillPanel" type="PanelContainer" parent="." unique_id=1934201338]
-offset_left = 1103.0
+offset_left = 1000.0
 offset_top = 72.0
 offset_right = 1273.0
-offset_bottom = 142.0
+offset_bottom = 200.0
 
 [node name="SkillVBox" type="VBoxContainer" parent="SkillPanel" unique_id=338759009]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
-[node name="SkillTitle" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=473281657]
+[node name="FarmingTitle" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=473281657]
 layout_mode = 2
 
-[node name="SkillIcon" type="Label" parent="SkillPanel/SkillVBox/SkillTitle" unique_id=880665760]
+[node name="FarmingIcon" type="Label" parent="SkillPanel/SkillVBox/FarmingTitle" unique_id=880665760]
 layout_mode = 2
 text = "🌾"
 
-[node name="SkillNameLabel" type="Label" parent="SkillPanel/SkillVBox/SkillTitle" unique_id=1571376322]
+[node name="FarmingName" type="Label" parent="SkillPanel/SkillVBox/FarmingTitle" unique_id=1571376322]
 layout_mode = 2
 text = "农耕 Lv.0"
 
-[node name="ExpContainer" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=1124993091]
+[node name="FarmingExpContainer" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=1124993091]
 layout_mode = 2
 
-[node name="ExpLabel" type="Label" parent="SkillPanel/SkillVBox/ExpContainer" unique_id=405150950]
+[node name="FarmingExpLabel" type="Label" parent="SkillPanel/SkillVBox/FarmingExpContainer" unique_id=405150950]
 layout_mode = 2
 text = "经验: "
 
-[node name="ExpValueLabel" type="Label" parent="SkillPanel/SkillVBox/ExpContainer" unique_id=1790193763]
+[node name="FarmingExpValue" type="Label" parent="SkillPanel/SkillVBox/FarmingExpContainer" unique_id=1790193763]
 layout_mode = 2
 text = "0/100"
 
 [node name="FarmingExpBar" type="ProgressBar" parent="SkillPanel/SkillVBox" unique_id=466847416]
-custom_minimum_size = Vector2(150, 10)
+custom_minimum_size = Vector2(150, 8)
+layout_mode = 2
+show_percentage = false
+
+[node name="Separator" type="Control" parent="SkillPanel/SkillVBox" unique_id=123456789]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+
+[node name="FishingTitle" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=473281658]
+layout_mode = 2
+
+[node name="FishingIcon" type="Label" parent="SkillPanel/SkillVBox/FishingTitle" unique_id=880665761]
+layout_mode = 2
+text = "🎣"
+
+[node name="FishingName" type="Label" parent="SkillPanel/SkillVBox/FishingTitle" unique_id=1571376323]
+layout_mode = 2
+text = "钓鱼 Lv.0"
+
+[node name="FishingExpContainer" type="HBoxContainer" parent="SkillPanel/SkillVBox" unique_id=1124993092]
+layout_mode = 2
+
+[node name="FishingExpLabel" type="Label" parent="SkillPanel/SkillVBox/FishingExpContainer" unique_id=405150951]
+layout_mode = 2
+text = "经验: "
+
+[node name="FishingExpValue" type="Label" parent="SkillPanel/SkillVBox/FishingExpContainer" unique_id=1790193764]
+layout_mode = 2
+text = "0/100"
+
+[node name="FishingExpBar" type="ProgressBar" parent="SkillPanel/SkillVBox" unique_id=466847417]
+custom_minimum_size = Vector2(150, 8)
 layout_mode = 2
 show_percentage = false
 

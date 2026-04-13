@@ -141,9 +141,10 @@ func end_fishing(caught: bool, fish_id: String = "") -> void:
 		var fish_data = get_fish_data(fish_id)
 		var exp = fish_data.get("exp", 10)
 
-		## 添加经验到玩家属性系统
-		if PlayerStats and PlayerStats.has_method("add_experience"):
-			PlayerStats.add_experience("fishing", exp)
+		## 添加钓鱼经验
+		if SkillSystem and SkillSystem.has_method("add_exp"):
+			SkillSystem.add_exp(SkillSystem.SkillType.FISHING, exp)
+			print("[FishingSystem] Added " + str(exp) + " fishing exp")
 
 		## 添加鱼到背包
 		if PlayerStats and PlayerStats.has_method("add_item"):

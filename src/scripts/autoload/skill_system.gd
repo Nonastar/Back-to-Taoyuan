@@ -84,6 +84,7 @@ var _initialized: bool = false
 
 ## 技能升级信号
 signal skill_level_up(skill_type: int, old_level: int, new_level: int)
+signal exp_changed(skill_type: int, current_exp: int, exp_gained: int)
 
 ## 天赋选择信号
 signal perk_selected(skill_type: int, perk_id: String)
@@ -129,6 +130,9 @@ func add_exp(skill_type: int, base_amount: int) -> Dictionary:
 	# 检查是否升级
 	var old_level = skill.level
 	var result = _check_level_up(skill_type)
+
+	# 发送经验变化信号
+	exp_changed.emit(skill_type, skill.exp, actual_exp)
 
 	push_warning("[SkillSystem] %s +%d exp (total: %d/%d)" % [
 		SKILL_NAMES[skill_type], actual_exp, skill.exp, EXP_TABLE[skill.level]])

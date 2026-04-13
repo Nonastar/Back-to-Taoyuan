@@ -213,6 +213,12 @@ func _connect_signals() -> void:
 	# 初始更新技能显示
 	_update_skill_display()
 
+	# SkillSystem 信号
+	if SkillSystem and SkillSystem.has_signal("exp_changed"):
+		SkillSystem.exp_changed.connect(_on_skill_exp_changed)
+	if SkillSystem and SkillSystem.has_signal("skill_level_up"):
+		SkillSystem.skill_level_up.connect(_on_skill_level_up)
+
 	# Player 工具变化信号
 	if Player and Player.has_signal("tool_changed"):
 		Player.tool_changed.connect(_on_tool_changed)
@@ -258,6 +264,9 @@ func _on_panel_changed(panel_key: String) -> void:
 
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
+
+func _on_skill_exp_changed(skill_type: int, current_exp: int, exp_gained: int) -> void:
+	_update_skill_display()
 
 func _on_farm_message(msg: String) -> void:
 	_show_notification(msg)
@@ -410,26 +419,43 @@ func _update_skill_display() -> void:
 	if not SkillSystem:
 		return
 
+	# 更新农耕技能
 	var farming_type = SkillSystem.SkillType.FARMING
-	var level = SkillSystem.get_level(farming_type)
-	var exp_percent = SkillSystem.get_exp_percent(farming_type)
-	var current_exp = SkillSystem.get_exp(farming_type)
+	var farming_level = SkillSystem.get_level(farming_type)
+	var farming_exp_percent = SkillSystem.get_exp_percent(farming_type)
+	var farming_current_exp = SkillSystem.get_exp(farming_type)
 
-	# 更新技能名称标签
-	var skill_name_label = skill_panel.get_node_or_null("SkillVBox/SkillTitle/SkillNameLabel") as Label
-	if skill_name_label:
-		skill_name_label.text = "农耕 Lv.%d" % level
+	var farming_name_label = skill_panel.get_node_or_null("SkillVBox/FarmingTitle/FarmingName") as Label
+	if farming_name_label:
+		farming_name_label.text = "农耕 Lv.%d" % farming_level
 
-	# 更新经验值标签
-	var exp_value_label = skill_panel.get_node_or_null("SkillVBox/ExpContainer/ExpValueLabel") as Label
-	if exp_value_label:
-		var next_level_exp = SkillSystem.EXP_TABLE[level + 1] if level < SkillSystem.MAX_LEVEL else SkillSystem.EXP_TABLE[SkillSystem.MAX_LEVEL]
-		exp_value_label.text = "%d/%d" % [current_exp, next_level_exp]
+	var farming_exp_value = skill_panel.get_node_or_null("SkillVBox/FarmingExpContainer/FarmingExpValue") as Label
+	if farming_exp_value:
+		var next_level_exp = SkillSystem.EXP_TABLE[farming_level + 1] if farming_level < SkillSystem.MAX_LEVEL else SkillSystem.EXP_TABLE[SkillSystem.MAX_LEVEL]
+		farming_exp_value.text = "%d/%d" % [farming_current_exp, next_level_exp]
 
-	# 更新经验条
-	var exp_bar = skill_panel.get_node_or_null("SkillVBox/FarmingExpBar") as ProgressBar
-	if exp_bar:
-		exp_bar.value = exp_percent
+	var farming_exp_bar = skill_panel.get_node_or_null("SkillVBox/FarmingExpBar") as ProgressBar
+	if farming_exp_bar:
+		farming_exp_bar.value = farming_exp_percent
+
+	# 更新钓鱼技能
+	var fishing_type = SkillSystem.SkillType.FISHING
+	var fishing_level = SkillSystem.get_level(fishing_type)
+	var fishing_exp_percent = SkillSystem.get_exp_percent(fishing_type)
+	var fishing_current_exp = SkillSystem.get_exp(fishing_type)
+
+	var fishing_name_label = skill_panel.get_node_or_null("SkillVBox/FishingTitle/FishingName") as Label
+	if fishing_name_label:
+		fishing_name_label.text = "钓鱼 Lv.%d" % fishing_level
+
+	var fishing_exp_value = skill_panel.get_node_or_null("SkillVBox/FishingExpContainer/FishingExpValue") as Label
+	if fishing_exp_value:
+		var next_level_exp = SkillSystem.EXP_TABLE[fishing_level + 1] if fishing_level < SkillSystem.MAX_LEVEL else SkillSystem.EXP_TABLE[SkillSystem.MAX_LEVEL]
+		fishing_exp_value.text = "%d/%d" % [fishing_current_exp, next_level_exp]
+
+	var fishing_exp_bar = skill_panel.get_node_or_null("SkillVBox/FishingExpBar") as ProgressBar
+	if fishing_exp_bar:
+		fishing_exp_bar.value = fishing_exp_percent
 
 func _select_slot(index: int) -> void:
 	if index < 0 or index >= tool_slots.size():

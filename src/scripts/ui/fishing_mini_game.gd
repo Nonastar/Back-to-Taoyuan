@@ -228,13 +228,12 @@ func start_minigame(fish_data: Dictionary) -> void:
 	_fish_data = fish_data
 	_fish_difficulty = fish_data.get("difficulty", 1)
 
-	## 获取技能等级和装备加成（从 SkillSystem 和 PlayerStats 获取）
+	## 获取技能等级和装备加成
 	_skill_level = 0
 	_rod_bonus = 1.0
-	if SkillSystem and SkillSystem.has_method("get_skill_level"):
-		_skill_level = SkillSystem.get_skill_level("fishing")
-	if PlayerStats and PlayerStats.has_method("get_rod_bonus"):
-		_rod_bonus = PlayerStats.get_rod_bonus()
+	if SkillSystem and SkillSystem.has_method("get_level"):
+		_skill_level = SkillSystem.get_level(SkillSystem.SkillType.FISHING)
+		print("[FishingMiniGame] Fishing skill level: " + str(_skill_level))
 
 	## 重置状态
 	_reset_game_state()
