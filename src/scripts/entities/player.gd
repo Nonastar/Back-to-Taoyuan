@@ -220,6 +220,11 @@ func _find_farm_manager() -> Node:
 # ============ 工具系统 ============
 
 func _switch_tool(tool: ToolType) -> void:
+	## 边界检查：确保工具索引在有效范围内
+	if tool < 0 or tool >= ToolType.size():
+		push_warning("[Player] Invalid tool type: " + str(tool))
+		return
+
 	if current_tool != tool:
 		current_tool = tool
 		tool_changed.emit(tool)
