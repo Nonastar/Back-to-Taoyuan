@@ -17,10 +17,22 @@ var current_growth: int = 0
 var quality: int = 0
 var has_weed: bool = false
 var has_pest: bool = false
+var consecutive_unwatered_days: int = 0  # 连续未浇水天数
+
+# ============ 洒水器相关 ============
+var has_sprinkler: bool = false  # 是否有洒水器
+var sprinkler_type: String = "basic"  # 洒水器类型: basic, quality, premium
+
+# ============ 肥料相关 ============
+var fertilizer_type: String = ""  # 当前肥料类型: basic, quality, growth, moisture
+var fertilizer_quality_bonus: int = 0  # 肥料品质加成
+var fertilizer_growth_bonus: float = 0.0  # 肥料生长加速 (0.0-1.0)
+var moisture_preserved: bool = false  # 保湿土是否保留浇水状态
 
 var sprite: Sprite2D
 var crop_label: Label
 var water_label: Label
+var fertilizer_label: Label  # 肥料状态标签
 var collision: CollisionShape2D
 
 signal plot_state_changed(state: PlotState)
@@ -72,6 +84,26 @@ const STAGE_EMOJIS: Dictionary = {
 ## 浇水状态 Emoji
 const WATER_EMOJI: String = "💧"
 
+## 肥料状态 Emoji
+const FERTILIZER_EMOJIS: Dictionary = {
+	"": "",
+	"basic": "🌿",
+	"quality": "⭐",
+	"growth": "⚡",
+	"moisture": "💧"
+}
+
+## 肥料效果配置
+## 品质加成: 收获时额外增加品质等级
+## 生长加速: 减少所需生长天数 (百分比)
+## 保湿保留: 是否概率保留浇水状态
+const FERTILIZER_EFFECTS: Dictionary = {
+	"basic": {"quality_bonus": 1, "growth_bonus": 0.0, "moisture_preserve": 0.0},
+	"quality": {"quality_bonus": 2, "growth_bonus": 0.0, "moisture_preserve": 0.0},
+	"growth": {"quality_bonus": 0, "growth_bonus": 0.10, "moisture_preserve": 0.0},
+	"moisture": {"quality_bonus": 0, "growth_bonus": 0.0, "moisture_preserve": 0.5}
+}
+
 # ============ 初始化 ============
 
 func _ready() -> void:
@@ -80,28 +112,51 @@ func _ready() -> void:
 	_update_display()
 
 func _setup_nodes() -> void:
-	# 地块背景
-	sprite = Sprite2D.new()
-	sprite.name = "Sprite"
-	sprite.centered = false
-	add_child(sprite)
+	# 地块背景 - 检查场景中是否已有
+	if not has_node("Sprite"):
+		sprite = Sprite2D.new()
+		sprite.name = "Sprite"
+		sprite.centered = false
+		add_child(sprite)
+	else:
+		sprite = get_node("Sprite")
 
-	# 作物 Emoji 标签
-	crop_label = Label.new()
-	crop_label.name = "CropLabel"
-	crop_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	crop_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	crop_label.scale = Vector2(2, 2)
-	add_child(crop_label)
+	# 作物 Emoji 标签 - 检查场景中是否已有
+	if not has_node("CropLabel"):
+		crop_label = Label.new()
+		crop_label.name = "CropLabel"
+		crop_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		crop_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		crop_label.scale = Vector2(2, 2)
+		add_child(crop_label)
+	else:
+		crop_label = get_node("CropLabel")
 
-	# 浇水状态标签
-	water_label = Label.new()
-	water_label.name = "WaterLabel"
-	water_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	water_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	water_label.position = Vector2(24, -12)
-	water_label.scale = Vector2(1.5, 1.5)
-	add_child(water_label)
+	# 浇水状态标签 - 检查场景中是否已有
+	if not has_node("WaterLabel"):
+		water_label = Label.new()
+		water_label.name = "WaterLabel"
+		water_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		water_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		water_label.position = Vector2(24, -12)
+		water_label.scale = Vector2(1.5, 1.5)
+		add_child(water_label)
+	else:
+		water_label = get_node("WaterLabel")
+
+	# 肥料状态标签 - 检查场景中是否已有
+	if not has_node("FertilizerLabel"):
+		fertilizer_label = Label.new()
+		fertilizer_label.name = "FertilizerLabel"
+		fertilizer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		fertilizer_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fertilizer_label.position = Vector2(-16, -12)
+		fertilizer_label.scale = Vector2(1.5, 1.5)
+		add_child(fertilizer_label)
+	else:
+		fertilizer_label = get_node("FertilizerLabel")
+	# 初始化时清空肥料标签
+	fertilizer_label.text = ""
 
 func _setup_collision() -> void:
 	collision = CollisionShape2D.new()
@@ -130,11 +185,14 @@ func interact(tool_type: int, direction: Vector2) -> bool:
 			return _plant()
 		Player.ToolType.HAND:
 			return _harvest()
+		Player.ToolType.FERTILIZER:
+			return _apply_fertilizer()
 	return false
 
 func _till() -> bool:
 	if state == PlotState.WASTELAND:
 		state = PlotState.TILLED
+		consecutive_unwatered_days = 0  # 重置计数器
 		_update_display()
 		plot_state_changed.emit(state)
 		_send_message("耕地完成！")
@@ -220,6 +278,7 @@ func _harvest() -> bool:
 		crop_id = ""
 		current_growth = 0
 		is_watered = false
+		consecutive_unwatered_days = 0  # 重置计数器
 		quality = 0
 
 		_update_display()
@@ -247,15 +306,19 @@ func _calculate_harvest_quality() -> int:
 
 		# 9级+: 5% 概率出 Supreme (简化版)
 		if farming_level >= 9 and roll < 0.05 + quality_bonus * 0.5:
-			return 3  # Supreme
+			base_quality = 3  # Supreme
 		# 6级+: 15% 概率出 Excellent
 		elif farming_level >= 6 and roll < 0.15 + quality_bonus:
-			return 2  # Excellent
+			base_quality = 2  # Excellent
 		# 3级+: 30% 概率出 Fine
 		elif farming_level >= 3 and roll < 0.30 + quality_bonus:
-			return 1  # Fine
+			base_quality = 1  # Fine
 
-	return base_quality  # Normal
+	# 肥料品质加成 (叠加到技能判定上)
+	base_quality += fertilizer_quality_bonus
+	base_quality = clamp(base_quality, 0, 3)  # 最高史诗
+
+	return base_quality
 
 ## 获取品质名称
 func _get_quality_name(q: int) -> String:
@@ -281,6 +344,97 @@ func _add_farming_exp() -> void:
 
 		if result["leveled_up"]:
 			_send_message("🌾 农耕升级！Lv.%d" % result["new_level"])
+
+## 施肥操作
+func _apply_fertilizer() -> bool:
+	# 只有已耕地块才能施肥
+	if state != PlotState.TILLED:
+		if state == PlotState.WASTELAND:
+			_send_message("先耕地")
+		elif state == PlotState.PLANTED or state == PlotState.GROWING:
+			_send_message("已有作物，不能施肥")
+		elif state == PlotState.HARVESTABLE:
+			_send_message("先收获再施肥")
+		return false
+
+	# 检查是否有可用的肥料
+	var fert_data = _get_selected_fertilizer()
+	if fert_data.is_empty():
+		_send_message("没有肥料了！")
+		return false
+
+	var fert_id = fert_data.get("id", "")
+	if InventorySystem.get_item_count(fert_id) < 1:
+		_send_message("没有肥料了！")
+		return false
+
+	# 检查是否已有相同类型肥料
+	if fertilizer_type == fert_data["type"]:
+		_send_message("这块地已经施过 %s 了" % fert_data["name"])
+		return false
+
+	# 消耗肥料
+	InventorySystem.remove_item(fert_id, 1)
+
+	# 应用肥料效果
+	fertilizer_type = fert_data["type"]
+	fertilizer_quality_bonus = fert_data["quality_bonus"]
+	fertilizer_growth_bonus = fert_data["growth_bonus"]
+	moisture_preserved = fert_data["moisture_preserve"] > 0.0
+
+	_update_display()
+	_send_message("施肥成功！%s 🌱" % fert_data["name"])
+	return true
+
+## 获取选中的肥料
+func _get_selected_fertilizer() -> Dictionary:
+	# 优先使用背包中的肥料
+	var basic_count = InventorySystem.get_item_count("basic_fertilizer") if InventorySystem else 0
+	var quality_count = InventorySystem.get_item_count("quality_fertilizer") if InventorySystem else 0
+	var growth_count = InventorySystem.get_item_count("growth_fertilizer") if InventorySystem else 0
+	var moisture_count = InventorySystem.get_item_count("moisture_fertilizer") if InventorySystem else 0
+
+	if basic_count > 0:
+		var effect = FERTILIZER_EFFECTS.get("basic", {})
+		return {
+			"id": "basic_fertilizer",
+			"name": "基础肥料",
+			"type": "basic",
+			"quality_bonus": effect.get("quality_bonus", 0),
+			"growth_bonus": effect.get("growth_bonus", 0.0),
+			"moisture_preserve": effect.get("moisture_preserve", 0.0)
+		}
+	if quality_count > 0:
+		var effect = FERTILIZER_EFFECTS.get("quality", {})
+		return {
+			"id": "quality_fertilizer",
+			"name": "优质肥料",
+			"type": "quality",
+			"quality_bonus": effect.get("quality_bonus", 0),
+			"growth_bonus": effect.get("growth_bonus", 0.0),
+			"moisture_preserve": effect.get("moisture_preserve", 0.0)
+		}
+	if growth_count > 0:
+		var effect = FERTILIZER_EFFECTS.get("growth", {})
+		return {
+			"id": "growth_fertilizer",
+			"name": "生长激素",
+			"type": "growth",
+			"quality_bonus": effect.get("quality_bonus", 0),
+			"growth_bonus": effect.get("growth_bonus", 0.0),
+			"moisture_preserve": effect.get("moisture_preserve", 0.0)
+		}
+	if moisture_count > 0:
+		var effect = FERTILIZER_EFFECTS.get("moisture", {})
+		return {
+			"id": "moisture_fertilizer",
+			"name": "保湿土",
+			"type": "moisture",
+			"quality_bonus": effect.get("quality_bonus", 0),
+			"growth_bonus": effect.get("growth_bonus", 0.0),
+			"moisture_preserve": effect.get("moisture_preserve", 0.0)
+		}
+	return {}
 
 func _get_selected_seed() -> Dictionary:
 	# 从物品数据系统获取番茄种子
@@ -313,15 +467,40 @@ func _get_selected_seed() -> Dictionary:
 # ============ 日常处理 ============
 
 func process_day(is_rainy: bool = false) -> void:
+	# 保湿土效果：昨天浇过水，今天有概率保留浇水状态
+	var moisture_kept = false
+	if moisture_preserved and _moisture_restore_chance() > randf():
+		moisture_kept = true
+
+	# 处理洒水器自动浇水
+	if has_sprinkler:
+		is_watered = true
+		consecutive_unwatered_days = 0
+
 	if is_rainy:
 		is_watered = true
+		consecutive_unwatered_days = 0  # 雨天浇水，重置计数器
 
 	if state == PlotState.PLANTED or state == PlotState.GROWING:
-		if is_watered:
-			current_growth += 1
+		if is_watered or moisture_kept:
+			# 计算有效生长天数（应用肥料生长加速）
+			var effective_growth = 1
+			if fertilizer_growth_bonus > 0.0:
+				effective_growth = 1 + int(fertilizer_growth_bonus)
+			current_growth += effective_growth
 			state = PlotState.GROWING
+			consecutive_unwatered_days = 0  # 重置计数器
 			if current_growth >= growth_days:
 				state = PlotState.HARVESTABLE
+
+			# 保湿土生效时显示提示
+			if moisture_kept and not is_watered:
+				_send_message("保湿土保留了昨日水分！")
+		else:
+			consecutive_unwatered_days += 1
+			if consecutive_unwatered_days >= 2:
+				_wither_crop()
+				return  # 枯萎后直接返回
 
 	is_watered = false
 	_update_display()
@@ -330,12 +509,32 @@ func process_day(is_rainy: bool = false) -> void:
 	if is_rainy and (state == PlotState.PLANTED or state == PlotState.GROWING):
 		_send_message("雨天自动浇水！🌧️")
 
+## 保湿土保留浇水的概率判定
+func _moisture_restore_chance() -> float:
+	# 基础50%概率保留浇水状态
+	# 可以根据肥料类型调整，这里使用配置中的值
+	if fertilizer_type == "moisture":
+		return 0.5  # 保湿土50%概率
+	return 0.0
+
+## 作物枯萎处理
+func _wither_crop() -> void:
+	state = PlotState.TILLED
+	crop_id = ""
+	current_growth = 0
+	consecutive_unwatered_days = 0
+	is_watered = false
+	_update_display()
+	plot_state_changed.emit(state)
+	_send_message("作物枯萎了！需要重新播种...")
+
 # ============ 显示更新 ============
 
 func _update_display() -> void:
 	_update_background()
 	_update_crop_emoji()
 	_update_water_status()
+	_update_fertilizer_status()
 
 func _update_background() -> void:
 	var color = PLOT_COLORS.get(state, Color(0.5, 0.35, 0.2, 1))
@@ -361,6 +560,17 @@ func _update_water_status() -> void:
 		water_label.text = WATER_EMOJI
 	else:
 		water_label.text = ""
+
+func _update_fertilizer_status() -> void:
+	if fertilizer_label == null:
+		return
+	var emoji = FERTILIZER_EMOJIS.get(fertilizer_type, "")
+	fertilizer_label.text = emoji
+	# 如果有肥料，给标签添加特殊颜色
+	if not fertilizer_type.is_empty():
+		fertilizer_label.add_theme_color_override("font_color", Color(0.3, 0.8, 0.3, 1))  # 绿色
+	else:
+		fertilizer_label.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 
 func _get_crop_emoji() -> String:
 	if crop_id.is_empty():
@@ -420,4 +630,7 @@ func get_display_text() -> String:
 		text += " | 生长: %d/%d" % [current_growth, growth_days]
 	if is_watered:
 		text += " | %s" % WATER_EMOJI
+	if not fertilizer_type.is_empty():
+		var fert_emoji = FERTILIZER_EMOJIS.get(fertilizer_type, "")
+		text += " | %s" % fert_emoji
 	return text

@@ -129,6 +129,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "取消[ESC]"
 
+[node name="AssistToggle" type="Button" parent="Panel/MarginContainer/VBox/ButtonSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "辅助模式: 关"
+
 [node name="TouchControls" type="HBoxContainer" parent="Panel/MarginContainer/VBox"]
 layout_mode = 2
 visible = false

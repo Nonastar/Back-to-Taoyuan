@@ -163,8 +163,8 @@ func _select_and_consume_bait() -> void:
 	_current_bait_type = _select_best_bait()
 	if _current_bait_type != BaitType.NONE:
 		var bait_item_id = BAIT_EFFECTS[_current_bait_type]["item_id"]
-		if PlayerStats and PlayerStats.has_method("remove_item"):
-			PlayerStats.remove_item(bait_item_id, 1)
+		if InventorySystem and InventorySystem.has_method("remove_item"):
+			InventorySystem.remove_item(bait_item_id, 1)
 			print("[FishingSystem] Used bait: " + str(BAIT_EFFECTS[_current_bait_type]["name"]))
 
 ## 为小游戏构建鱼数据
@@ -325,8 +325,8 @@ func _has_bait_item(bait_type: BaitType) -> bool:
 	if item_id.is_empty():
 		return false
 
-	if PlayerStats and PlayerStats.has_method("get_item_count"):
-		return PlayerStats.get_item_count(item_id) > 0
+	if InventorySystem and InventorySystem.has_method("get_item_count"):
+		return InventorySystem.get_item_count(item_id) > 0
 	return false
 
 ## 获取当前鱼饵类型名称

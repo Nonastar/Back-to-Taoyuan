@@ -81,8 +81,23 @@ func _load_navigation_panel() -> void:
 
 func _add_starting_items() -> void:
 	if InventorySystem:
+		# 种子
 		InventorySystem.add_item("tomato_seed", 15, 0)
+		# 肥料
+		InventorySystem.add_item("basic_fertilizer", 5, 0)
+		InventorySystem.add_item("quality_fertilizer", 2, 0)
+		InventorySystem.add_item("growth_fertilizer", 2, 0)
+		InventorySystem.add_item("moisture_fertilizer", 2, 0)
 		InventorySystem.add_item("carrot_seed", 10, 0)
+		# 鱼饵
+		InventorySystem.add_item("bait_common", 10, 0)
+		InventorySystem.add_item("bait_deluxe", 3, 0)
+		InventorySystem.add_item("bait_legendary", 1, 0)
+		# 建筑材料
+		InventorySystem.add_item("wood", 100, 0)
+		InventorySystem.add_item("bamboo", 50, 0)
+		# 畜牧饲料
+		InventorySystem.add_item("hay", 20, 0)
 		print("[Main] Starting items added")
 
 # ============ 检查单例 ============
@@ -154,9 +169,5 @@ func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
 	var msg = "晚安！" if not forced else "昏倒了..."
 	print("[Main] " + msg)
 
-	# 处理农场日常（从 FarmLayer 获取 FarmManager）
-	var farm_layer = get_node_or_null("FarmLayer")
-	if farm_layer:
-		var farm_manager = farm_layer.get_node_or_null("FarmManager")
-		if farm_manager:
-			farm_manager._process_day()
+	# 注意：农场日结算在 FarmManager._on_sleep_triggered 中处理
+	# 这里不需要再次调用 farm_manager._process_day()

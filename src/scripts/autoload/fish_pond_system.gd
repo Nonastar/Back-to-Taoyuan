@@ -62,7 +62,17 @@ var _days_elapsed: int = 0  ## 鱼塘已运行天数
 # ============ 初始化 ============
 
 func _ready() -> void:
+	_connect_signals()
 	print("[FishPondSystem] Initialized")
+
+func _connect_signals() -> void:
+	## 连接日结算信号
+	if EventBus and EventBus.has_signal("time_sleep_triggered"):
+		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
+		print("[FishPondSystem] Connected to time_sleep_triggered")
+
+func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
+	daily_update()
 
 # ============ 公共 API ============
 
@@ -79,8 +89,8 @@ func get_fish_count() -> int:
 	return _fish_in_pond.size()
 
 ## 获取鱼塘中的鱼类列表
-func get_fish_list() -> Array[Dictionary]:
-	var result = []
+func get_fish_list() -> Array:
+	var result: Array = []
 	for fish_entry in _fish_in_pond:
 		var fish_id = fish_entry["fish_id"]
 		var fish_data = _get_fish_data(fish_id)

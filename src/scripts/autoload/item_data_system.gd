@@ -201,16 +201,29 @@ func _create_default_items() -> void:
 		_create_copper_ore(),
 		_create_gold_ore(),
 		_create_wood(),
+		_create_bamboo(),
 		_create_stone(),
 		_create_coal(),
 		_create_egg(),
 		_create_milk(),
+		_create_duck_egg(),
+		_create_goat_milk(),
+		_create_wool(),
+		_create_truffle(),
+		_create_hay(),
 		_create_wheat(),
 		_create_rice(),
 		_create_tomato_seed(),
 		_create_carrot_seed(),
 		_create_tomato(),
 		_create_potato(),
+		_create_basic_fertilizer(),
+		_create_quality_fertilizer(),
+		_create_growth_fertilizer(),
+		_create_moisture_fertilizer(),
+		_create_bait_common(),
+		_create_bait_deluxe(),
+		_create_bait_legendary(),
 	]
 
 	for item in default_items:
@@ -253,6 +266,18 @@ func _create_wood() -> ItemDef:
 	item.category = ItemCategory.MATERIAL
 	item.sell_price = 2
 	item.icon_path = "res://assets/art/items/wood.png"
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建竹子定义
+func _create_bamboo() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "bamboo"
+	item.name = "竹子"
+	item.description = "坚韧的竹子，可用于建筑和加工。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 3
+	item.icon_path = ""
 	item.max_stack = DEFAULT_MAX_STACK
 	return item
 
@@ -389,5 +414,149 @@ func _create_potato() -> ItemDef:
 	item.edible = true
 	item.stamina_restore = 12
 	item.health_restore = 5
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建基础肥料定义
+func _create_basic_fertilizer() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "basic_fertilizer"
+	item.name = "基础肥料"
+	item.description = "提升作物品质的普通肥料。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 10
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建优质肥料定义
+func _create_quality_fertilizer() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "quality_fertilizer"
+	item.name = "优质肥料"
+	item.description = "更有效提升作物品质的肥料。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 25
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建生长激素定义
+func _create_growth_fertilizer() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "growth_fertilizer"
+	item.name = "生长激素"
+	item.description = "加速作物生长的激素。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 20
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建保湿土定义
+func _create_moisture_fertilizer() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "moisture_fertilizer"
+	item.name = "保湿土"
+	item.description = "保持土壤水分，减少浇水需求。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 15
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建普通饵料定义
+func _create_bait_common() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "bait_common"
+	item.name = "普通饵料"
+	item.description = "增加10%咬钩率。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 5
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建美味饵料定义
+func _create_bait_deluxe() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "bait_deluxe"
+	item.name = "美味饵料"
+	item.description = "增加20%咬钩率。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 15
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建传说饵料定义
+func _create_bait_legendary() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "bait_legendary"
+	item.name = "传说饵料"
+	item.description = "增加50%咬钩率，10%传说鱼概率提升。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 50
+	item.icon_path = ""
+	item.max_stack = 99
+	return item
+
+## 创建鸭蛋定义
+func _create_duck_egg() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "duck_egg"
+	item.name = "鸭蛋"
+	item.description = "新鲜的鸭蛋，比鸡蛋大一些。"
+	item.category = ItemCategory.CROP
+	item.sell_price = 15
+	item.icon_path = ""
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建羊奶定义
+func _create_goat_milk() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "goat_milk"
+	item.name = "羊奶"
+	item.description = "营养丰富的羊奶，比牛奶更易消化。"
+	item.category = ItemCategory.FOOD
+	item.sell_price = 25
+	item.icon_path = ""
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建羊毛定义
+func _create_wool() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "wool"
+	item.name = "羊毛"
+	item.description = "柔软的羊毛，可用于纺织或出售。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 30
+	item.icon_path = ""
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建松露定义
+func _create_truffle() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "truffle"
+	item.name = "松露"
+	item.description = "珍贵的真菌，可出售获得高价。"
+	item.category = ItemCategory.CROP
+	item.sell_price = 100
+	item.icon_path = ""
+	item.max_stack = DEFAULT_MAX_STACK
+	return item
+
+## 创建干草定义
+func _create_hay() -> ItemDef:
+	var item = ItemDef.new()
+	item.id = "hay"
+	item.name = "干草"
+	item.description = "动物的饲料，用于喂养农场动物。"
+	item.category = ItemCategory.MATERIAL
+	item.sell_price = 5
+	item.icon_path = ""
 	item.max_stack = DEFAULT_MAX_STACK
 	return item
