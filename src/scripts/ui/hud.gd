@@ -224,8 +224,21 @@ func _connect_signals() -> void:
 		SkillSystem.skill_level_up.connect(_on_skill_level_up)
 
 	# Player 工具变化信号
-	if Player and Player.has_signal("tool_changed"):
-		Player.tool_changed.connect(_on_tool_changed)
+	var player = _get_player()
+	if player and player.has_signal("tool_changed"):
+		player.tool_changed.connect(_on_tool_changed)
+
+## 获取 Player 节点
+func _get_player():
+	var player = get_node_or_null("/root/Main/Player")
+	if player != null:
+		return player
+	player = get_node_or_null("/root/Player")
+	if player != null:
+		print("[HUD] Found Player at /root/Player")
+	else:
+		print("[HUD] Player not found at /root/Player")
+	return player
 
 # ============ 信号回调 ============
 
@@ -561,14 +574,16 @@ func _input(event: InputEvent) -> void:
 			KEY_ESCAPE: _on_quick_button_pressed("menu")
 
 func _on_hotbar_key(index: int) -> void:
+	# 验证索引不超过快捷栏槽位数
 	if index < 0 or index >= HOTBAR_SLOTS or index >= tool_slots.size():
 		return
 
 	_select_slot(index)
 
-	# 通知 Player 切换工具 (仅当槽位有对应工具时)
-	if Player and Player.has_method("_switch_tool"):
-		Player._switch_tool(index)
+	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
+	var player = _get_player()
+	if index < 5 and player and player.has_method("_switch_tool"):
+		player._switch_tool(index)
 
 ## 处理槽位点击
 func _on_slot_input(event: InputEvent, slot_index: int) -> void:
@@ -579,14 +594,19 @@ func _on_slot_input(event: InputEvent, slot_index: int) -> void:
 ## 槽位被点击
 func _on_slot_clicked(slot_index: int) -> void:
 	if slot_index < 0 or slot_index >= tool_slots.size():
+		# 检查是否是背包按钮（Slot_11）
+		# 由于快捷栏槽位编号不连续，需要特殊处理
+		if slot_index == 11:
+			_open_inventory()
 		return
 
 	# 选中槽位
 	_select_slot(slot_index)
 
-	# 通知 Player 切换工具
-	if Player and Player.has_method("_switch_tool"):
-		Player._switch_tool(slot_index)
+	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
+	var player = _get_player()
+	if slot_index < 5 and player and player.has_method("_switch_tool"):
+		player._switch_tool(slot_index)
 
 	# 显示提示
 	var tool_name = TOOL_NAMES[slot_index] if slot_index < TOOL_NAMES.size() else "未知"

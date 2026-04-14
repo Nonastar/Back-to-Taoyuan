@@ -80,8 +80,21 @@ func _ready() -> void:
 	_update_display()
 	visible = false
 
+## 初始化完成后的处理（延迟一帧确保节点引用就绪）
+func _delayed_init() -> void:
+	# 如果之前因为节点未就绪而失败，重新尝试
+	if backpack_grid == null:
+		_setup_node_references()
+		_create_backpack_grid()
+		_create_temp_grid()
+	_update_display()
+
 ## 显示面板 (带动画)
 func show_panel() -> void:
+	# 如果背包网格还未初始化，先初始化
+	if backpack_grid == null or backpack_slots.is_empty():
+		_delayed_init()
+
 	if visible:
 		return
 	visible = true
@@ -476,19 +489,18 @@ func _switch_tab(tab_id: int) -> void:
 
 
 func _setup_node_references() -> void:
-	await get_tree().process_frame
 	main_panel = $MainPanel as PanelContainer
 	title_bar = $MainPanel/VBox/TitleBar as HBoxContainer
 	close_button = $MainPanel/VBox/TitleBar/CloseButton as Button
 	tab_container = $MainPanel/VBox/TabContainer as HBoxContainer
 	content_container = $MainPanel/VBox/ContentContainer as Control
-	
+
 	# Setup individual tab references
 	equipment_tab = $MainPanel/VBox/ContentContainer/EquipmentTab as Control
 	tools_tab = $MainPanel/VBox/ContentContainer/ToolsTab as Control
 	presets_tab = $MainPanel/VBox/ContentContainer/PresetsTab as Control
 	crafting_tab = $MainPanel/VBox/ContentContainer/CraftingTab as Control
-	
+
 	if close_button:
 		close_button.pressed.connect(_on_close_button_pressed)
 	_setup_tab_buttons()
@@ -558,6 +570,7 @@ func _connect_signals() -> void:
 
 func _create_backpack_grid() -> void:
 	if not backpack_grid:
+		push_error("[InventoryPanel] backpack_grid is null!")
 		return
 	backpack_grid.columns = COLUMNS
 	backpack_slots.clear()
@@ -569,6 +582,7 @@ func _create_backpack_grid() -> void:
 
 func _create_temp_grid() -> void:
 	if not temp_backpack_container:
+		push_error("[InventoryPanel] temp_backpack_container is null!")
 		return
 	temp_slots.clear()
 	for i in range(TEMP_CAPACITY):
@@ -629,7 +643,9 @@ func _update_display() -> void:
 	_update_tab_visibility()
 
 func _update_backpack_display() -> void:
-	if not InventorySystem or backpack_slots.is_empty():
+	if not InventorySystem:
+		return
+	if backpack_slots.is_empty():
 		return
 	var backpack = InventorySystem.backpack
 	for i in range(backpack_slots.size()):
@@ -656,17 +672,22 @@ func _update_slot_display(slot: PanelContainer, item_id: String, quantity: int, 
 	var icon = slot.get_node_or_null("IconContainer/Icon") as TextureRect
 	var quantity_label = slot.get_node_or_null("QuantityLabel") as Label
 	var quality_border = slot.get_node_or_null("QualityBorder") as ColorRect
+	var icon_container = slot.get_node_or_null("IconContainer") as CenterContainer
 	if icon:
 		if item_id.is_empty():
 			icon.texture = null
 			icon.visible = false
 		else:
 			var item_def = ItemDataSystem.get_item_def(item_id) if ItemDataSystem else null
-			if item_def and item_def.icon_path:
+			# 检查是否有有效的图标文件
+			if item_def and not item_def.icon_path.is_empty() and ResourceLoader.exists(item_def.icon_path):
 				icon.texture = load(item_def.icon_path)
 				icon.visible = true
 			else:
+				# 没有图标时，尝试显示物品名称的第一个字符作为后备
 				icon.visible = false
+				# 在 IconContainer 中创建一个后备 Label 显示物品标识
+				_update_slot_backup_display(slot, item_id, icon_container)
 	if quantity_label:
 		if item_id.is_empty() or quantity <= 1:
 			quantity_label.visible = false
@@ -675,6 +696,83 @@ func _update_slot_display(slot: PanelContainer, item_id: String, quantity: int, 
 			quantity_label.visible = true
 	if quality_border:
 		quality_border.color = Quality.get_color(quality)
+
+## 更新槽位后备显示（当没有图标时显示物品标识）
+func _update_slot_backup_display(slot: PanelContainer, item_id: String, icon_container: CenterContainer) -> void:
+	# 查找或创建后备显示节点
+	var backup_label = slot.get_node_or_null("BackupLabel") as Label
+	if backup_label == null:
+		backup_label = Label.new()
+		backup_label.name = "BackupLabel"
+		backup_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		backup_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		backup_label.scale = Vector2(1.5, 1.5)
+		# 插入到 IconContainer 之后
+		if icon_container and icon_container.get_parent() == slot:
+			var idx = icon_container.get_index()
+			slot.add_child(backup_label)
+			backup_label.z_index = 1
+		else:
+			slot.add_child(backup_label)
+
+	# 根据物品ID显示对应的emoji
+	backup_label.text = _get_item_emoji(item_id)
+	backup_label.visible = true
+
+## 获取物品的emoji表示
+func _get_item_emoji(item_id: String) -> String:
+	# 种子类
+	if item_id.contains("seed"):
+		return "🫘"
+	# 肥料类
+	if item_id.contains("fertilizer"):
+		return "🌿"
+	# 木材
+	if item_id == "wood":
+		return "🪵"
+	# 石材
+	if item_id == "stone":
+		return "🪨"
+	# 矿石
+	if item_id.contains("ore"):
+		return "💎"
+	# 煤炭
+	if item_id == "coal":
+		return "ite"
+	# 鱼饵
+	if item_id.contains("bait"):
+		return "🪱"
+	# 农产品
+	if item_id == "tomato":
+		return "🍅"
+	if item_id == "potato":
+		return "🥔"
+	if item_id == "carrot":
+		return "🥕"
+	if item_id == "wheat":
+		return "🌾"
+	if item_id == "rice":
+		return "🍚"
+	if item_id == "egg":
+		return "🥚"
+	if item_id == "milk":
+		return "🥛"
+	if item_id == "duck_egg":
+		return "🥚"
+	if item_id == "goat_milk":
+		return "🥛"
+	if item_id == "wool":
+		return "🧶"
+	if item_id == "truffle":
+		return "🍄"
+	if item_id == "hay":
+		return "🌾"
+	# 竹子
+	if item_id == "bamboo":
+		return "🎋"
+
+	# 默认返回物品ID的第一个字符
+	return item_id.substr(0, 1).to_upper()
 
 func _update_capacity() -> void:
 	if not InventorySystem:
