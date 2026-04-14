@@ -242,7 +242,8 @@ func _calculate_harvest_quality() -> int:
 	if SkillSystem:
 		var farming_level = SkillSystem.get_level(SkillSystem.SkillType.FARMING)
 		var quality_bonus = SkillSystem.get_farming_quality_bonus()
-		var roll = randf()
+		var rng = RandomNumberGenerator.new()
+		var roll = rng.randf()
 
 		# 9级+: 5% 概率出 Supreme (简化版)
 		if farming_level >= 9 and roll < 0.05 + quality_bonus * 0.5:

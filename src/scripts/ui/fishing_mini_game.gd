@@ -130,6 +130,7 @@ var _zone_transition_right: ColorRect
 # ============ 状态变量 ============
 
 var _current_state: State = State.IDLE
+var _is_cancelling: bool = false  # 防止 cancel_minigame 递归调用
 var _bobber_state: BobberState = BobberState.FLOATING
 var _timing_result: TimingResult = TimingResult.NONE
 
@@ -164,6 +165,9 @@ var _assist_mode: bool = false      ## 是否启用辅助模式
 ## 时间管理
 var _last_update_time: int = 0
 
+## 随机数生成器（复用实例避免重复创建）
+var _rng: RandomNumberGenerator
+
 # ============ 信号定义 ============
 
 signal state_changed(new_state: State, old_state: State)
@@ -180,6 +184,9 @@ func _ready() -> void:
 	_connect_signals()
 	_hide_game()
 	_last_update_time = Time.get_ticks_msec()
+	# 初始化随机数生成器
+	_rng = RandomNumberGenerator.new()
+	_rng.randomize()
 
 func _setup_node_references() -> void:
 	_background = $Background if has_node("Background") else null
@@ -280,12 +287,19 @@ func start_minigame(fish_data: Dictionary, assist_mode: bool = false) -> void:
 
 ## 取消钓鱼小游戏
 func cancel_minigame() -> void:
+	# 防止重复取消导致递归
+	if _is_cancelling:
+		return
+	_is_cancelling = true
+
 	if _current_state == State.IDLE:
+		_is_cancelling = false
 		return
 
 	print("[FishingMiniGame] Cancelled")
 	_change_state(State.FAILED)
 	_hide_game()
+	_is_cancelling = false
 
 ## 提竿按钮按下
 func on_reel_pressed() -> void:
@@ -371,8 +385,6 @@ func _change_state(new_state: State) -> void:
 	var old_state = _current_state
 	_current_state = new_state
 
-	print("[FishingMiniGame] State changed: " + str(old_state) + " -> " + str(new_state))
-
 	_on_state_enter(new_state)
 	state_changed.emit(new_state, old_state)
 
@@ -414,8 +426,7 @@ func _start_waiting_phase() -> void:
 	print("[FishingMiniGame] Waiting phase started, bite in " + str(bite_time) + "s")
 
 func _calculate_bite_time() -> float:
-	var rng = RandomNumberGenerator.new()
-	var base_time = rng.randf_range(BASE_BITE_TIME_MIN, BASE_BITE_TIME_MAX)
+	var base_time = _rng.randf_range(BASE_BITE_TIME_MIN, BASE_BITE_TIME_MAX)
 
 	## 技能缩短系数
 	var skill_multiplier = 1.0 - (_skill_level * 0.02)
@@ -431,8 +442,6 @@ func _calculate_bite_time() -> float:
 		bait_multiplier *= 0.9
 
 	var final_time = base_time * skill_multiplier * bait_multiplier
-
-	print("[FishingMiniGame] Bite time: base=" + str(base_time) + " skill_mult=" + str(skill_multiplier) + " bait_mult=" + str(bait_multiplier) + " final=" + str(final_time))
 
 	return final_time
 
@@ -450,8 +459,6 @@ func _start_bite_phase() -> void:
 	var trigger_threshold = SINK_TRIGGER_THRESHOLD
 	if _assist_mode:
 		trigger_threshold = ASSIST_SINK_TRIGGER_THRESHOLD
-
-	print("[FishingMiniGame] Bite phase started, trigger threshold: " + str(trigger_threshold))
 
 func _start_fighting_phase() -> void:
 	_is_fighting = true
@@ -471,8 +478,6 @@ func _start_fighting_phase() -> void:
 
 	## 触发鱼的第一冲刺
 	_trigger_fish_dash()
-
-	print("[FishingMiniGame] Fighting phase started")
 
 func _handle_success() -> void:
 	_update_result("🎉 钓到鱼了！")
@@ -524,8 +529,7 @@ func _build_result(success: bool) -> Dictionary:
 	}
 
 func _calculate_quality() -> String:
-	var rng = RandomNumberGenerator.new()
-	var roll = rng.randf()
+	var roll = _rng.randf()
 
 	## 基础高品质概率 10%
 	var base_prob = 0.10
@@ -610,7 +614,6 @@ func _update_bite(delta: float) -> void:
 			var timing_window = timing_window_base + (_fish_difficulty * TIMING_WINDOW_PER_DIFFICULTY)
 			timing_window = minf(timing_window, MAX_TIMING_WINDOW)
 			_timing_window_timer = timing_window
-			print("[FishingMiniGame] Timing window started! duration=" + str(timing_window) + "s (assist=" + str(_assist_mode) + ")")
 
 		## 如果浮标完全消失，状态变为DIVING
 		if _bobber_sink_amount >= 1.0:
@@ -622,7 +625,6 @@ func _update_bite(delta: float) -> void:
 		if _timing_window_timer <= 0:
 			## 时机窗口结束，但浮标可能还没完全消失
 			_is_timing_window_active = false
-			print("[FishingMiniGame] Timing window ended, bobber still sinking")
 
 func _update_fighting(delta: float) -> void:
 	_fight_time += delta
@@ -692,7 +694,6 @@ func _calculate_fish_dash_movement(delta: float) -> float:
 func _trigger_fish_dash() -> void:
 	## 冲刺方向：鱼会向更能逃离的方向冲刺
 	## 70%概率向逃离方向，30%概率随机
-	var rng = RandomNumberGenerator.new()
 
 	## 判断逃离方向
 	## 如果鱼在中心(0.5)，逃离方向随机
@@ -700,16 +701,16 @@ func _trigger_fish_dash() -> void:
 	## 如果鱼在右侧(>0.5)，逃离方向是右(1)
 	var escape_direction: int = -1 if _fish_position < 0.5 else 1
 
-	if rng.randf() < 0.7:
+	if _rng.randf() < 0.7:
 		## 70%概率向逃离方向冲刺
 		_fish_dash_direction = escape_direction
 	else:
 		## 30%概率随机方向
-		_fish_dash_direction = rng.randi_range(-1, 1)
+		_fish_dash_direction = _rng.randi_range(-1, 1)
 
 	## 冲刺间隔（基于难度）
 	var dash_interval = _calculate_dash_interval()
-	_fish_dash_timer = dash_interval * rng.randf_range(0.5, 1.5)
+	_fish_dash_timer = dash_interval * _rng.randf_range(0.5, 1.5)
 
 ## 根据难度计算冲刺间隔
 ## 设计文档：简单(1-3)长3s/中等(4-6)中2s/困难(7-10)短1s
@@ -825,10 +826,7 @@ func _check_fight_end_conditions() -> void:
 
 func _on_reel_pressed() -> void:
 	if _current_state != State.BITE:
-		print("[FishingMiniGame] Reel pressed but not in BITE state")
 		return
-
-	print("[FishingMiniGame] Reel pressed! bobber_state=" + str(_bobber_state) + " timing_window_active=" + str(_is_timing_window_active) + " sink=" + str(_bobber_sink_amount))
 
 	## 时机判定
 	if _bobber_state == BobberState.BOBBING:
@@ -881,14 +879,12 @@ func _update_ui_visibility() -> void:
 	_show_fight_ui(show_fight)
 
 func _show_fight_ui(show: bool) -> void:
-	print("[FishingMiniGame] _show_fight_ui(" + str(show) + ")")
 	if _fight_progress_bg:
 		_fight_progress_bg.visible = show
 	if _fish_indicator:
 		_fish_indicator.visible = show
 	if _stamina_bar:
 		_stamina_bar.visible = show
-		print("[FishingMiniGame] stamina_bar visible=" + str(show))
 	if _stamina_label:
 		_stamina_label.visible = show
 	if _pressure_bar:

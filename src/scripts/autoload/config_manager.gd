@@ -16,9 +16,13 @@ signal config_validation_failed(config_name: String, errors: Array)
 
 # ============ 配置实例 ============
 
+## 使用延迟初始化避免场景树依赖问题
 var game_config: GameConfig
 var time_config: TimeConfig
 var player_config: PlayerConfig
+
+## 标记配置是否已加载
+var _configs_loaded: bool = false
 
 # ============ 配置路径 ============
 
@@ -31,7 +35,8 @@ const PLAYER_CONFIG_PATH: String = "res://src/resources/configs/player_config.tr
 var _configurable_systems: Dictionary = {}
 
 func _ready() -> void:
-	_load_all_configs()
+	# 延迟一帧加载配置，确保场景树完全初始化
+	call_deferred("_load_all_configs")
 
 ## 注册可配置系统
 func register_configurable(system_name: String, node: Node) -> void:
@@ -201,6 +206,9 @@ func reload_config(config_name: String) -> bool:
 
 ## 应用配置到系统
 func _apply_configs() -> void:
+	if not is_inside_tree():
+		await ready
+
 	if time_config:
 		if has_node("/root/TimeManager"):
 			var tm = get_node("/root/TimeManager")
@@ -210,6 +218,8 @@ func _apply_configs() -> void:
 		if has_node("/root/InventorySystem"):
 			var inv = get_node("/root/InventorySystem")
 			inv.apply_config(player_config)
+
+	_configs_loaded = true
 
 	# 通知所有注册的可配置系统
 	for system_name in _configurable_systems:

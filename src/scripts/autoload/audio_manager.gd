@@ -469,7 +469,8 @@ func _is_sfx_throttled(sfx_name: String) -> bool:
 func play_sfx_random(sfx_names: Array[String], volume_db: float = 0.0) -> void:
 	if sfx_names.is_empty():
 		return
-	var random_name = sfx_names[randi() % sfx_names.size()]
+	var rng = RandomNumberGenerator.new()
+	var random_name = sfx_names[rng.randi_range(0, sfx_names.size() - 1)]
 	play_sfx(random_name, volume_db)
 
 ## 停止所有SFX

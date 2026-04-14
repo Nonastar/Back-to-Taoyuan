@@ -1,7 +1,6 @@
 extends SceneTree
 
-## 简单测试运行器
-## 运行 FarmPlot 单元测试
+## FarmPlot单元测试
 
 var passed: int = 0
 var failed: int = 0
@@ -18,9 +17,18 @@ func _run_all_tests():
 	_test_till_only_on_wasteland()
 	_test_reset()
 
-func _test_initial_state():
+## 创建带场景的 FarmPlot（触发 _ready）
+func _create_plot() -> FarmPlot:
 	var plot = FarmPlot.new()
 	plot.grid_position = Vector2i(0, 0)
+	# 添加到场景以触发 _ready()
+	get_root().add_child(plot)
+	# 等待 _ready() 完成
+	await plot.ready
+	return plot
+
+func _test_initial_state():
+	var plot = await _create_plot()
 
 	var ok = plot.state == FarmPlot.PlotState.WASTELAND
 	_check("初始状态为 WASTELAND", ok)
@@ -30,12 +38,9 @@ func _test_initial_state():
 	plot.free()
 
 func _test_till():
-	var plot = FarmPlot.new()
-	plot.grid_position = Vector2i(0, 0)
+	var plot = await _create_plot()
 
 	# 耕地
-	# 由于需要 Player 枚举，我们直接设置状态测试
-	plot.state = FarmPlot.PlotState.WASTELAND
 	var result = plot.interact(0, Vector2.DOWN)  # HOE = 0
 
 	_check("耕地返回成功", result)
@@ -44,8 +49,7 @@ func _test_till():
 	plot.free()
 
 func _test_till_only_on_wasteland():
-	var plot = FarmPlot.new()
-	plot.grid_position = Vector2i(0, 0)
+	var plot = await _create_plot()
 
 	# 先耕地
 	plot.state = FarmPlot.PlotState.WASTELAND
@@ -60,7 +64,8 @@ func _test_till_only_on_wasteland():
 	plot.free()
 
 func _test_reset():
-	var plot = FarmPlot.new()
+	var plot = await _create_plot()
+
 	plot.state = FarmPlot.PlotState.HARVESTABLE
 	plot.crop_id = "tomato"
 	plot.growth_days = 4

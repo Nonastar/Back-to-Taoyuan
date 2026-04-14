@@ -69,6 +69,14 @@ signal load_completed(slot: int, success: bool)
 ## 天气事件
 signal weather_changed(weather_type: String)
 
+## 钓鱼事件
+signal fishing_started()
+signal fishing_completed(caught: bool, fish_id: String)
+signal fish_caught(fish_id: String, quantity: int, quality: int)
+signal fishing_cancelled()
+signal fishing_minigame_requested(fish_data: Dictionary, assist_mode: bool)
+signal fishing_minigame_cancelled()
+
 # ============ 调试功能 ============
 
 var _debug_mode: bool = false

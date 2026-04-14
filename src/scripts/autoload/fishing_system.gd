@@ -6,10 +6,8 @@ extends Node
 
 # ============ 信号 ============
 
-signal fishing_started()
-signal fishing_completed(caught: bool, fish_id: String)
-signal fish_caught(fish_id: String, quantity: int, quality: int)
-signal fishing_cancelled()
+# 本地信号（保留用于内部逻辑）
+# 公共钓鱼事件通过 EventBus 发送
 
 # ============ 状态 ============
 
@@ -89,10 +87,17 @@ func _ready() -> void:
 	print("[FishingSystem] Initialized")
 
 func _connect_signals() -> void:
-	fishing_started.connect(_on_fishing_started)
+	# 本地信号连接（如有需要）
+	pass  # 已改用 EventBus，保留接口
 
-## 获取小游戏引用
+## 获取小游戏引用（通过场景组查找）
 func _get_mini_game() -> Node:
+	# 优先使用场景组查找
+	var nodes = get_tree().get_nodes_in_group("fishing_minigame")
+	if not nodes.is_empty():
+		return nodes[0]
+
+	# 回退：尝试从 Main 场景查找
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
 		return main.get_node_or_null("UILayer/FishingMiniGame")
@@ -111,17 +116,50 @@ func get_current_fish_id() -> String:
 
 ## 开始钓鱼
 func start_fishing(spot_id: String) -> void:
-	if _is_fishing:
-		print("[FishingSystem] Already fishing, ignoring start request")
+	# 验证请求
+	if not _validate_fishing_request(spot_id):
 		return
 
-	## 检查是否有鱼可钓
+	# 选择并消耗鱼饵
+	_select_and_consume_bait()
+
+	# 设置钓鱼状态
+	_is_fishing = true
+	_current_spot_id = spot_id
+
+	# 选择要钓的鱼
+	_current_fish_id = roll_fish(spot_id)
+	if _current_fish_id.is_empty():
+		print("[FishingSystem] Failed to roll fish")
+		_is_fishing = false
+		return
+
+	# 构建鱼数据并准备小游戏
+	_build_fish_data_for_minigame(spot_id)
+
+	# 暂停游戏时间并显示小游戏
+	_pause_game_time()
+	_show_fishing_minigame()
+
+	# 发送事件
+	EventBus.fishing_started.emit()
+	print("[FishingSystem] Started fishing at: " + str(spot_id) + ", fish: " + str(_current_fish_id))
+
+## 验证钓鱼请求
+func _validate_fishing_request(spot_id: String) -> bool:
+	if _is_fishing:
+		print("[FishingSystem] Already fishing, ignoring start request")
+		return false
+
 	var available = get_available_fish(spot_id)
 	if available.is_empty():
 		print("[FishingSystem] No fish available at spot: " + str(spot_id))
-		return
+		return false
 
-	## 检查并消耗鱼饵
+	return true
+
+## 选择并消耗鱼饵
+func _select_and_consume_bait() -> void:
 	_current_bait_type = _select_best_bait()
 	if _current_bait_type != BaitType.NONE:
 		var bait_item_id = BAIT_EFFECTS[_current_bait_type]["item_id"]
@@ -129,35 +167,21 @@ func start_fishing(spot_id: String) -> void:
 			PlayerStats.remove_item(bait_item_id, 1)
 			print("[FishingSystem] Used bait: " + str(BAIT_EFFECTS[_current_bait_type]["name"]))
 
-	_is_fishing = true
-	_current_spot_id = spot_id
-
-	## 随机选择要钓的鱼
-	_current_fish_id = roll_fish(spot_id)
-	if _current_fish_id.is_empty():
-		print("[FishingSystem] Failed to roll fish")
-		_is_fishing = false
-		return
-
-	## 构建鱼数据
+## 为小游戏构建鱼数据
+func _build_fish_data_for_minigame(spot_id: String) -> void:
 	_current_fish_data = _build_fish_data(_current_fish_id)
 	_current_fish_data["spot_id"] = spot_id
 
-	## 添加鱼饵加成到鱼数据（传递给小游戏）
+	# 添加鱼饵加成到鱼数据
 	var bait_data = get_bait_bonus()
 	_current_fish_data["bait_type"] = bait_data["type"]
-	_current_fish_data["bait_multiplier"] = 1.0 - bait_data["bite_bonus"]  ## 咬钩率加成转缩短时间
+	_current_fish_data["bait_multiplier"] = 1.0 - bait_data["bite_bonus"]
 	_current_fish_data["bait_name"] = bait_data["name"]
 
-	## 暂停游戏时间
+## 暂停游戏时间
+func _pause_game_time() -> void:
 	if TimeManager and TimeManager.has_method("enter_minigame"):
 		TimeManager.enter_minigame()
-
-	## 显示钓鱼小游戏
-	_show_fishing_minigame()
-
-	fishing_started.emit()
-	print("[FishingSystem] Started fishing at: " + str(spot_id) + ", fish: " + str(_current_fish_id))
 
 ## 结束钓鱼
 func end_fishing(caught: bool, fish_id: String = "") -> void:
@@ -165,36 +189,46 @@ func end_fishing(caught: bool, fish_id: String = "") -> void:
 		print("[FishingSystem] Not fishing, ignoring end request")
 		return
 
-	_is_fishing = false
-
-	## 处理捕获结果
+	# 处理捕获结果
 	if caught and not fish_id.is_empty():
-		## 计算经验值
-		var fish_data = get_fish_data(fish_id)
-		var exp = fish_data.get("exp", 10)
+		_process_catch_result(fish_id)
 
-		## 添加钓鱼经验
-		if SkillSystem and SkillSystem.has_method("add_exp"):
-			SkillSystem.add_exp(SkillSystem.SkillType.FISHING, exp)
-			print("[FishingSystem] Added " + str(exp) + " fishing exp")
-
-		## 添加鱼到背包
-		if PlayerStats and PlayerStats.has_method("add_item"):
-			PlayerStats.add_item(fish_id, 1)
-
-		fish_caught.emit(fish_id, 1, 0)
-		print("[FishingSystem] Fish caught: " + str(fish_id) + ", exp: " + str(exp))
-
-	## 隐藏钓鱼小游戏
+	# 隐藏小游戏并恢复时间
 	_hide_fishing_minigame()
+	_resume_game_time()
 
-	## 恢复游戏时间
+	# 发送完成事件
+	EventBus.fishing_completed.emit(caught, fish_id)
+	print("[FishingSystem] Fishing ended: caught=" + str(caught) + ", fish=" + str(fish_id))
+
+	# 清理状态
+	_cleanup_fishing_state()
+
+## 处理捕获结果
+func _process_catch_result(fish_id: String) -> void:
+	var fish_data = get_fish_data(fish_id)
+	var exp = fish_data.get("exp", 10)
+
+	# 添加钓鱼经验
+	if SkillSystem and SkillSystem.has_method("add_exp"):
+		SkillSystem.add_exp(SkillSystem.SkillType.FISHING, exp)
+		print("[FishingSystem] Added " + str(exp) + " fishing exp")
+
+	# 添加鱼到背包
+	if PlayerStats and PlayerStats.has_method("add_item"):
+		PlayerStats.add_item(fish_id, 1)
+
+	EventBus.fish_caught.emit(fish_id, 1, 0)
+	print("[FishingSystem] Fish caught: " + str(fish_id) + ", exp: " + str(exp))
+
+## 恢复游戏时间
+func _resume_game_time() -> void:
 	if TimeManager and TimeManager.has_method("exit_minigame"):
 		TimeManager.exit_minigame()
 
-	fishing_completed.emit(caught, fish_id)
-	print("[FishingSystem] Fishing ended: caught=" + str(caught) + ", fish=" + str(fish_id))
-
+## 清理钓鱼状态
+func _cleanup_fishing_state() -> void:
+	_is_fishing = false
 	_current_spot_id = ""
 	_current_fish_id = ""
 	_current_fish_data = {}
@@ -206,23 +240,16 @@ func cancel_fishing() -> void:
 	if not _is_fishing:
 		return
 
-	_is_fishing = false
-
-	## 隐藏钓鱼小游戏
+	# 隐藏小游戏并恢复时间
 	_hide_fishing_minigame()
+	_resume_game_time()
 
-	## 恢复游戏时间
-	if TimeManager and TimeManager.has_method("exit_minigame"):
-		TimeManager.exit_minigame()
-
-	fishing_cancelled.emit()
+	# 发送取消事件
+	EventBus.fishing_cancelled.emit()
 	print("[FishingSystem] Fishing cancelled")
 
-	_current_spot_id = ""
-	_current_fish_id = ""
-	_current_fish_data = {}
-	_current_bait_type = BaitType.NONE
-	_assist_mode = false
+	# 清理状态
+	_cleanup_fishing_state()
 
 ## 获取地点可钓鱼类列表
 func get_available_fish(spot_id: String) -> Array:
@@ -331,26 +358,37 @@ func _build_fish_data(fish_id: String) -> Dictionary:
 	data["fish_id"] = fish_id
 	return data
 
-func _on_fishing_started() -> void:
-	_show_fishing_minigame()
+## 发送小游戏请求（通过 EventBus）
+func _request_minigame() -> void:
+	EventBus.fishing_minigame_requested.emit(_current_fish_data, _assist_mode)
 
 func _show_fishing_minigame() -> void:
 	var mini_game = _get_mini_game()
 	if mini_game and mini_game.has_method("start_minigame"):
-		## 连接结果信号
+		# 连接结果信号
 		if not mini_game.fishing_complete.is_connected(_on_fishing_complete):
 			mini_game.fishing_complete.connect(_on_fishing_complete)
 
 		mini_game.start_minigame(_current_fish_data, _assist_mode)
 		print("[FishingSystem] FishingMiniGame started (assist=" + str(_assist_mode) + ")")
+		# 同时通过 EventBus 发送请求
+		_request_minigame()
 	else:
 		print("[FishingSystem] FishingMiniGame not found or invalid")
 
 func _hide_fishing_minigame() -> void:
 	var mini_game = _get_mini_game()
-	if mini_game and mini_game.has_method("cancel_minigame"):
-		mini_game.cancel_minigame()
-		print("[FishingSystem] FishingMiniGame hidden")
+	if mini_game:
+		# 断开信号连接防止递归调用
+		if mini_game.has_signal("fishing_complete") and mini_game.fishing_complete.is_connected(_on_fishing_complete):
+			mini_game.fishing_complete.disconnect(_on_fishing_complete)
+
+		if mini_game.has_method("cancel_minigame"):
+			mini_game.cancel_minigame()
+			print("[FishingSystem] FishingMiniGame hidden")
+
+	# 同时通过 EventBus 发送取消
+	EventBus.fishing_minigame_cancelled.emit()
 
 ## 处理小游戏完成结果
 func _on_fishing_complete(result: Dictionary) -> void:

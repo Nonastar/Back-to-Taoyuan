@@ -60,10 +60,15 @@ res://
 └── addons/             # Editor plugins
 ```
 
+## Logging Standards
+
+- **一般信息** — 使用 `print()` 输出（如：初始化状态、调试信息、用户操作反馈）
+- **重要/警告信息** — 使用 `push_warning()` 输出（如：配置缺失、功能降级、边界条件处理）
+- **错误信息** — 使用 `push_error()` 输出（如：数据损坏、致命异常）
+
 ## Forbidden Patterns
 
 - `randi()` / `randf()` — use `RandomNumberGenerator` for determinism
-- `print()` in production — use `push_warning()` or `push_error()`
 - Hardcoded numeric values — use constants or exported variables
 - Cyclic scene references — use signals or `get_node()` with paths
 - `@tool` scripts in production scenes — only for editor utilities
