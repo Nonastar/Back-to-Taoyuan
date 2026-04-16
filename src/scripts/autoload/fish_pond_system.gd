@@ -153,9 +153,9 @@ func build_pond() -> bool:
 		InventorySystem.remove_item("bamboo", BUILD_COST_BAMBOO)
 
 	_is_built = true
-	_fish_in_pond = []
+	_fish_in_pond = Array([], TYPE_DICTIONARY, "", null)
 	_capacity = BASE_CAPACITY
-	_pending_products = []
+	_pending_products = Array([], TYPE_DICTIONARY, "", null)
 	_days_elapsed = 0
 
 	pond_built.emit()
@@ -242,7 +242,7 @@ func collect_products() -> int:
 		print("[FishPondSystem] Collected: " + str(product_id) + " x" + str(quantity))
 
 	## 清空待收获列表
-	_pending_products = []
+	_pending_products = Array([], TYPE_DICTIONARY, "", null)
 	pond_state_changed.emit()
 
 	return collected
@@ -360,9 +360,9 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	_is_built = data.get("is_built", false)
-	_fish_in_pond = data.get("fish_in_pond", [])
+	_fish_in_pond = Array(data.get("fish_in_pond", []), TYPE_DICTIONARY, "", null)
 	_capacity = data.get("capacity", BASE_CAPACITY)
-	_pending_products = data.get("pending_products", [])
+	_pending_products = Array(data.get("pending_products", []), TYPE_DICTIONARY, "", null)
 	_days_elapsed = data.get("days_elapsed", 0)
 
 	print("[FishPondSystem] Loaded: built=" + str(_is_built) + ", fish=" + str(_fish_in_pond.size()))

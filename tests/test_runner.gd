@@ -90,12 +90,17 @@ func _run_test_file(file_path: String) -> void:
 		if method.name.begins_with("test_"):
 			current_test = method.name
 			_run_test(test_instance, method.name)
+			# 每个测试后重置状态，保留实例供下一个测试使用
+			if test_instance.has_method("_reset_all_state"):
+				test_instance._reset_all_state()
+			if test_instance.has_method("before_each"):
+				test_instance.before_each()
 
-	# 运行teardown
+	# 运行teardown（最终清理，包括 free）
 	if test_instance.has_method("after_each"):
 		test_instance.after_each()
-
-	test_instance.free()
+	else:
+		test_instance.free()
 
 ## 运行单个测试
 func _run_test(test_instance, method_name: String) -> void:

@@ -80,7 +80,7 @@ func _ready() -> void:
 	add_to_group("fish_pond_ui")  # 添加到组以便全局访问
 	_setup_node_references()
 	_connect_signals()
-	_hide_ui()
+	hide_ui()
 	print("[FishPondUI] Initialized")
 
 func _setup_node_references() -> void:

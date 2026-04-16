@@ -64,6 +64,14 @@ const FRIENDSHIP_LEVEL_TO_ENUM: Dictionary = {
 	FRIENDSHIP_LEVEL_BEST_FRIEND: FriendshipLevel.BEST_FRIEND
 }
 
+## 好感度等级阈值映射 (用于进度计算)
+const _FRIENDSHIP_LEVEL_THRESHOLDS: Dictionary = {
+	FRIENDSHIP_LEVEL_STRANGER: {"current": 0, "next": FRIENDSHIP_THRESHOLD_PAL},
+	FRIENDSHIP_LEVEL_PAL: {"current": FRIENDSHIP_THRESHOLD_PAL, "next": FRIENDSHIP_THRESHOLD_FRIEND},
+	FRIENDSHIP_LEVEL_FRIEND: {"current": FRIENDSHIP_THRESHOLD_FRIEND, "next": FRIENDSHIP_THRESHOLD_BEST_FRIEND},
+	FRIENDSHIP_LEVEL_BEST_FRIEND: {"current": FRIENDSHIP_THRESHOLD_BEST_FRIEND, "next": 1000}
+}
+
 ## ============ 疾病系统常量 ============
 
 ## 生病概率 (基于建筑脏乱天数)
@@ -401,6 +409,7 @@ func feed_animals() -> int:
 		var animals = building.get("animals", [])
 		for animal in animals:
 			animal["has_produced_today"] = false
+			animal["fed_today"] = true  ## 标记已喂养，防止脏乱天数增加
 			fed_count += 1
 
 	animal_fed.emit("")
@@ -513,34 +522,14 @@ static func get_quality_bonus(friendship: int) -> float:
 ## 用于UI显示进度条
 static func get_friendship_progress(friendship: int) -> float:
 	var level_name = get_friendship_level_name(friendship)
-	var next_threshold: int
+	var thresholds = _FRIENDSHIP_LEVEL_THRESHOLDS.get(level_name, {"current": 0, "next": FRIENDSHIP_THRESHOLD_PAL})
 
-	match level_name:
-		FRIENDSHIP_LEVEL_STRANGER:
-			next_threshold = FRIENDSHIP_THRESHOLD_PAL
-		FRIENDSHIP_LEVEL_PAL:
-			next_threshold = FRIENDSHIP_THRESHOLD_FRIEND
-		FRIENDSHIP_LEVEL_FRIEND:
-			next_threshold = FRIENDSHIP_THRESHOLD_BEST_FRIEND
-		FRIENDSHIP_LEVEL_BEST_FRIEND:
-			return 1.0  # 已达满级
-		_:
-			next_threshold = FRIENDSHIP_THRESHOLD_PAL
-
-	var current_threshold: int
-	match level_name:
-		FRIENDSHIP_LEVEL_STRANGER:
-			current_threshold = 0
-		FRIENDSHIP_LEVEL_PAL:
-			current_threshold = FRIENDSHIP_THRESHOLD_PAL
-		FRIENDSHIP_LEVEL_FRIEND:
-			current_threshold = FRIENDSHIP_THRESHOLD_FRIEND
-		FRIENDSHIP_LEVEL_BEST_FRIEND:
-			current_threshold = FRIENDSHIP_THRESHOLD_BEST_FRIEND
-		_:
-			current_threshold = 0
-
+	var current_threshold = thresholds["current"]
+	var next_threshold = thresholds["next"]
 	var range_size = next_threshold - current_threshold
+	## 防止除以零（Best Friend 的 next=1000 不会出现此情况）
+	if range_size <= 0:
+		return 1.0
 	var progress = friendship - current_threshold
 	return clamp(float(progress) / float(range_size), 0.0, 1.0)
 
@@ -992,52 +981,59 @@ func daily_update() -> void:
 	_days_elapsed += 1
 	print("[AnimalHusbandrySystem] Daily update: Day " + str(_days_elapsed))
 
-	## 遍历所有建筑
 	for building_type in _buildings.keys():
 		var building = _buildings[building_type]
 		var animals = building.get("animals", [])
-
-		## 检查是否清理过建筑
-		## 如果没有喂养操作，脏乱天数+1
-		var was_cleaned = false
+		_update_building_dirty_days(building, animals)
 		for animal in animals:
-			if animal.get("fed_today", false):
-				was_cleaned = true
-				break
-
-		if not was_cleaned:
-			building["dirty_days"] = building.get("dirty_days", 0) + 1
-
-		for animal in animals:
-			## 重置每日状态（好感度操作）
-			animal["fed_today"] = false
-			animal["pet_today"] = false
-
-			## 增加养殖天数
-			animal["days_in_building"] += 1
-
-			## 检查是否成熟
-			var animal_id = animal.get("animal_id", "")
-			var animal_data = _get_animal_data(animal_id)
-			var maturity_days = animal_data.get("maturity_days", 5)
-
-			if animal["days_in_building"] >= maturity_days:
-				animal["is_mature"] = true
-
-			## 生病检查 (只有未生病的动物才会被感染)
-			if not animal.get("is_sick", false):
-				var sick_roll = randf()
-				var sick_chance = get_sick_probability(building_type)
-				if sick_roll < sick_chance:
-					animal["is_sick"] = true
-					animal_sick.emit(animal.get("unique_id", ""))
-					print("[AnimalHusbandrySystem] Animal became sick: " + str(animal_id))
-
-			## 如果已成熟、未生病且今日未产出，计算产出
-			if animal["is_mature"] and not animal.get("is_sick", false) and not animal.get("has_produced_today", false):
-				_try_produce(animal, animal_data)
+			_process_animal_daily_status(animal, building_type)
 
 	animal_state_changed.emit()
+
+## 更新建筑脏乱天数
+func _update_building_dirty_days(building: Dictionary, animals: Array) -> void:
+	var was_fed = false
+	for animal in animals:
+		if animal.get("fed_today", false):
+			was_fed = true
+			break
+	if not was_fed:
+		building["dirty_days"] = building.get("dirty_days", 0) + 1
+
+## 处理动物每日状态：重置状态、检查成熟、检查疾病、尝试产出
+func _process_animal_daily_status(animal: Dictionary, building_type: BuildingType) -> void:
+	animal["fed_today"] = false
+	animal["pet_today"] = false
+	animal["days_in_building"] += 1
+
+	_check_animal_maturity(animal)
+	_check_animal_sickness(animal, building_type)
+	_maybe_produce_product(animal)
+
+func _check_animal_maturity(animal: Dictionary) -> void:
+	var animal_id = animal.get("animal_id", "")
+	var animal_data = _get_animal_data(animal_id)
+	var maturity_days = animal_data.get("maturity_days", 5)
+	if animal["days_in_building"] >= maturity_days:
+		animal["is_mature"] = true
+
+func _check_animal_sickness(animal: Dictionary, building_type: BuildingType) -> void:
+	if animal.get("is_sick", false):
+		return
+	var rng_sick = RandomNumberGenerator.new()
+	var sick_roll = rng_sick.randf()
+	var sick_chance = get_sick_probability(building_type)
+	if sick_roll < sick_chance:
+		animal["is_sick"] = true
+		animal_sick.emit(animal.get("unique_id", ""))
+		print("[AnimalHusbandrySystem] Animal became sick: " + str(animal.get("animal_id", "")))
+
+func _maybe_produce_product(animal: Dictionary) -> void:
+	if not animal["is_mature"] or animal.get("is_sick", false) or animal.get("has_produced_today", false):
+		return
+	var animal_id = animal.get("animal_id", "")
+	var animal_data = _get_animal_data(animal_id)
+	_try_produce(animal, animal_data)
 
 func _try_produce(animal: Dictionary, animal_data: Dictionary) -> void:
 	var rng = RandomNumberGenerator.new()
@@ -1066,7 +1062,7 @@ func _get_animal_data(animal_id: String) -> Dictionary:
 	return ANIMAL_DATA.get(animal_id, {})
 
 func _generate_unique_id() -> String:
-	return "animal_" + str(Time.get_ticks_msec()) + "_" + str(randf())
+	return "animal_" + str(Time.get_ticks_usec())
 
 # ============ 存档支持 ============
 
@@ -1079,7 +1075,7 @@ func serialize() -> Dictionary:
 
 func deserialize(data: Dictionary) -> void:
 	_buildings = data.get("buildings", {})
-	_pending_products = data.get("pending_products", [])
+	_pending_products = Array(data.get("pending_products", []), TYPE_DICTIONARY, "", null)
 	_days_elapsed = data.get("days_elapsed", 0)
 
 	## 迁移旧存档数据（添加新字段）

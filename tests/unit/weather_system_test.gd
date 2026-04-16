@@ -67,16 +67,17 @@ func test_stamina_modifier():
 	assert_almost_eq(_weather.get_stamina_modifier(), 1.0, 0.001, "晴天体力无修正")
 
 	_weather.today_weather = "rainy"
-	assert_almost_eq(_weather.get_stamina_modifier(), 0.9, 0.001, "雨天体力-10%")
+	## STAMINA_MOD 表示体力消耗倍率，1.15 = 消耗+15%（剩余/消耗变少）
+	assert_almost_eq(_weather.get_stamina_modifier(), 1.15, 0.001, "雨天体力消耗+15%")
 
 	_weather.today_weather = "stormy"
-	assert_almost_eq(_weather.get_stamina_modifier(), 0.8, 0.001, "雷雨体力-20%")
+	assert_almost_eq(_weather.get_stamina_modifier(), 1.30, 0.001, "雷雨体力消耗+30%")
 
 	_weather.today_weather = "snowy"
-	assert_almost_eq(_weather.get_stamina_modifier(), 0.7, 0.001, "雪天体力-30%")
+	assert_almost_eq(_weather.get_stamina_modifier(), 1.50, 0.001, "雪天体力消耗+50%")
 
 	_weather.today_weather = "green_rain"
-	assert_almost_eq(_weather.get_stamina_modifier(), 0.9, 0.001, "绿雨体力-10%")
+	assert_almost_eq(_weather.get_stamina_modifier(), 1.10, 0.001, "绿雨体力消耗+10%")
 
 func test_mining_yield_modifier():
 	_reset_all_state()

@@ -20,6 +20,7 @@ var current_test: String = ""
 
 @onready var output_label: RichTextLabel = $Panel/ScrollContainer/Output
 var _output_text: String = ""
+const MAX_OUTPUT_LINES: int = 200  ## 限制输出行数，防止溢出
 
 func _ready() -> void:
 	print("========================================")
@@ -50,11 +51,15 @@ func _ready() -> void:
 	# 输出结果
 	_print_summary()
 
-	# 更新UI
+	# 更新UI（只更新一次，避免频繁刷新）
 	_update_output_display()
 
 func _add_output(text: String) -> void:
 	_output_text += text + "\n"
+	## 限制行数，防止RichTextLabel溢出
+	var lines = _output_text.split("\n", false)
+	if lines.size() > MAX_OUTPUT_LINES:
+		_output_text = "\n".join(lines.slice(lines.size() - MAX_OUTPUT_LINES, lines.size()))
 
 func _update_output_display() -> void:
 	if output_label:
@@ -112,12 +117,17 @@ func _run_test_file(file_path: String) -> void:
 		if method.name.begins_with("test_"):
 			current_test = method.name
 			_run_test(test_instance, method.name)
+			# 每个测试后重置状态，保留实例供下一个测试使用
+			if test_instance.has_method("_reset_all_state"):
+				test_instance.call("_reset_all_state")
+			if test_instance.has_method("before_each"):
+				test_instance.call("before_each")
 
-	# 运行teardown
+	# 运行teardown（最终清理，包括 free）
 	if test_instance.has_method("after_each"):
 		test_instance.call("after_each")
-
-	test_instance.free()
+	else:
+		test_instance.free()
 
 func _run_test(test_instance, method_name: String) -> void:
 	total_tests += 1
