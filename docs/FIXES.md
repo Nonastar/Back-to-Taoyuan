@@ -1038,6 +1038,405 @@ custom_minimum_size = Vector2(56, 56)
 
 ---
 
+### 问题40: `show()` / `hide()` 与 CanvasLayer 内置方法冲突
+
+**错误:**
+```gdscript
+extends CanvasLayer
+
+func show() -> void:  # 与 CanvasLayer 内置方法冲突！
+    ...
+
+func hide() -> void:  # 与 CanvasLayer 内置方法冲突！
+    ...
+```
+
+**错误日志:**
+```
+Parse Error: The function signature doesn't match the parent. Parent signature is "show() -> void".
+Parse Error: The function signature doesn't match the parent. Parent signature is "hide() -> void".
+```
+
+**原因:** `CanvasLayer` 继承自 `Node2D`，已有 `show()` 和 `hide()` 方法
+
+**正确写法:**
+```gdscript
+extends CanvasLayer
+
+func _show_panel() -> void:  # 改名避免冲突
+    ...
+
+func _hide_panel() -> void:  # 改名避免冲突
+    ...
+```
+
+**教训:** 避免使用与内置类冲突的方法名，使用下划线前缀表示私有方法
+
+---
+
+### 问题41: 私有方法被静态方法引用
+
+**错误:**
+```gdscript
+extends CanvasLayer
+
+func _hide_ui() -> void:  # 私有方法
+    ...
+
+static func toggle() -> void:
+    _instance._hide_ui()  # 错误：私有方法不能被静态方法调用
+
+static func show() -> void:
+    _instance.show_ui()  # 错误：show_ui 也不存在
+```
+
+**正确写法:**
+```gdscript
+extends CanvasLayer
+
+func _show_ui() -> void:  # 下划线表示私有
+    ...
+
+func _hide_ui() -> void:  # 下划线表示私有
+    ...
+
+static func toggle() -> void:
+    if _instance:
+        _instance._hide_ui() if _instance.visible else _instance._show_ui()
+
+static func show_panel() -> void:  # 改名表示公开
+    if _instance:
+        _instance._show_ui()
+```
+
+**教训:** 静态方法引用实例方法时，使用正确的实例方法名
+
+---
+
+### 问题42: 引用未定义的全局变量
+
+**错误:**
+```gdscript
+func _on_shop_pressed() -> void:
+    if ShopUI:  # ShopUI 未定义！
+        ShopUI.show_shop("animal")
+    else:
+        _show_notification("商店界面暂未开放")
+```
+
+**错误日志:**
+```
+Parse Error: Identifier "ShopUI" not declared in the current scope.
+```
+
+**正确写法:**
+```gdscript
+func _on_shop_pressed() -> void:
+    # 直接实现功能，不依赖未定义的变量
+    _show_notification("商店功能暂未开放，请前往村落购买动物")
+    _hide_ui()
+```
+
+**教训:** 不要引用未定义的全局变量，先实现功能或使用硬编码值
+
+---
+
+### 问题43: 场景根节点类型与脚本不匹配
+
+**错误:**
+```gdscript
+# animal_coop.tscn
+[node name="AnimalCoop" type="Node2D"]  # Node2D 类型
+script = ExtResource("1")  # 脚本继承自 CanvasLayer！
+```
+
+**错误日志:**
+```
+Script inherits from native type 'CanvasLayer', so it can't be assigned to an object of type: 'Node2D'
+```
+
+**正确写法:**
+```gdscript
+# animal_coop.tscn
+[node name="AnimalCoop" type="CanvasLayer"]  # 必须与脚本继承类型匹配
+script = ExtResource("1")
+```
+
+**教训:** 场景根节点类型必须与脚本继承的基类匹配
+
+---
+
+### 问题44: 缺少 `class_name` 声明
+
+**错误:**
+```gdscript
+extends CanvasLayer  # 没有 class_name
+
+# 静态方法引用类类型
+static func toggle() -> void:
+    if _instance == null:
+        return
+```
+
+**错误日志:**
+```
+Parse Error: Could not find type "AnimalHusbandryUI" in the current scope.
+```
+
+**正确写法:**
+```gdscript
+class_name AnimalHusbandryUI  # 添加 class_name
+extends CanvasLayer
+
+static func toggle() -> void:
+    ...
+```
+
+**教训:** 如果需要在其他脚本中引用类类型，需要添加 `class_name` 声明（非 Autoload 类）
+
+---
+
+### 问题45: TSCN 文件使用 `#` 注释
+
+**错误:**
+```gdscript
+[gd_scene format=3 uid="uid://hdcjsuw3ewts"]
+
+## 畜牧系统交互界面  # 错误：TSCN 不支持 # 注释
+[node name="Panel" type="PanelContainer"]
+```
+
+**错误日志:**
+```
+Invalid color code: #.
+Expected '[' - 5
+Parse Error: Unexpected end of file.
+```
+
+**正确写法:**
+```gdscript
+[gd_scene format=3 uid="uid://hdcjsuw3ewts"]
+
+# TSCN 文件不使用注释，或在节点描述中使用特殊格式
+[node name="Panel" type="PanelContainer"]
+```
+
+**教训:** TSCN 文件是 Godot 专用格式，不支持 `#` 注释，删除所有注释行
+
+---
+
+### 问题46: TSCN 文件中 `[sub_resource]` 位置错误
+
+**错误:**
+```gdscript
+[node name="CoopTabBtn" type="Button"]
+button_group = SubResource("TabButtonGroup")  # 引用在定义之前！
+
+[node name="BarnTabBtn" type="Button"]
+button_group = SubResource("TabButtonGroup")
+
+[sub_resource type="ButtonGroup" id="TabButtonGroup"]  # 定义在引用之后！
+```
+
+**错误日志:**
+```
+Parse Error: Unexpected end of file.
+```
+
+**正确写法:**
+```gdscript
+[gd_scene format=3 uid="uid://hdcjsuw3ewts"]
+
+[sub_resource type="ButtonGroup" id="TabButtonGroup"]  # 定义必须在引用之前！
+
+[node name="CoopTabBtn" type="Button"]
+button_group = SubResource("TabButtonGroup")
+
+[node name="BarnTabBtn" type="Button"]
+button_group = SubResource("TabButtonGroup")
+```
+
+**教训:** `[sub_resource]` 必须在 `[node]` 引用 `SubResource()` 之前定义
+
+---
+
+### 问题47: 未注册室内场景到 SceneManager
+
+**错误:**
+```gdscript
+# navigation_panel.gd
+"animal": {"name": "畜棚", "group": "farm", "emoji": "🐄"}  # 没有 scene 字段
+
+# scene_manager.gd
+const INTERIOR_PATHS: Dictionary = {
+    # 没有 "animal" 条目！
+}
+```
+
+**错误日志:**
+```
+[SceneManager] Unknown interior: animal
+```
+
+**正确写法:**
+```gdscript
+# navigation_system.gd
+"animal": {"name": "畜棚", "group": LocationGroup.FARM, "emoji": "🐄", "scene": "res://src/scenes/interiors/animal_coop.tscn"}
+
+# scene_manager.gd
+const INTERIOR_PATHS: Dictionary = {
+    "animal": "res://src/scenes/interiors/animal_coop.tscn"  # 注册场景路径
+}
+```
+
+**教训:** 新增室内场景需要在 SceneManager.INTERIOR_PATHS 和 NavigationSystem.PANELS 中同时注册
+
+---
+
+### 问题48: Autoload 使用 class_name 导致编译失败
+
+**错误:**
+```gdscript
+# fish_compendium_system.gd (已注册为 Autoload)
+extends Node
+class_name FishCompendiumSystem  # 错误！
+
+# 编译错误
+Parse Error: Class "FishCompendiumSystem" hides an autoload singleton.
+```
+
+**错误日志:**
+```
+ERROR: res://src/scripts/autoload/fish_compendium_system.gd:2 - Parse Error: Class "FishCompendiumSystem" hides an autoload singleton.
+ERROR: Failed to create an autoload, script 'res://src/scripts/autoload/fish_compendium_system.gd' is not compiling.
+```
+
+**原因:** Godot 4.x 中，已注册为 Autoload 的脚本不能使用 `class_name`，因为会与自动创建的单例冲突
+
+**正确写法:**
+```gdscript
+# fish_compendium_system.gd
+extends Node
+# 不要写 class_name FishCompendiumSystem
+
+# 使用单例模式获取实例
+static func get_instance() -> FishCompendiumSystem:
+    return _instance
+```
+
+**教训:** Autoload 脚本直接 `extends Node`，不要使用 `class_name` 声明
+
+---
+
+### 问题49: 静态方法直接调用非静态方法
+
+**错误:**
+```gdscript
+# fish_compendium_ui.gd
+extends CanvasLayer
+
+func _update_progress() -> void:
+    if not FishCompendiumSystem:
+        return
+
+    var discovered = FishCompendiumSystem.get_discovered_count()  # 错误!
+    var total = FishCompendiumSystem.get_total_fish_count()       # 错误!
+
+# 编译错误
+Parse Error: Cannot call non-static function "get_discovered_count()" on the class "FishCompendiumSystem" directly.
+Parse Error: Cannot call non-static function "get_total_fish_count()" on the class "FishCompendiumSystem" directly.
+```
+
+**原因:** `get_discovered_count()` 和 `get_total_fish_count()` 是实例方法（非静态），不能直接用类名调用
+
+**正确写法:**
+```gdscript
+func _update_progress() -> void:
+    var system = FishCompendiumSystem.get_instance()  # 先获取实例
+    if not system:
+        return
+
+    var discovered = system.get_discovered_count()  # 通过实例调用
+    var total = system.get_total_fish_count()
+```
+
+**教训:** 调用 Autoload 的实例方法时，必须先通过 `get_instance()` 获取实例，再调用方法
+
+---
+
+### 问题50: 只读数组不能排序
+
+**错误:**
+```gdscript
+func _update_fish_list() -> void:
+    var fish_list = _get_all_fish_ids()
+
+    # 按稀有度排序
+    fish_list.sort_custom(func(a, b):  # 错误!
+        var rarity_a = _get_fish_rarity(a)
+        var rarity_b = _get_fish_rarity(b)
+        return rarity_a < rarity_b
+    )
+
+func _get_all_fish_ids() -> Array:
+    if FishingSystem and FishingSystem.FISH_DATA:
+        return FishingSystem.FISH_DATA.keys()  # 返回只读数组!
+    return []
+```
+
+**错误日志:**
+```
+Array is in read-only state.
+Condition "_p->read_only" is true.
+```
+
+**原因:** `Dictionary.keys()` 返回只读数组，不能直接调用 `sort_custom()`
+
+**正确写法:**
+```gdscript
+func _get_all_fish_ids() -> Array:
+    if FishingSystem and FishingSystem.FISH_DATA:
+        return FishingSystem.FISH_DATA.keys().duplicate()  # 创建可变副本
+    return []
+```
+
+**教训:** `Dictionary.keys()` 和 `Dictionary.values()` 返回只读数组，排序前需要调用 `.duplicate()` 创建可变副本
+
+---
+
+### 问题51: 静态方法引用未定义的类型
+
+**错误:**
+```gdscript
+# fishing_mini_game.gd
+extends CanvasLayer
+
+func _on_compendium_pressed() -> void:
+    FishCompendiumUI.show_compendium_ui()  # 错误! FishCompendiumUI 不是 autoload
+
+# 编译错误
+Parse Error: Identifier "FishCompendiumUI" not declared in the current scope.
+```
+
+**原因:** `FishCompendiumUI` 是通过场景实例化的 UI，不是 autoload，不能直接用类名调用静态方法
+
+**正确写法:**
+```gdscript
+func _on_compendium_pressed() -> void:
+    # 方案1: 通过节点组获取实例
+    var compendium = get_tree().get_first_node_in_group("fish_compendium")
+    if compendium and compendium.has_method("show_compendium_ui"):
+        compendium.show_compendium_ui()
+
+    # UI 脚本中添加 add_to_group() 注册
+    func _ready() -> void:
+        add_to_group("fish_compendium")
+```
+
+**教训:** 非 Autoload 的 UI 类不能直接用类名调用，需要通过 `get_tree().get_first_node_in_group()` 或节点路径获取实例
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -1077,6 +1476,16 @@ custom_minimum_size = Vector2(56, 56)
 - [ ] 检查脚本中是否有重复的函数定义
 - [ ] 检查 TSCN 中是否有重复的节点定义
 - [ ] 非重要日志用 print，重要警告用 push_warning
+- [ ] UI脚本方法名不与内置方法冲突（show/hide/show_ui等）
+- [ ] 静态方法引用实例方法时使用正确的方法名
+- [ ] 不引用未定义的全局变量
+- [ ] 场景根节点类型与脚本继承类型匹配
+- [ ] 需要被引用的类添加 class_name
+- [ ] TSCN 中 sub_resource 定义在引用之前
+- [ ] 新室内场景在 SceneManager.INTERIOR_PATHS 注册
+- [ ] 调用 Autoload 实例方法时先 get_instance()
+- [ ] Dictionary.keys()/values() 排序前调用 .duplicate()
+- [ ] 非 Autoload UI 类通过节点组或路径获取实例
 
 ---
 
