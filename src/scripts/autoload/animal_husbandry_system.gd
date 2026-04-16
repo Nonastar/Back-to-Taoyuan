@@ -19,6 +19,65 @@ const COOP_BASE_CAPACITY: int = 8   # 鸡舍基础容量
 ## 饲料消耗
 const FEED_COST_HAY: int = 1  # 每次喂养消耗干草数量
 
+## 好感度常量
+const FRIENDSHIP_MAX: int = 1000
+const FRIENDSHIP_FEED_MIN: int = 1
+const FRIENDSHIP_FEED_MAX: int = 3
+const FRIENDSHIP_PET_MIN: int = 5
+const FRIENDSHIP_PET_MAX: int = 12
+const FRIENDSHIP_PICKUP_PENALTY: int = 10
+const FRIENDSHIP_HEAL_BONUS: int = 30
+const FRIENDSHIP_CLEAN_BONUS: int = 1
+
+## 好感度等级阈值
+const FRIENDSHIP_THRESHOLD_PAL: int = 200
+const FRIENDSHIP_THRESHOLD_FRIEND: int = 400
+const FRIENDSHIP_THRESHOLD_BEST_FRIEND: int = 700
+
+## 好感度等级名称
+const FRIENDSHIP_LEVEL_STRANGER: String = "Stranger"
+const FRIENDSHIP_LEVEL_PAL: String = "Pal"
+const FRIENDSHIP_LEVEL_FRIEND: String = "Friend"
+const FRIENDSHIP_LEVEL_BEST_FRIEND: String = "Best Friend"
+
+## 好感度等级对应的产出品质加成 (百分比)
+const FRIENDSHIP_QUALITY_BONUS: Dictionary = {
+	FRIENDSHIP_LEVEL_STRANGER: 0.0,
+	FRIENDSHIP_LEVEL_PAL: 0.02,
+	FRIENDSHIP_LEVEL_FRIEND: 0.05,
+	FRIENDSHIP_LEVEL_BEST_FRIEND: 0.10
+}
+
+## 好感度等级枚举
+enum FriendshipLevel {
+	STRANGER = 0,
+	PAL = 1,
+	FRIEND = 2,
+	BEST_FRIEND = 3
+}
+
+## 好感度等级对应的枚举映射
+const FRIENDSHIP_LEVEL_TO_ENUM: Dictionary = {
+	FRIENDSHIP_LEVEL_STRANGER: FriendshipLevel.STRANGER,
+	FRIENDSHIP_LEVEL_PAL: FriendshipLevel.PAL,
+	FRIENDSHIP_LEVEL_FRIEND: FriendshipLevel.FRIEND,
+	FRIENDSHIP_LEVEL_BEST_FRIEND: FriendshipLevel.BEST_FRIEND
+}
+
+## 产出品质常量
+## 基础高品质概率：产物有10%基础概率为FINE+
+const BASE_HIGH_QUALITY_CHANCE: float = 0.10  ## 10%基础高品质概率
+const HIGH_QUALITY_THRESHOLD: float = 0.10    ## 高品质门槛（FINE及以上）
+
+## 品质概率分布（用于roll品质）
+## 普通品质：70%，优秀品质：20%，精良品质：9%，史诗品质：1%
+const QUALITY_WEIGHTS: Dictionary = {
+	0: 0.70,  ## NORMAL: 70%
+	1: 0.20,  ## FINE: 20%
+	2: 0.09,  ## EXCELLENT: 9%
+	3: 0.01   ## SUPREME: 1%
+}
+
 ## 动物类型枚举
 enum AnimalType { CHICKEN, COW, SHEEP, PIG, GOAT, DUCK }
 
@@ -130,6 +189,7 @@ signal animal_bought(animal_id: String)
 signal animal_fed(animal_id: String)
 signal product_collected(product_id: String, quantity: int)
 signal animal_state_changed()
+signal animal_friendship_changed(unique_id: String, old_friendship: int, new_friendship: int)
 
 # ============ 状态 ============
 
@@ -277,7 +337,10 @@ func buy_animal(animal_id: String) -> bool:
 		"unique_id": unique_id,
 		"days_in_building": 0,
 		"is_mature": false,
-		"has_produced_today": false
+		"has_produced_today": false,
+		"friendship": 0,  ## 初始好感度为0
+		"fed_today": false,  ## 今日是否已喂养
+		"pet_today": false   ## 今日是否已抚摸
 	})
 	building["animals"] = animals
 
@@ -313,26 +376,18 @@ func feed_animals() -> int:
 func has_animals_to_feed() -> bool:
 	return _buildings.size() > 0
 
-## 收获所有产物
+## 收获所有产物（带品质计算）
+## 遍历所有待收获产物，使用品质计算添加到背包
 func collect_all_products() -> int:
 	if _pending_products.is_empty():
 		return 0
 
 	var collected = 0
-	for product in _pending_products:
-		var product_id = product.get("product_id", "")
-		var quantity = product.get("quantity", 1)
-
-		if InventorySystem and InventorySystem.has_method("add_item"):
-			InventorySystem.add_item(product_id, quantity)
-			collected += quantity
-
-		product_collected.emit(product_id, quantity)
-		print("[AnimalHusbandrySystem] Collected: " + str(product_id) + " x" + str(quantity))
-
-	## 清空待收获列表
-	_pending_products = []
-	animal_state_changed.emit()
+	## 倒序遍历，避免移除时索引变化问题
+	for i in range(_pending_products.size() - 1, -1, -1):
+		var result = collect_single_product(i)
+		if result.get("success", false):
+			collected += result.get("quantity", 1)
 
 	return collected
 
@@ -371,6 +426,362 @@ func get_all_animal_info() -> Array:
 		result.append(data)
 	return result
 
+# ============ 好感度系统 ============
+
+## 根据好感度值获取等级名称
+static func get_friendship_level_name(friendship: int) -> String:
+	if friendship >= FRIENDSHIP_THRESHOLD_BEST_FRIEND:
+		return FRIENDSHIP_LEVEL_BEST_FRIEND
+	elif friendship >= FRIENDSHIP_THRESHOLD_FRIEND:
+		return FRIENDSHIP_LEVEL_FRIEND
+	elif friendship >= FRIENDSHIP_THRESHOLD_PAL:
+		return FRIENDSHIP_LEVEL_PAL
+	else:
+		return FRIENDSHIP_LEVEL_STRANGER
+
+## 根据好感度值获取等级枚举
+static func get_friendship_level_enum(friendship: int) -> FriendshipLevel:
+	return FRIENDSHIP_LEVEL_TO_ENUM.get(get_friendship_level_name(friendship), FriendshipLevel.STRANGER)
+
+## 获取好感度等级对应的品质加成
+static func get_quality_bonus_for_level(level_name: String) -> float:
+	return FRIENDSHIP_QUALITY_BONUS.get(level_name, 0.0)
+
+## 根据好感度值获取品质加成百分比
+static func get_quality_bonus(friendship: int) -> float:
+	var level_name = get_friendship_level_name(friendship)
+	return get_quality_bonus_for_level(level_name)
+
+## 根据好感度值获取等级进度 (0.0 - 1.0)
+## 用于UI显示进度条
+static func get_friendship_progress(friendship: int) -> float:
+	var level_name = get_friendship_level_name(friendship)
+	var next_threshold: int
+
+	match level_name:
+		FRIENDSHIP_LEVEL_STRANGER:
+			next_threshold = FRIENDSHIP_THRESHOLD_PAL
+		FRIENDSHIP_LEVEL_PAL:
+			next_threshold = FRIENDSHIP_THRESHOLD_FRIEND
+		FRIENDSHIP_LEVEL_FRIEND:
+			next_threshold = FRIENDSHIP_THRESHOLD_BEST_FRIEND
+		FRIENDSHIP_LEVEL_BEST_FRIEND:
+			return 1.0  # 已达满级
+		_:
+			next_threshold = FRIENDSHIP_THRESHOLD_PAL
+
+	var current_threshold: int
+	match level_name:
+		FRIENDSHIP_LEVEL_STRANGER:
+			current_threshold = 0
+		FRIENDSHIP_LEVEL_PAL:
+			current_threshold = FRIENDSHIP_THRESHOLD_PAL
+		FRIENDSHIP_LEVEL_FRIEND:
+			current_threshold = FRIENDSHIP_THRESHOLD_FRIEND
+		FRIENDSHIP_LEVEL_BEST_FRIEND:
+			current_threshold = FRIENDSHIP_THRESHOLD_BEST_FRIEND
+		_:
+			current_threshold = 0
+
+	var range_size = next_threshold - current_threshold
+	var progress = friendship - current_threshold
+	return clamp(float(progress) / float(range_size), 0.0, 1.0)
+
+## 获取指定动物的好感度
+func get_animal_friendship(unique_id: String) -> int:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				return animal.get("friendship", 0)
+	return -1  # 未找到
+
+## 获取指定动物的好感度等级
+func get_animal_friendship_level(unique_id: String) -> String:
+	var friendship = get_animal_friendship(unique_id)
+	if friendship < 0:
+		return ""
+	return get_friendship_level_name(friendship)
+
+## 获取指定动物的好感度品质加成
+func get_animal_quality_bonus(unique_id: String) -> float:
+	var friendship = get_animal_friendship(unique_id)
+	if friendship < 0:
+		return 0.0
+	return get_quality_bonus(friendship)
+
+## 获取指定动物的好感度进度
+func get_animal_friendship_progress(unique_id: String) -> float:
+	var friendship = get_animal_friendship(unique_id)
+	if friendship < 0:
+		return 0.0
+	return get_friendship_progress(friendship)
+
+## 内部方法：修改动物好感度
+func _modify_friendship(unique_id: String, delta: int) -> int:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for i in range(animals.size()):
+			var animal = animals[i]
+			if animal.get("unique_id") == unique_id:
+				var old_friendship = animal.get("friendship", 0)
+				var new_friendship = clamp(old_friendship + delta, 0, FRIENDSHIP_MAX)
+				animals[i]["friendship"] = new_friendship
+				animal_friendship_changed.emit(unique_id, old_friendship, new_friendship)
+				return new_friendship
+	return -1
+
+## 喂养单个动物（增加好感度+1~3）
+func feed_single_animal(unique_id: String) -> bool:
+	var friendship = get_animal_friendship(unique_id)
+	if friendship < 0:
+		return false  # 动物不存在
+
+	# 检查是否已喂养
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				if animal.get("fed_today", false):
+					print("[AnimalHusbandrySystem] Animal already fed today: " + unique_id)
+					return false
+				break
+
+	# 检查饲料
+	if InventorySystem and InventorySystem.has_method("get_item_count"):
+		if InventorySystem.get_item_count("hay") < FEED_COST_HAY:
+			print("[AnimalHusbandrySystem] Not enough hay to feed")
+			return false
+
+	# 消耗饲料
+	if InventorySystem and InventorySystem.has_method("remove_item"):
+		InventorySystem.remove_item("hay", FEED_COST_HAY)
+
+	# 随机好感度增量 (+1~3)
+	var rng = RandomNumberGenerator.new()
+	var friendship_delta = rng.randi_range(FRIENDSHIP_FEED_MIN, FRIENDSHIP_FEED_MAX)
+	_modify_friendship(unique_id, friendship_delta)
+
+	# 标记已喂养
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for i in range(animals.size()):
+			if animals[i].get("unique_id") == unique_id:
+				animals[i]["fed_today"] = true
+				break
+
+	print("[AnimalHusbandrySystem] Fed animal: " + unique_id + " (+" + str(friendship_delta) + " friendship)")
+	return true
+
+## 抚摸单个动物（增加好感度+5~12）
+func pet_single_animal(unique_id: String) -> bool:
+	var friendship = get_animal_friendship(unique_id)
+	if friendship < 0:
+		return false  # 动物不存在
+
+	# 检查是否已抚摸
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				if animal.get("pet_today", false):
+					print("[AnimalHusbandrySystem] Animal already pet today: " + unique_id)
+					return false
+				break
+
+	# 随机好感度增量 (+5~12)
+	var rng = RandomNumberGenerator.new()
+	var friendship_delta = rng.randi_range(FRIENDSHIP_PET_MIN, FRIENDSHIP_PET_MAX)
+	_modify_friendship(unique_id, friendship_delta)
+
+	# 标记已抚摸
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for i in range(animals.size()):
+			if animals[i].get("unique_id") == unique_id:
+				animals[i]["pet_today"] = true
+				break
+
+	print("[AnimalHusbandrySystem] Pet animal: " + unique_id + " (+" + str(friendship_delta) + " friendship)")
+	return true
+
+## 检查指定动物今日是否已喂养
+func is_animal_fed(unique_id: String) -> bool:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				return animal.get("fed_today", false)
+	return false
+
+## 检查指定动物今日是否已抚摸
+func is_animal_pet(unique_id: String) -> bool:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				return animal.get("pet_today", false)
+	return false
+
+## 获取所有动物的详细信息（包含好感度）
+func get_all_animals_with_friendship() -> Array:
+	var result = []
+	for building_type in _buildings.keys():
+		var building = _buildings[building_type]
+		var animals = building.get("animals", [])
+		for animal in animals:
+			var unique_id = animal.get("unique_id", "")
+			var friendship = animal.get("friendship", 0)
+			result.append({
+				"unique_id": unique_id,
+				"animal_id": animal.get("animal_id", ""),
+				"friendship": friendship,
+				"friendship_level": get_friendship_level_name(friendship),
+				"friendship_progress": get_friendship_progress(friendship),
+				"quality_bonus": get_quality_bonus(friendship),
+				"fed_today": animal.get("fed_today", false),
+				"pet_today": animal.get("pet_today", false),
+				"is_mature": animal.get("is_mature", false),
+				"has_produced_today": animal.get("has_produced_today", false),
+				"days_in_building": animal.get("days_in_building", 0)
+			})
+	return result
+
+## 获取指定动物的详细信息
+func get_animal_details(unique_id: String) -> Dictionary:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				var friendship = animal.get("friendship", 0)
+				return {
+					"unique_id": unique_id,
+					"animal_id": animal.get("animal_id", ""),
+					"friendship": friendship,
+					"friendship_level": get_friendship_level_name(friendship),
+					"friendship_progress": get_friendship_progress(friendship),
+					"quality_bonus": get_quality_bonus(friendship),
+					"fed_today": animal.get("fed_today", false),
+					"pet_today": animal.get("pet_today", false),
+					"is_mature": animal.get("is_mature", false),
+					"has_produced_today": animal.get("has_produced_today", false),
+					"days_in_building": animal.get("days_in_building", 0)
+				}
+	return {}
+
+# ============ 产出系统 ============
+
+## 根据品质加成计算最终品质
+## quality_bonus: 好感度带来的品质加成 (0.0 - 0.10)
+## 返回: Quality.NORMAL (0), Quality.FINE (1), Quality.EXCELLENT (2), 或 Quality.SUPREME (3)
+func calculate_product_quality(quality_bonus: float) -> int:
+	var rng = RandomNumberGenerator.new()
+
+	## 最终高品质概率 = 基础概率 + 好感度加成
+	var final_high_quality_chance = clamp(BASE_HIGH_QUALITY_CHANCE + quality_bonus, 0.0, 1.0)
+
+	## 掷骰决定是否高品质
+	var roll = rng.randf()
+	if roll >= final_high_quality_chance:
+		return Quality.NORMAL  # 70%概率普通品质
+
+	## 进入高品质池，掷骰决定具体品质
+	## 调整权重以适应高质量概率增加
+	var high_roll = rng.randf()
+
+	## 史诗品质：1%
+	if high_roll < QUALITY_WEIGHTS[Quality.SUPREME]:
+		return Quality.SUPREME
+
+	## 精良品质：9%
+	high_roll -= QUALITY_WEIGHTS[Quality.SUPREME]
+	if high_roll < QUALITY_WEIGHTS[Quality.EXCELLENT]:
+		return Quality.EXCELLENT
+
+	## 优秀品质：20%
+	high_roll -= QUALITY_WEIGHTS[Quality.EXCELLENT]
+	if high_roll < QUALITY_WEIGHTS[Quality.FINE]:
+		return Quality.FINE
+
+	## 默认优秀品质（如果以上都不中）
+	return Quality.FINE
+
+## 获取待收获产物的品质（不消耗）
+## 返回指定index产物的预估品质
+func get_product_preview_quality(product_index: int) -> Dictionary:
+	if product_index < 0 or product_index >= _pending_products.size():
+		return {}
+
+	var product = _pending_products[product_index]
+	var quality_bonus = product.get("quality_bonus", 0.0)
+	var quality = calculate_product_quality(quality_bonus)
+
+	return {
+		"quality": quality,
+		"quality_name": Quality.get_quality_name(quality),
+		"quality_bonus": quality_bonus,
+		"quality_color": Quality.get_color(quality)
+	}
+
+## 获取所有待收获产物的品质预览
+func get_all_products_quality_preview() -> Array:
+	var previews = []
+	for i in range(_pending_products.size()):
+		previews.append(get_product_preview_quality(i))
+	return previews
+
+## 获取产物详情
+func get_product_details(product_index: int) -> Dictionary:
+	if product_index < 0 or product_index >= _pending_products.size():
+		return {}
+
+	var product = _pending_products[product_index]
+	return {
+		"index": product_index,
+		"product_id": product.get("product_id", ""),
+		"quantity": product.get("quantity", 1),
+		"unique_id": product.get("unique_id", ""),
+		"quality_bonus": product.get("quality_bonus", 0.0)
+	}
+
+## 收集单个产物（带品质计算）
+## 返回: {success, product_id, quantity, quality, quality_name}
+func collect_single_product(product_index: int) -> Dictionary:
+	if product_index < 0 or product_index >= _pending_products.size():
+		return {"success": false, "message": "Invalid product index"}
+
+	var product = _pending_products[product_index]
+	var product_id = product.get("product_id", "")
+	var quantity = product.get("quantity", 1)
+	var quality_bonus = product.get("quality_bonus", 0.0)
+
+	## 计算品质
+	var quality = calculate_product_quality(quality_bonus)
+
+	## 添加到背包
+	if InventorySystem and InventorySystem.has_method("add_item"):
+		var success = InventorySystem.add_item(product_id, quantity, quality)
+		if not success:
+			return {"success": false, "message": "Inventory full"}
+
+		## 从待收获列表移除
+		_pending_products.remove_at(product_index)
+
+		product_collected.emit(product_id, quantity)
+		animal_state_changed.emit()
+
+		print("[AnimalHusbandrySystem] Collected: " + str(product_id) + " x" + str(quantity) + " (" + Quality.get_quality_name(quality) + ")")
+
+		return {
+			"success": true,
+			"product_id": product_id,
+			"quantity": quantity,
+			"quality": quality,
+			"quality_name": Quality.get_quality_name(quality)
+		}
+	else:
+		return {"success": false, "message": "InventorySystem not available"}
+
 # ============ 每日更新 ============
 
 func daily_update() -> void:
@@ -383,6 +794,10 @@ func daily_update() -> void:
 		var animals = building.get("animals", [])
 
 		for animal in animals:
+			## 重置每日状态（好感度操作）
+			animal["fed_today"] = false
+			animal["pet_today"] = false
+
 			## 增加养殖天数
 			animal["days_in_building"] += 1
 
@@ -407,12 +822,19 @@ func _try_produce(animal: Dictionary, animal_data: Dictionary) -> void:
 
 	if roll < production_rate:
 		var product_id = animal_data.get("product_id", "")
+		var unique_id = animal.get("unique_id", "")
+
+		## 计算产出品质加成
+		var quality_bonus = get_quality_bonus(animal.get("friendship", 0))
+
 		_pending_products.append({
 			"product_id": product_id,
-			"quantity": 1
+			"quantity": 1,
+			"unique_id": unique_id,  ## 记录产出该产品的动物
+			"quality_bonus": quality_bonus  ## 存储品质加成
 		})
 		animal["has_produced_today"] = true
-		print("[AnimalHusbandrySystem] Production: " + str(product_id))
+		print("[AnimalHusbandrySystem] Production: " + str(product_id) + " (quality_bonus: " + str(quality_bonus) + ")")
 
 # ============ 内部方法 ============
 
@@ -435,4 +857,32 @@ func deserialize(data: Dictionary) -> void:
 	_buildings = data.get("buildings", {})
 	_pending_products = data.get("pending_products", [])
 	_days_elapsed = data.get("days_elapsed", 0)
+
+	## 迁移旧存档数据（添加新字段）
+	_migrate_legacy_data()
+
 	print("[AnimalHusbandrySystem] Loaded: buildings=" + str(_buildings.size()) + ", products=" + str(_pending_products.size()))
+
+## 迁移旧存档数据，添加新字段以保持兼容性
+func _migrate_legacy_data() -> void:
+	for building_type in _buildings.keys():
+		var building = _buildings[building_type]
+		var animals = building.get("animals", [])
+
+		for i in range(animals.size()):
+			var animal = animals[i]
+			## 确保新字段存在
+			if not animal.has("friendship"):
+				animals[i]["friendship"] = 0
+			if not animal.has("fed_today"):
+				animals[i]["fed_today"] = false
+			if not animal.has("pet_today"):
+				animals[i]["pet_today"] = false
+
+	## 迁移待收获产物数据
+	for i in range(_pending_products.size()):
+		var product = _pending_products[i]
+		if not product.has("quality_bonus"):
+			_pending_products[i]["quality_bonus"] = 0.0
+		if not product.has("unique_id"):
+			_pending_products[i]["unique_id"] = ""
