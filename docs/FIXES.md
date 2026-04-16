@@ -1437,6 +1437,39 @@ func _on_compendium_pressed() -> void:
 
 ---
 
+### 问题52: 静态变量引用实例方法
+
+**错误:**
+```gdscript
+extends Node
+
+var _instance: MyClass = null
+
+func _ready() -> void:
+    _instance = self
+
+## 错误: 静态方法不能访问实例变量
+static func get_instance() -> MyClass:
+    return _instance  # 编译错误: Cannot access non-static member "_instance"
+```
+
+**正确写法:**
+```gdscript
+extends Node
+
+static var _instance: MyClass = null
+
+func _ready() -> void:
+    _instance = self
+
+static func get_instance() -> MyClass:
+    return _instance  # 正确: 静态方法可以访问静态变量
+```
+
+**教训:** 静态方法只能访问静态变量，如果需要返回实例变量，需要将变量也声明为 static
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -1486,6 +1519,7 @@ func _on_compendium_pressed() -> void:
 - [ ] 调用 Autoload 实例方法时先 get_instance()
 - [ ] Dictionary.keys()/values() 排序前调用 .duplicate()
 - [ ] 非 Autoload UI 类通过节点组或路径获取实例
+- [ ] 静态方法只能访问静态变量，单例实例变量也要用 static 声明
 
 ---
 

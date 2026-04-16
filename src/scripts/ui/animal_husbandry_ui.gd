@@ -36,6 +36,10 @@ const COLOR_GOLD_BG: Color = Color(0.8, 0.6, 0.2, 0.3)
 const COLOR_GOLD_BORDER: Color = Color(0.8, 0.6, 0.2, 0.8)
 const COLOR_SPRING_BADGE: Color = Color(0.6, 0.4, 0.8, 1)
 const COLOR_STAR_BADGE: Color = Color(1, 0.84, 0, 1)
+const COLOR_SICK: Color = Color(1, 0.3, 0.3, 1)  ## 生病颜色(红色)
+const COLOR_SICK_BG: Color = Color(1, 0.3, 0.3, 0.2)  ## 生病背景
+const COLOR_SICK_BORDER: Color = Color(1, 0.3, 0.3, 0.8)  ## 生病边框
+const COLOR_DIRTY: Color = Color(0.6, 0.4, 0.2, 1)  ## 脏乱颜色(棕色)
 
 ## 悬停效果常量
 const HOVER_BRIGHTNESS: float = 1.15
@@ -77,9 +81,11 @@ var _product_list: HBoxContainer
 var _feed_all_btn: Button
 var _pet_all_btn: Button
 var _collect_btn: Button
+var _clean_btn: Button  ## 新增：清理建筑按钮
 var _close_btn: Button
 var _shop_btn: Button  ## 新增：商店快捷按钮
 var _feed_cost_label: Label  ## 新增：喂养成本提示
+var _dirty_label: Label  ## 新增：脏乱状态提示
 
 # ============ 状态 ============
 
@@ -126,6 +132,7 @@ func _setup_node_references() -> void:
 				_feed_all_btn = action_buttons.get_node_or_null("FeedAllBtn")
 				_pet_all_btn = action_buttons.get_node_or_null("PetAllBtn")
 				_collect_btn = action_buttons.get_node_or_null("CollectBtn")
+				_clean_btn = action_buttons.get_node_or_null("CleanBtn")
 
 			# 底部按钮
 			var bottom_buttons = vbox.get_node_or_null("BottomButtons")
@@ -139,6 +146,7 @@ func _setup_node_references() -> void:
 	_setup_hover_effect(_feed_all_btn)
 	_setup_hover_effect(_pet_all_btn)
 	_setup_hover_effect(_collect_btn)
+	_setup_hover_effect(_clean_btn)
 	_setup_hover_effect(_close_btn)
 	_setup_hover_effect(_shop_btn)
 
@@ -156,6 +164,8 @@ func _connect_signals() -> void:
 		_pet_all_btn.pressed.connect(_on_pet_all_pressed)
 	if _collect_btn:
 		_collect_btn.pressed.connect(_on_collect_pressed)
+	if _clean_btn:
+		_clean_btn.pressed.connect(_on_clean_pressed)
 	if _close_btn:
 		_close_btn.pressed.connect(_on_close_pressed)
 	if _shop_btn:
@@ -167,6 +177,8 @@ func _connect_signals() -> void:
 		AnimalHusbandrySystem.animal_friendship_changed.connect(_on_friendship_changed)
 		AnimalHusbandrySystem.product_collected.connect(_on_product_collected)
 		AnimalHusbandrySystem.building_built.connect(_on_building_built)
+		AnimalHusbandrySystem.animal_sick.connect(_on_animal_sick)
+		AnimalHusbandrySystem.animal_healed.connect(_on_animal_healed)
 
 # ============ 显示/隐藏 ============
 
@@ -306,6 +318,7 @@ func _create_animal_card(animal: Dictionary, animal_data: Dictionary) -> Control
 
 	# 处理未成年动物的视觉效果
 	var is_mature = animal.get("is_mature", false)
+	var is_sick = animal.get("is_sick", false)
 	var friendship = animal.get("friendship", 0)
 	var level_name = AnimalHusbandrySystem.get_friendship_level_name(friendship)
 	var is_best_friend = level_name == "Best Friend"
@@ -326,7 +339,13 @@ func _create_animal_card(animal: Dictionary, animal_data: Dictionary) -> Control
 	info_vbox.add_child(top_hbox)
 
 	# 特殊状态标记
-	if not is_mature:
+	if is_sick:
+		# 生病标记
+		var badge = Label.new()
+		badge.text = "🤒 "
+		badge.modulate = COLOR_SICK
+		top_hbox.add_child(badge)
+	elif not is_mature:
 		var badge = Label.new()
 		badge.text = "🌱 "
 		badge.modulate = COLOR_SPRING_BADGE
@@ -339,16 +358,27 @@ func _create_animal_card(animal: Dictionary, animal_data: Dictionary) -> Control
 
 	var name_label = Label.new()
 	name_label.text = "%s  %s" % [animal_data.get("emoji", "?"), animal_data.get("name", "未知")]
+	if is_sick:
+		name_label.modulate = COLOR_SICK  # 生病时名称变红
 	top_hbox.add_child(name_label)
 
 	var level_label = Label.new()
 	var level_color = _get_level_color(level_name)
+	if is_sick:
+		level_color = COLOR_SICK  # 生病时等级颜色变红
 	level_label.text = "  %s (%d)" % [level_name, friendship]
 	level_label.modulate = level_color
 	top_hbox.add_child(level_label)
 
-	# 添加 Best Friend 发光边框
-	if is_best_friend:
+	# 生病或Best Friend 特效边框
+	if is_sick:
+		var style = StyleBoxFlat.new()
+		style.set_bg_color(COLOR_SICK_BG)
+		style.set_border_color(COLOR_SICK_BORDER)
+		style.set_border_width_all(2)
+		style.set_corner_radius_all(4)
+		panel.add_theme_stylebox_override("normal", style)
+	elif is_best_friend:
 		var style = StyleBoxFlat.new()
 		style.set_bg_color(COLOR_GOLD_BG)
 		style.set_border_color(COLOR_GOLD_BORDER)
@@ -363,12 +393,17 @@ func _create_animal_card(animal: Dictionary, animal_data: Dictionary) -> Control
 	progress_bar.max_value = 1.0
 	progress_bar.value = progress
 	progress_bar.show_percentage = true
+	if is_sick:
+		progress_bar.modulate = COLOR_SICK  # 生病时进度条变红
 	info_vbox.add_child(progress_bar)
 
 	# 第三行: 状态
 	var status_label = Label.new()
 	status_label.text = _get_status_text(animal)
-	status_label.modulate = Color(0.5, 0.5, 0.5, 1)
+	if is_sick:
+		status_label.modulate = COLOR_SICK
+	else:
+		status_label.modulate = Color(0.5, 0.5, 0.5, 1)
 	info_vbox.add_child(status_label)
 
 	# 右侧: 操作按钮
@@ -379,21 +414,31 @@ func _create_animal_card(animal: Dictionary, animal_data: Dictionary) -> Control
 	var pet_today = animal.get("pet_today", false)
 	var unique_id = animal.get("unique_id", "")
 
-	var feed_btn = Button.new()
-	feed_btn.text = "喂养"
-	feed_btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
-	feed_btn.disabled = fed_today
-	feed_btn.pressed.connect(_on_feed_single_pressed.bind(unique_id))
-	_setup_hover_effect(feed_btn)
-	btn_vbox.add_child(feed_btn)
+	if is_sick:
+		# 生病动物显示治疗按钮
+		var heal_btn = Button.new()
+		heal_btn.text = "治疗"
+		heal_btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
+		heal_btn.pressed.connect(_on_heal_single_pressed.bind(unique_id))
+		_setup_hover_effect(heal_btn)
+		btn_vbox.add_child(heal_btn)
+	else:
+		# 正常动物显示喂养和抚摸按钮
+		var feed_btn = Button.new()
+		feed_btn.text = "喂养"
+		feed_btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
+		feed_btn.disabled = fed_today
+		feed_btn.pressed.connect(_on_feed_single_pressed.bind(unique_id))
+		_setup_hover_effect(feed_btn)
+		btn_vbox.add_child(feed_btn)
 
-	var pet_btn = Button.new()
-	pet_btn.text = "抚摸"
-	pet_btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
-	pet_btn.disabled = pet_today
-	pet_btn.pressed.connect(_on_pet_single_pressed.bind(unique_id))
-	_setup_hover_effect(pet_btn)
-	btn_vbox.add_child(pet_btn)
+		var pet_btn = Button.new()
+		pet_btn.text = "抚摸"
+		pet_btn.custom_minimum_size = Vector2(BUTTON_WIDTH, BUTTON_HEIGHT)
+		pet_btn.disabled = pet_today
+		pet_btn.pressed.connect(_on_pet_single_pressed.bind(unique_id))
+		_setup_hover_effect(pet_btn)
+		btn_vbox.add_child(pet_btn)
 
 	return panel
 
@@ -410,6 +455,11 @@ func _get_level_color(level_name: String) -> Color:
 
 func _get_status_text(animal: Dictionary) -> String:
 	var parts = []
+
+	if animal.get("is_sick", false):
+		parts.append("🤒 生病")
+		return " | ".join(parts)
+
 	if animal.get("is_mature", false):
 		parts.append("成年")
 	else:
@@ -458,11 +508,16 @@ func _update_button_states() -> void:
 
 	var has_animals = AnimalHusbandrySystem.has_animals_to_feed()
 	var has_products = AnimalHusbandrySystem.has_products_to_collect()
+	var has_sick = AnimalHusbandrySystem.has_sick_animals()
 
 	# 获取饲料数量
 	var hay_count = InventorySystem.get_item_count("hay") if InventorySystem else 0
 	var feed_cost = AnimalHusbandrySystem.FEED_COST_HAY if AnimalHusbandrySystem else 1
 	var has_enough_hay = hay_count >= feed_cost
+
+	# 获取脏乱状态
+	var building_type = AnimalHusbandrySystem.BuildingType.COOP if _current_building_type == 0 else AnimalHusbandrySystem.BuildingType.BARN
+	var dirty_days = AnimalHusbandrySystem.get_building_dirty_days(building_type) if AnimalHusbandrySystem.is_building_built(building_type) else 0
 
 	# 更新喂养成本提示
 	if _feed_cost_label:
@@ -473,17 +528,28 @@ func _update_button_states() -> void:
 			_feed_cost_label.text = "需要: 干草 x%d (持有: %d) - 饲料不足!" % [feed_cost, hay_count]
 			_feed_cost_label.modulate = Color(1, 0.6, 0.3, 1)  # 橙色表示不足
 
+	# 更新脏乱提示
+	if _dirty_label:
+		if dirty_days > 0:
+			var sick_chance = int(AnimalHusbandrySystem.get_sick_probability(building_type) * 100)
+			_dirty_label.text = "⚠️ 脏乱: %d天 (生病概率: %d%%)" % [dirty_days, sick_chance]
+			_dirty_label.modulate = COLOR_SICK
+		else:
+			_dirty_label.text = "✅ 建筑干净"
+			_dirty_label.modulate = Color(0.5, 0.8, 0.5, 1)
+
 	# 更新按钮状态
 	if _feed_all_btn:
-		_feed_all_btn.disabled = not has_animals or not has_enough_hay
+		_feed_all_btn.disabled = not has_animals or not has_enough_hay or has_sick
 	if _pet_all_btn:
-		_pet_all_btn.disabled = not has_animals
+		_pet_all_btn.disabled = not has_animals or has_sick
 	if _collect_btn:
 		_collect_btn.disabled = not has_products
+	if _clean_btn:
+		_clean_btn.disabled = dirty_days == 0
 
 	# 更新商店按钮状态
 	if _shop_btn:
-		var building_type = AnimalHusbandrySystem.BuildingType.COOP if _current_building_type == 0 else AnimalHusbandrySystem.BuildingType.BARN
 		var is_built = AnimalHusbandrySystem.is_building_built(building_type)
 		var animal_count = AnimalHusbandrySystem.get_building_animal_count(building_type) if is_built else 0
 		var capacity = AnimalHusbandrySystem.get_building_capacity(building_type) if is_built else 0
@@ -557,6 +623,18 @@ func _on_product_collected(product_id: String, quantity: int) -> void:
 func _on_building_built(building_type: int) -> void:
 	_update_display()
 
+func _on_animal_sick(unique_id: String) -> void:
+	var details = AnimalHusbandrySystem.get_animal_details(unique_id) if AnimalHusbandrySystem else {}
+	var animal_name = details.get("animal_id", "动物")
+	_show_notification("⚠️ %s 生病了! 需要治疗才能产出" % animal_name)
+	_update_display()
+
+func _on_animal_healed(unique_id: String) -> void:
+	var details = AnimalHusbandrySystem.get_animal_details(unique_id) if AnimalHusbandrySystem else {}
+	var animal_name = details.get("animal_id", "动物")
+	_show_notification("✅ %s 已痊愈! 恢复产出" % animal_name)
+	_update_display()
+
 # ============ 操作处理 ============
 
 func _on_feed_single_pressed(unique_id: String) -> void:
@@ -592,14 +670,14 @@ func _on_feed_all_pressed() -> void:
 	var fed_count = 0
 	var all_animals = AnimalHusbandrySystem.get_all_animals_with_friendship()
 	for animal in all_animals:
-		if not animal.get("fed_today", false):
+		if not animal.get("fed_today", false) and not animal.get("is_sick", false):
 			if AnimalHusbandrySystem.feed_single_animal(animal.get("unique_id", "")):
 				fed_count += 1
 
 	if fed_count > 0:
 		_show_notification("喂养了 %d 只动物!" % fed_count)
 	else:
-		_show_notification("没有需要喂养的动物（或饲料不足）")
+		_show_notification("没有需要喂养的动物（或饲料不足/生病中）")
 
 func _on_pet_all_pressed() -> void:
 	if not AnimalHusbandrySystem:
@@ -608,14 +686,14 @@ func _on_pet_all_pressed() -> void:
 	var pet_count = 0
 	var all_animals = AnimalHusbandrySystem.get_all_animals_with_friendship()
 	for animal in all_animals:
-		if not animal.get("pet_today", false):
+		if not animal.get("pet_today", false) and not animal.get("is_sick", false):
 			if AnimalHusbandrySystem.pet_single_animal(animal.get("unique_id", "")):
 				pet_count += 1
 
 	if pet_count > 0:
 		_show_notification("抚摸了 %d 只动物!" % pet_count)
 	else:
-		_show_notification("没有需要抚摸的动物（或今日已抚摸）")
+		_show_notification("没有需要抚摸的动物（或今日已抚摸/生病中）")
 
 func _on_collect_pressed() -> void:
 	if not AnimalHusbandrySystem:
@@ -626,6 +704,29 @@ func _on_collect_pressed() -> void:
 		_show_notification("收获了 %d 件产物!" % collected)
 	else:
 		_show_notification("没有可收获的产物")
+
+func _on_clean_pressed() -> void:
+	if not AnimalHusbandrySystem:
+		return
+
+	var building_type = AnimalHusbandrySystem.BuildingType.COOP if _current_building_type == 0 else AnimalHusbandrySystem.BuildingType.BARN
+	var success = AnimalHusbandrySystem.clean_building(building_type)
+	if success:
+		var dirty_days = AnimalHusbandrySystem.get_building_dirty_days(building_type)
+		var building_name = "鸡舍" if _current_building_type == 0 else "谷仓"
+		_show_notification("已清理%s! 所有动物好感度+1" % building_name)
+	else:
+		_show_notification("清理失败")
+
+func _on_heal_single_pressed(unique_id: String) -> void:
+	if not AnimalHusbandrySystem:
+		return
+
+	var result = AnimalHusbandrySystem.heal_animal(unique_id)
+	if result.get("success", false):
+		_show_notification(result.get("message", "治疗成功"))
+	else:
+		_show_notification("治疗失败: " + result.get("message", "未知错误"))
 
 func _on_close_pressed() -> void:
 	_hide_ui()

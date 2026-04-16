@@ -64,6 +64,23 @@ const FRIENDSHIP_LEVEL_TO_ENUM: Dictionary = {
 	FRIENDSHIP_LEVEL_BEST_FRIEND: FriendshipLevel.BEST_FRIEND
 }
 
+## ============ 疾病系统常量 ============
+
+## 生病概率 (基于建筑脏乱天数)
+const SICK_CHANCE_DIRTY_3_DAYS: float = 0.15   ## 连续脏乱3天: 15%
+const SICK_CHANCE_DIRTY_2_DAYS: float = 0.05   ## 连续脏乱2天: 5%
+const SICK_CHANCE_BASE: float = 0.01           ## 基础生病概率: 1%
+
+## 治疗费用
+const HEAL_COST: int = 100  ## 治疗费用: 100金币
+
+## 治疗物品
+const HEAL_ITEM_ID: String = "medicine"  ## 治疗需要消耗的物品ID
+
+## 疾病常量
+const SICKNESS_NAME: String = "疾病"
+const SICKNESS_RECOVERY_FRIENDSHIP: int = 30  ## 治疗增加的好感度
+
 ## 产出品质常量
 ## 基础高品质概率：产物有10%基础概率为FINE+
 const BASE_HIGH_QUALITY_CHANCE: float = 0.10  ## 10%基础高品质概率
@@ -187,6 +204,8 @@ const ANIMAL_DATA: Dictionary = {
 signal building_built(building_type: BuildingType)
 signal animal_bought(animal_id: String)
 signal animal_fed(animal_id: String)
+signal animal_sick(unique_id: String)  ## 动物生病信号
+signal animal_healed(unique_id: String)  ## 动物痊愈信号
 signal product_collected(product_id: String, quantity: int)
 signal animal_state_changed()
 signal animal_friendship_changed(unique_id: String, old_friendship: int, new_friendship: int)
@@ -199,7 +218,8 @@ var _days_elapsed: int = 0  ## 系统运行天数
 
 # ============ BuildingState 结构 ============
 # var capacity: int
-# var animals: Array[Dictionary]  ## [{animal_id, unique_id, days_in_building, is_mature, has_produced_today}]
+# var animals: Array[Dictionary]  ## [{animal_id, unique_id, days_in_building, is_mature, has_produced_today, is_sick}]
+# var dirty_days: int  ## 连续脏乱天数
 
 # ============ 初始化 ============
 
@@ -285,7 +305,8 @@ func build_building(building_type: BuildingType) -> bool:
 	var capacity = info.get("capacity", 0)
 	_buildings[building_type] = {
 		"capacity": capacity,
-		"animals": []
+		"animals": [],
+		"dirty_days": 0  ## 初始干净
 	}
 
 	building_built.emit(building_type)
@@ -340,7 +361,8 @@ func buy_animal(animal_id: String) -> bool:
 		"has_produced_today": false,
 		"friendship": 0,  ## 初始好感度为0
 		"fed_today": false,  ## 今日是否已喂养
-		"pet_today": false   ## 今日是否已抚摸
+		"pet_today": false,  ## 今日是否已抚摸
+		"is_sick": false     ## 初始不生病
 	})
 	building["animals"] = animals
 
@@ -665,9 +687,156 @@ func get_animal_details(unique_id: String) -> Dictionary:
 					"pet_today": animal.get("pet_today", false),
 					"is_mature": animal.get("is_mature", false),
 					"has_produced_today": animal.get("has_produced_today", false),
+					"is_sick": animal.get("is_sick", false),
 					"days_in_building": animal.get("days_in_building", 0)
 				}
 	return {}
+
+# ============ 疾病系统 ============
+
+## 检查动物是否生病
+func is_animal_sick(unique_id: String) -> bool:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				return animal.get("is_sick", false)
+	return false
+
+## 检查是否有生病动物
+func has_sick_animals() -> bool:
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("is_sick", false):
+				return true
+	return false
+
+## 获取生病动物列表
+func get_sick_animals() -> Array:
+	var result = []
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if animal.get("is_sick", false):
+				result.append({
+					"unique_id": animal.get("unique_id", ""),
+					"animal_id": animal.get("animal_id", ""),
+					"friendship": animal.get("friendship", 0)
+				})
+	return result
+
+## 计算生病概率 (基于建筑脏乱天数)
+func get_sick_probability(building_type: BuildingType) -> float:
+	if not _buildings.has(building_type):
+		return SICK_CHANCE_BASE
+
+	var building = _buildings[building_type]
+	var dirty_days = building.get("dirty_days", 0)
+
+	if dirty_days >= 3:
+		return SICK_CHANCE_DIRTY_3_DAYS  ## 15%
+	elif dirty_days >= 2:
+		return SICK_CHANCE_DIRTY_2_DAYS  ## 5%
+	else:
+		return SICK_CHANCE_BASE  ## 1%
+
+## 获取建筑脏乱天数
+func get_building_dirty_days(building_type: BuildingType) -> int:
+	if not _buildings.has(building_type):
+		return 0
+	return _buildings[building_type].get("dirty_days", 0)
+
+## 清理建筑 (增加所有动物好感度+1，重置脏乱天数)
+func clean_building(building_type: BuildingType) -> bool:
+	if not _buildings.has(building_type):
+		return false
+
+	var building = _buildings[building_type]
+	var animals = building.get("animals", [])
+
+	## 重置脏乱天数
+	building["dirty_days"] = 0
+
+	## 所有动物好感度+1
+	for animal in animals:
+		var unique_id = animal.get("unique_id", "")
+		_modify_friendship(unique_id, FRIENDSHIP_CLEAN_BONUS)
+
+	animal_state_changed.emit()
+	print("[AnimalHusbandrySystem] Cleaned building: " + str(building_type))
+	return true
+
+## 治疗生病动物
+## 返回: {success, message, friendship_delta}
+func heal_animal(unique_id: String) -> Dictionary:
+	if not is_animal_sick(unique_id):
+		return {"success": false, "message": "动物没有生病"}
+
+	## 检查治疗费用 (金币或物品)
+	var has_item = false
+	if InventorySystem and InventorySystem.has_method("get_item_count"):
+		var medicine_count = InventorySystem.get_item_count(HEAL_ITEM_ID)
+		has_item = medicine_count > 0
+
+	## 优先使用物品，如果没有则使用金币
+	if has_item:
+		## 消耗治疗物品
+		if InventorySystem and InventorySystem.has_method("remove_item"):
+			InventorySystem.remove_item(HEAL_ITEM_ID, 1)
+	elif PlayerStats and PlayerStats.has_method("spend_money"):
+		## 检查金币
+		if PlayerStats.get_money() < HEAL_COST:
+			return {"success": false, "message": "金币不足 (需要 %d)" % HEAL_COST}
+		## 扣除金币
+		PlayerStats.spend_money(HEAL_COST)
+	else:
+		return {"success": false, "message": "无法进行支付"}
+
+	## 治疗动物
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for i in range(animals.size()):
+			if animals[i].get("unique_id") == unique_id:
+				animals[i]["is_sick"] = false
+				break
+
+	## 增加好感度
+	var friendship_delta = _modify_friendship(unique_id, SICKNESS_RECOVERY_FRIENDSHIP)
+
+	animal_healed.emit(unique_id)
+	animal_state_changed.emit()
+
+	var details = get_animal_details(unique_id)
+	var animal_name = details.get("animal_id", "未知动物")
+
+	print("[AnimalHusbandrySystem] Healed animal: " + unique_id + " (+%d friendship)" % friendship_delta)
+
+	return {
+		"success": true,
+		"message": "治愈了 %s! 好感度+%d" % [animal_name, friendship_delta],
+		"friendship_delta": friendship_delta
+	}
+
+## 检查是否可以治疗 (有足够的金币或物品)
+func can_heal_animal(unique_id: String) -> bool:
+	if not is_animal_sick(unique_id):
+		return false
+
+	## 检查治疗物品
+	if InventorySystem and InventorySystem.has_method("get_item_count"):
+		if InventorySystem.get_item_count(HEAL_ITEM_ID) > 0:
+			return true
+
+	## 检查金币
+	if PlayerStats and PlayerStats.has_method("get_money"):
+		return PlayerStats.get_money() >= HEAL_COST
+
+	return false
+
+## 检查是否有可治疗的动物
+func has_healable_animals() -> bool:
+	return has_sick_animals()
 
 # ============ 产出系统 ============
 
@@ -793,6 +962,17 @@ func daily_update() -> void:
 		var building = _buildings[building_type]
 		var animals = building.get("animals", [])
 
+		## 检查是否清理过建筑
+		## 如果没有喂养操作，脏乱天数+1
+		var was_cleaned = false
+		for animal in animals:
+			if animal.get("fed_today", false):
+				was_cleaned = true
+				break
+
+		if not was_cleaned:
+			building["dirty_days"] = building.get("dirty_days", 0) + 1
+
 		for animal in animals:
 			## 重置每日状态（好感度操作）
 			animal["fed_today"] = false
@@ -809,8 +989,17 @@ func daily_update() -> void:
 			if animal["days_in_building"] >= maturity_days:
 				animal["is_mature"] = true
 
-			## 如果已成熟且今日未产出，计算产出
-			if animal["is_mature"] and not animal.get("has_produced_today", false):
+			## 生病检查 (只有未生病的动物才会被感染)
+			if not animal.get("is_sick", false):
+				var sick_roll = randf()
+				var sick_chance = get_sick_probability(building_type)
+				if sick_roll < sick_chance:
+					animal["is_sick"] = true
+					animal_sick.emit(animal.get("unique_id", ""))
+					print("[AnimalHusbandrySystem] Animal became sick: " + str(animal_id))
+
+			## 如果已成熟、未生病且今日未产出，计算产出
+			if animal["is_mature"] and not animal.get("is_sick", false) and not animal.get("has_produced_today", false):
 				_try_produce(animal, animal_data)
 
 	animal_state_changed.emit()
@@ -869,6 +1058,10 @@ func _migrate_legacy_data() -> void:
 		var building = _buildings[building_type]
 		var animals = building.get("animals", [])
 
+		## 确保dirty_days字段存在
+		if not building.has("dirty_days"):
+			building["dirty_days"] = 0
+
 		for i in range(animals.size()):
 			var animal = animals[i]
 			## 确保新字段存在
@@ -878,6 +1071,8 @@ func _migrate_legacy_data() -> void:
 				animals[i]["fed_today"] = false
 			if not animal.has("pet_today"):
 				animals[i]["pet_today"] = false
+			if not animal.has("is_sick"):
+				animals[i]["is_sick"] = false
 
 	## 迁移待收获产物数据
 	for i in range(_pending_products.size()):
