@@ -1,0 +1,201 @@
+[gd_scene load_steps=2 format=3 uid="uid://bqp4r6f8k0mhw2"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/fish_pond_ui.gd" id="1"]
+
+[node name="FishPondUI" type="CanvasLayer"]
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.5)
+
+[node name="BuildPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -200.0
+offset_right = 250.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="BuildPanel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="BuildPanel/VBox"]
+layout_mode = 2
+text = "🐟 鱼  塘"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="BuildPanel/VBox"]
+layout_mode = 2
+text = "鱼塘可以养殖鱼类，每天收获产物"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CostList" type="VBoxContainer" parent="BuildPanel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MoneyCost" type="Label" parent="BuildPanel/VBox/CostList"]
+layout_mode = 2
+text = "💰 金币 x5000"
+horizontal_alignment = 1
+
+[node name="WoodCost" type="Label" parent="BuildPanel/VBox/CostList"]
+layout_mode = 2
+text = "🪵 木材 x100"
+horizontal_alignment = 1
+
+[node name="BambooCost" type="Label" parent="BuildPanel/VBox/CostList"]
+layout_mode = 2
+text = "🎋 竹子 x50"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="BuildPanel/VBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+size_flags_vertical = 4
+
+[node name="ButtonContainer" type="HBoxContainer" parent="BuildPanel/VBox"]
+layout_mode = 2
+alignment = 1
+
+[node name="BuildButton" type="Button" parent="BuildPanel/VBox/ButtonContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "🏗️ 建造鱼塘"
+
+[node name="Hint" type="Label" parent="BuildPanel/VBox"]
+layout_mode = 2
+text = "(点击空白处或按 ESC 关闭)"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="MainPanel" type="PanelContainer" parent="."]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -250.0
+offset_right = 300.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="MainPanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Header" type="HBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainPanel/VBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🐟 鱼塘管理"
+
+[node name="CountSection" type="HBoxContainer" parent="MainPanel/VBox/Header"]
+layout_mode = 2
+alignment = 2
+
+[node name="FishIcon" type="Label" parent="MainPanel/VBox/Header/CountSection"]
+layout_mode = 2
+text = "🐟"
+
+[node name="FishCount" type="Label" parent="MainPanel/VBox/Header/CountSection"]
+layout_mode = 2
+text = "0"
+
+[node name="Slash" type="Label" parent="MainPanel/VBox/Header/CountSection"]
+layout_mode = 2
+text = "/"
+
+[node name="Capacity" type="Label" parent="MainPanel/VBox/Header/CountSection"]
+layout_mode = 2
+text = "5"
+
+[node name="Separator" type="HSeparator" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="FishSection" type="VBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="FishLabel" type="Label" parent="MainPanel/VBox/FishSection"]
+layout_mode = 2
+text = "当前鱼类:"
+
+[node name="FishScroll" type="ScrollContainer" parent="MainPanel/VBox/FishSection"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="FishVBox" type="VBoxContainer" parent="MainPanel/VBox/FishSection/FishScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="ProductSection" type="HBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="ProductLabel" type="Label" parent="MainPanel/VBox/ProductSection"]
+layout_mode = 2
+text = "待收获产物:"
+
+[node name="ProductList" type="HBoxContainer" parent="MainPanel/VBox/ProductSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Separator2" type="HSeparator" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="ActionButtons" type="HBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="RemoveButton" type="Button" parent="MainPanel/VBox/ActionButtons"]
+layout_mode = 2
+text = "🗑️ 取出选中"
+
+[node name="CollectButton" type="Button" parent="MainPanel/VBox/ActionButtons"]
+layout_mode = 2
+text = "📦 收获产物"
+
+[node name="Separator3" type="HSeparator" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="AddFishSection" type="VBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="AddFishButton" type="Button" parent="MainPanel/VBox/AddFishSection"]
+layout_mode = 2
+text = "➕ 放入鱼类"
+
+[node name="FishList" type="VBoxContainer" parent="MainPanel/VBox/AddFishSection"]
+layout_mode = 2
+visible = false
+theme_override_constants/separation = 2
+
+[node name="Separator4" type="HSeparator" parent="MainPanel/VBox"]
+layout_mode = 2
+
+[node name="BottomButtons" type="HBoxContainer" parent="MainPanel/VBox"]
+layout_mode = 2
+alignment = 2
+
+[node name="CloseButton" type="Button" parent="MainPanel/VBox/BottomButtons"]
+layout_mode = 2
+text = "✕ 关闭"

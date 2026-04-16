@@ -1,9 +1,13 @@
 [gd_scene format=3 uid="uid://fishpond001"]
 
 [ext_resource type="Script" path="res://src/scripts/entities/fish_pond.gd" id="1_fish_pond"]
+[ext_resource type="PackedScene" path="res://src/scenes/ui/fish_pond_ui.tscn" id="2_pond_ui"]
 
 [node name="FishPond" type="Node2D"]
 script = ExtResource("1_fish_pond")
+
+[node name="FishPondUI" parent="." instance=ExtResource("2_pond_ui")]
+visible = false
 
 [node name="Background" type="ColorRect" parent="."]
 z_index = -10
@@ -138,95 +142,3 @@ text = "靠近水边按 E 钓鱼"
 [node name="TogglePondButton" type="Button" parent="InfoPanel/MarginContainer/VBox"]
 layout_mode = 2
 text = "鱼塘管理[G]"
-
-[node name="FishPondPanel" type="PanelContainer" parent="."]
-visible = false
-offset_left = 800.0
-offset_top = 20.0
-offset_right = 1200.0
-offset_bottom = 500.0
-
-[node name="MarginContainer" type="MarginContainer" parent="FishPondPanel"]
-layout_mode = 2
-theme_override_constants/margin_left = 15
-theme_override_constants/margin_top = 15
-theme_override_constants/margin_right = 15
-theme_override_constants/margin_bottom = 15
-
-[node name="VBox" type="VBoxContainer" parent="FishPondPanel/MarginContainer"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="Title" type="Label" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-text = "鱼塘管理"
-horizontal_alignment = 1
-
-[node name="InfoSection" type="HBoxContainer" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="FishCountLabel" type="Label" parent="FishPondPanel/MarginContainer/VBox/InfoSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "鱼类:"
-
-[node name="FishCount" type="Label" parent="FishPondPanel/MarginContainer/VBox/InfoSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "0"
-
-[node name="CapacityLabel" type="Label" parent="FishPondPanel/MarginContainer/VBox/InfoSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "/ 容量:"
-
-[node name="Capacity" type="Label" parent="FishPondPanel/MarginContainer/VBox/InfoSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "5"
-
-[node name="Separator1" type="HSeparator" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="FishListLabel" type="Label" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-text = "鱼塘中的鱼类:"
-
-[node name="FishScroll" type="ScrollContainer" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 3
-
-[node name="FishVBox" type="VBoxContainer" parent="FishPondPanel/MarginContainer/VBox/FishScroll"]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Separator2" type="HSeparator" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="ProductLabel" type="Label" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-text = "待收获产物:"
-
-[node name="ProductList" type="HBoxContainer" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="CollectButton" type="Button" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-text = "收获产物"
-
-[node name="Separator3" type="HSeparator" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="ButtonSection" type="HBoxContainer" parent="FishPondPanel/MarginContainer/VBox"]
-layout_mode = 2
-
-[node name="AddFishButton" type="Button" parent="FishPondPanel/MarginContainer/VBox/ButtonSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "放入鱼"
-
-[node name="CloseButton" type="Button" parent="FishPondPanel/MarginContainer/VBox/ButtonSection"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "关闭"
