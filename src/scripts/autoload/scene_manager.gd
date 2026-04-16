@@ -27,7 +27,8 @@ const INTERIOR_PATHS: Dictionary = {
 	"ocean": "res://src/scenes/interiors/fish_pond.tscn",
 	"shop": "res://src/scenes/interiors/shop.tscn",
 	"cabin": "res://src/scenes/interiors/cabin.tscn",
-	"mine_entrance": "res://src/scenes/interiors/mine_entrance.tscn"
+	"mine_entrance": "res://src/scenes/interiors/mine_entrance.tscn",
+	"animal": "res://src/scenes/interiors/animal_coop.tscn"
 }
 
 ## 传送点位置

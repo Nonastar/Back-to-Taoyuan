@@ -42,7 +42,7 @@ const GROUP_EMOJIS: Dictionary = {
 const PANELS: Dictionary = {
 	# 农场区域 (7个)
 	"farm": {"name": "农场", "group": LocationGroup.FARM, "emoji": "🌾"},
-	"animal": {"name": "畜棚", "group": LocationGroup.FARM, "emoji": "🐄"},
+	"animal": {"name": "畜棚", "group": LocationGroup.FARM, "emoji": "🐄", "scene": "res://src/scenes/interiors/animal_coop.tscn"},
 	"home": {"name": "家中", "group": LocationGroup.FARM, "emoji": "🏠"},
 	"cottage": {"name": "小屋", "group": LocationGroup.FARM, "emoji": "🏡"},
 	"workshop": {"name": "作坊", "group": LocationGroup.FARM, "emoji": "⚒️"},
