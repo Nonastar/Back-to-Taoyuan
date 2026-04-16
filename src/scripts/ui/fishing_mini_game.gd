@@ -118,6 +118,7 @@ var _result_label: Label
 var _reel_button: Button
 var _cancel_button: Button
 var _assist_toggle_button: Button
+var _compendium_button: Button
 var _left_button: Button
 var _right_button: Button
 var _hint_label: Label
@@ -223,6 +224,7 @@ func _setup_node_references() -> void:
 		_reel_button = button_section.find_child("ReelButton", true, false)
 		_cancel_button = button_section.find_child("CancelButton", true, false)
 		_assist_toggle_button = button_section.find_child("AssistToggle", true, false)
+		_compendium_button = button_section.find_child("CompendiumButton", true, false)
 
 	var touch_controls = _panel.find_child("TouchControls", true, false) if _panel else null
 	if touch_controls:
@@ -245,6 +247,8 @@ func _connect_signals() -> void:
 		_cancel_button.pressed.connect(_on_cancel_pressed)
 	if _assist_toggle_button:
 		_assist_toggle_button.pressed.connect(_on_assist_toggle_pressed)
+	if _compendium_button:
+		_compendium_button.pressed.connect(_on_compendium_pressed)
 	if _left_button:
 		_left_button.pressed.connect(_on_left_pressed)
 		_left_button.button_down.connect(_on_left_down)
@@ -928,6 +932,27 @@ func _on_assist_toggle_pressed() -> void:
 		FishingSystem.set_assist_mode(_assist_mode)
 	print("[FishingMiniGame] Assist mode toggled: " + str(_assist_mode))
 
+func _on_compendium_pressed() -> void:
+	# 暂停小游戏，显示鱼类图鉴
+	# 暂时隐藏小游戏面板
+	if _panel:
+		_panel.visible = false
+	# 显示图鉴（通过组获取实例）
+	var compendium = get_tree().get_first_node_in_group("fish_compendium")
+	if compendium and compendium.has_method("show_compendium_ui"):
+		compendium.show_compendium_ui()
+	print("[FishingMiniGame] Opened Fish Compendium")
+
+	# 连接图鉴关闭信号，以便返回时恢复
+	if compendium and not compendium.tree_exiting.is_connected(_on_compendium_closed):
+		compendium.tree_exiting.connect(_on_compendium_closed)
+
+func _on_compendium_closed() -> void:
+	# 图鉴关闭后恢复小游戏
+	if _panel and _current_state != State.IDLE:
+		_panel.visible = true
+	print("[FishingMiniGame] Closed Fish Compendium")
+
 func _update_assist_button_text() -> void:
 	if _assist_toggle_button:
 		_assist_toggle_button.text = "辅助模式: 开" if _assist_mode else "辅助模式: 关"
@@ -953,6 +978,11 @@ func _on_right_up() -> void:
 		_move_direction = 0
 
 func _input(event: InputEvent) -> void:
+	# 如果图鉴正在显示，不处理钓鱼小游戏输入
+	var compendium = get_tree().get_first_node_in_group("fish_compendium")
+	if compendium and compendium.visible:
+		return
+
 	if _current_state == State.IDLE:
 		return
 

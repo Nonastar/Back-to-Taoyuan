@@ -16,11 +16,12 @@ const WEATHER_GREEN_RAIN: String = "green_rain"
 
 # ============ 常量 ============
 
-## 体力消耗修正
-const RAINY_STAMINA_MOD: float = 0.9
-const STORMY_STAMINA_MOD: float = 0.8
-const SNOWY_STAMINA_MOD: float = 0.7
-const GREEN_RAIN_STAMINA_MOD: float = 0.9
+## 体力消耗修正 (坏天气增加体力消耗)
+## > 1.0 表示惩罚 (消耗更多体力)
+const RAINY_STAMINA_MOD: float = 1.15      # 雨天 +15% 体力消耗
+const STORMY_STAMINA_MOD: float = 1.30     # 暴风雨 +30% 体力消耗
+const SNOWY_STAMINA_MOD: float = 1.50     # 雪天 +50% 体力消耗
+const GREEN_RAIN_STAMINA_MOD: float = 1.10 # 绿雨 +10% 体力消耗
 
 ## 活动收益修正
 const RAINY_ACTIVITY_MOD: float = 0.9

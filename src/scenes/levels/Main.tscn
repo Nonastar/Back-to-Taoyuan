@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" uid="uid://jsjkyh2r8tk8" path="res://src/scripts/main.gd" id="2_main"]
 [ext_resource type="PackedScene" uid="uid://0phiucwn7q5u" path="res://src/scenes/ui/FishingMiniGame.tscn" id="3_fishing"]
+[ext_resource type="PackedScene" path="res://src/scenes/ui/fish_compendium_ui.tscn" id="4_compendium"]
 [ext_resource type="Script" path="res://src/scripts/entities/fishing_spot.gd" id="4_fishing_spot"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_1"]
@@ -35,6 +36,9 @@ scale = Vector2(60, 40)
 [node name="UILayer" type="CanvasLayer" parent="." unique_id=1393822068]
 
 [node name="FishingMiniGame" parent="UILayer" unique_id=548802932 instance=ExtResource("3_fishing")]
+visible = false
+
+[node name="FishCompendiumUI" parent="UILayer" instance=ExtResource("4_compendium")]
 visible = false
 
 [node name="InstructionsPanel" type="PanelContainer" parent="UILayer" unique_id=735659191]

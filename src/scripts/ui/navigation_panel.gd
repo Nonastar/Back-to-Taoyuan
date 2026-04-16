@@ -251,6 +251,17 @@ func _is_world_panel(panel_key: String) -> bool:
 
 ## 加载室内场景
 func _load_interior(panel_key: String, scene_path: String) -> void:
+	# 检查是否已经在这个室内场景中
+	if SceneManager and SceneManager.current_interior == panel_key:
+		# 如果是畜牧界面，切换显示/隐藏
+		if panel_key == "animal" and AnimalHusbandryUI.get_instance() != null:
+			var instance = AnimalHusbandryUI.get_instance()
+			if instance.visible:
+				AnimalHusbandryUI.hide_animal_ui()
+			else:
+				AnimalHusbandryUI.show_animal_ui()
+			return
+
 	if SceneManager:
 		var success = SceneManager.load_interior(panel_key)
 		if success:

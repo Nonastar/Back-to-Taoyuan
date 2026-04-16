@@ -6,14 +6,15 @@ extends Node
 
 # ============ 工具类型 (全局枚举) ============
 
-enum ToolType { HOE, WATERING_CAN, SEEDS, HAND }
+enum ToolType { HOE, WATERING_CAN, SEEDS, HAND, FERTILIZER }
 
 ## 工具名称映射
 const TOOL_NAMES: Dictionary = {
 	ToolType.HOE: "锄头",
 	ToolType.WATERING_CAN: "浇水壶",
 	ToolType.SEEDS: "种子",
-	ToolType.HAND: "手"
+	ToolType.HAND: "手",
+	ToolType.FERTILIZER: "肥料"
 }
 
 ## 工具体力消耗
@@ -21,7 +22,8 @@ const TOOL_STAMINA_COST: Dictionary = {
 	ToolType.HOE: 5.0,
 	ToolType.WATERING_CAN: 3.0,
 	ToolType.SEEDS: 2.0,
-	ToolType.HAND: 1.0
+	ToolType.HAND: 1.0,
+	ToolType.FERTILIZER: 2.0
 }
 
 # ============ 信号 ============
@@ -70,6 +72,7 @@ func _get_key_tool_index(keycode: int) -> int:
 		KEY_2: return 1
 		KEY_3: return 2
 		KEY_4: return 3
+		KEY_5: return 4
 	return -1
 
 func _handle_click(screen_pos: Vector2) -> void:
@@ -82,27 +85,35 @@ func _handle_click(screen_pos: Vector2) -> void:
 	# 获取世界坐标
 	var world_pos = _screen_to_world(screen_pos)
 
-	# 先尝试交互，只有成功时才消耗体力
+	# 先检查体力是否足够
+	var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
+	var final_cost: int = 0
+	var weather_modifier: float = 1.0
+
+	if stamina_cost > 0 and PlayerStats:
+		# 应用天气修正
+		weather_modifier = _get_weather_stamina_modifier()
+		final_cost = max(1, int(stamina_cost * weather_modifier))
+
+		if not PlayerStats.consume_stamina(final_cost):
+			_show_message("体力不足!")
+			is_using_tool = false
+			return
+
+		# 如果天气有惩罚，显示提示
+		if weather_modifier > 1.0:
+			var weather_msg = _get_weather_stamina_penalty_message()
+			_show_message(weather_msg)
+
+	# 体力足够，执行交互
 	var interacted = _try_interact_at(world_pos)
 
 	if interacted:
-		# 消耗体力（只有成功交互才消耗）
-		var stamina_cost = TOOL_STAMINA_COST.get(current_tool, 0.0)
-		if stamina_cost > 0 and PlayerStats:
-			# 应用天气修正
-			var weather_modifier = _get_weather_stamina_modifier()
-			var final_cost = max(1, int(stamina_cost * weather_modifier))
-
-			if not PlayerStats.consume_stamina(final_cost):
-				_show_message("体力不足!")
-				is_using_tool = false
-				return
-
-			# 如果天气有惩罚，显示提示
-			if weather_modifier > 1.0:
-				_show_message("天气炎热，体力消耗增加")
 		print("[Player] Used %s at %s" % [TOOL_NAMES[current_tool], world_pos])
 	else:
+		# 交互失败，返还体力
+		if stamina_cost > 0 and final_cost > 0 and PlayerStats and PlayerStats.has_method("restore_stamina"):
+			PlayerStats.restore_stamina(final_cost)
 		# 点击空白处不消耗体力，只显示提示
 		var msg = _get_interact_fail_message(world_pos)
 		if msg != "":
@@ -119,12 +130,15 @@ func _screen_to_world(screen_pos: Vector2) -> Vector2:
 
 func _try_interact_at(world_pos: Vector2) -> bool:
 	var plots = _get_plots_at(world_pos)
+	print("[Player] _try_interact_at world_pos=", world_pos, " plots found=", plots.size())
 	for plot in plots:
 		if plot.has_method("interact"):
 			# 保存交互前的状态
 			var original_state = plot.state
 			# 执行交互
+			print("[Player] Calling plot.interact with tool=", current_tool)
 			var success = plot.interact(current_tool, Vector2.ZERO)
+			print("[Player] plot.interact returned=", success)
 			# 确定动作类型
 			var action = _get_action_name(current_tool)
 			# 发出全局信号
@@ -147,6 +161,7 @@ func _get_action_name(tool: ToolType) -> String:
 		ToolType.WATERING_CAN: return "water"
 		ToolType.SEEDS: return "plant"
 		ToolType.HAND: return "harvest"
+		ToolType.FERTILIZER: return "fertilize"
 	return "unknown"
 
 func _get_interact_fail_message(world_pos: Vector2) -> String:
@@ -206,6 +221,23 @@ func _get_weather_stamina_modifier() -> float:
 	if WeatherSystem:
 		return WeatherSystem.get_stamina_modifier()
 	return 1.0
+
+## 获取天气体力惩罚提示消息
+func _get_weather_stamina_penalty_message() -> String:
+	if WeatherSystem:
+		var weather = WeatherSystem.get_today_weather()
+		match weather:
+			WeatherSystem.WEATHER_RAINY:
+				return "雨天体力消耗增加 🌧️"
+			WeatherSystem.WEATHER_STORMY:
+				return "暴风雨中体力消耗增加 ⛈️"
+			WeatherSystem.WEATHER_SNOWY:
+				return "雪天体力消耗增加 ❄️"
+			WeatherSystem.WEATHER_GREEN_RAIN:
+				return "绿雨体力消耗增加 🌱"
+			WeatherSystem.WEATHER_WINDY:
+				return "大风体力消耗增加 💨"
+	return "天气恶劣，体力消耗增加"
 
 func _find_farm_manager() -> Node:
 	var root = get_tree().root

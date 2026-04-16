@@ -119,6 +119,11 @@ layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 20
 
+[node name="CompendiumButton" type="Button" parent="Panel/MarginContainer/VBox/ButtonSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "🐟 图鉴"
+
 [node name="ReelButton" type="Button" parent="Panel/MarginContainer/VBox/ButtonSection"]
 layout_mode = 2
 size_flags_horizontal = 3
