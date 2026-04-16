@@ -512,7 +512,7 @@ func _update_button_states() -> void:
 
 	# 获取饲料数量
 	var hay_count = InventorySystem.get_item_count("hay") if InventorySystem else 0
-	var feed_cost = AnimalHusbandrySystem.FEED_COST_HAY if AnimalHusbandrySystem else 1
+	var feed_cost = AnimalHusbandrySystem.get_total_feed_cost() if AnimalHusbandrySystem else 1
 	var has_enough_hay = hay_count >= feed_cost
 
 	# 获取脏乱状态
@@ -667,17 +667,15 @@ func _on_feed_all_pressed() -> void:
 	if not AnimalHusbandrySystem:
 		return
 
-	var fed_count = 0
-	var all_animals = AnimalHusbandrySystem.get_all_animals_with_friendship()
-	for animal in all_animals:
-		if not animal.get("fed_today", false) and not animal.get("is_sick", false):
-			if AnimalHusbandrySystem.feed_single_animal(animal.get("unique_id", "")):
-				fed_count += 1
+	## 使用批量喂养函数
+	var result = AnimalHusbandrySystem.feed_animals()
 
-	if fed_count > 0:
-		_show_notification("喂养了 %d 只动物!" % fed_count)
+	if result > 0:
+		_show_notification("喂养了 %d 只动物!" % result)
+	elif result == 0:
+		_show_notification("没有需要喂养的动物")
 	else:
-		_show_notification("没有需要喂养的动物（或饲料不足/生病中）")
+		_show_notification("饲料不足! 需要 %d 个干草" % AnimalHusbandrySystem.get_total_feed_cost())
 
 func _on_pet_all_pressed() -> void:
 	if not AnimalHusbandrySystem:

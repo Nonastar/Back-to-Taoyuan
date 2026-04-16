@@ -371,32 +371,67 @@ func buy_animal(animal_id: String) -> bool:
 	print("[AnimalHusbandrySystem] Bought animal: " + str(animal_data.get("name", animal_id)))
 	return true
 
-## 喂养动物
+## 喂养动物 (批量喂养)
+## 返回: 喂养成功的动物数量，失败返回-1表示饲料不足
 func feed_animals() -> int:
+	## 计算需要喂养的动物数量
+	var total_animals = 0
+	for building in _buildings.values():
+		total_animals += building.get("animals", []).size()
+
+	if total_animals == 0:
+		return 0
+
+	## 检查饲料是否足够 (每只动物1个干草)
 	if InventorySystem and InventorySystem.has_method("get_item_count"):
 		var hay_count = InventorySystem.get_item_count("hay")
-		if hay_count < FEED_COST_HAY:
-			print("[AnimalHusbandrySystem] Not enough hay to feed animals")
-			return 0
+		var total_cost = total_animals * FEED_COST_HAY
+		if hay_count < total_cost:
+			print("[AnimalHusbandrySystem] Not enough hay to feed all animals: need %d, have %d" % [total_cost, hay_count])
+			return -1
 
-	## 消耗饲料
+	## 消耗饲料 (按动物数量)
 	if InventorySystem and InventorySystem.has_method("remove_item"):
-		InventorySystem.remove_item("hay", FEED_COST_HAY)
+		var total_cost = total_animals * FEED_COST_HAY
+		InventorySystem.remove_item("hay", total_cost)
 
 	## 重置所有动物的产出状态（喂养后可以产出）
+	var fed_count = 0
 	for building in _buildings.values():
 		var animals = building.get("animals", [])
 		for animal in animals:
 			animal["has_produced_today"] = false
+			fed_count += 1
 
 	animal_fed.emit("")
 	animal_state_changed.emit()
-	print("[AnimalHusbandrySystem] Fed all animals")
-	return FEED_COST_HAY
+	print("[AnimalHusbandrySystem] Fed %d animals, cost %d hay" % [fed_count, fed_count * FEED_COST_HAY])
+	return fed_count
 
 ## 检查是否有可喂养动物
 func has_animals_to_feed() -> bool:
 	return _buildings.size() > 0
+
+## 获取需要喂养的动物总数
+func get_total_animals_to_feed() -> int:
+	var total = 0
+	for building in _buildings.values():
+		var animals = building.get("animals", [])
+		for animal in animals:
+			if not animal.get("fed_today", false) and not animal.get("is_sick", false):
+				total += 1
+	return total
+
+## 获取总喂养成本 (干草数量)
+func get_total_feed_cost() -> int:
+	return get_total_animals_to_feed() * FEED_COST_HAY
+
+## 检查是否有足够的饲料喂养所有动物
+func has_enough_feed() -> bool:
+	if InventorySystem and InventorySystem.has_method("get_item_count"):
+		var hay_count = InventorySystem.get_item_count("hay")
+		return hay_count >= get_total_feed_cost()
+	return false
 
 ## 收获所有产物（带品质计算）
 ## 遍历所有待收获产物，使用品质计算添加到背包
