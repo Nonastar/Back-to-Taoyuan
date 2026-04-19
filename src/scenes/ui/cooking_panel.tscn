@@ -1,0 +1,106 @@
+[gd_scene load_steps=2]
+
+[ext_resource type="Script" path="res://src/scripts/ui/cooking_panel.gd" id="1"]
+
+[node name="CookingPanel" type="Panel"]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -275.0
+offset_right = 350.0
+offset_bottom = 275.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="MainLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MainLayout/Header"]
+custom_minimum_size = Vector2(500, 0)
+text = "🍳 烹饪"
+horizontal_alignment = 1
+
+[node name="CloseButton" type="Button" parent="MainLayout/Header"]
+custom_minimum_size = Vector2(80, 0)
+text = "关闭"
+
+[node name="ContentArea" type="HBoxContainer" parent="MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecipeList" type="VBoxContainer" parent="MainLayout/ContentArea"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="RecipeListTitle" type="Label" parent="MainLayout/ContentArea/RecipeList"]
+custom_minimum_size = Vector2(0, 30)
+text = "菜谱"
+horizontal_alignment = 1
+
+[node name="RecipeScroll" type="ScrollContainer" parent="MainLayout/ContentArea/RecipeList"]
+custom_minimum_size = Vector2(0, 250)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RecipeContainer" type="VBoxContainer" parent="MainLayout/ContentArea/RecipeList/RecipeScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 4
+
+[node name="DetailPanel" type="VBoxContainer" parent="MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SelectedRecipe" type="Label" parent="MainLayout/ContentArea/DetailPanel"]
+custom_minimum_size = Vector2(0, 40)
+text = "选择一道菜谱"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IngredientsTitle" type="Label" parent="MainLayout/ContentArea/DetailPanel"]
+custom_minimum_size = Vector2(0, 30)
+text = "所需食材："
+horizontal_alignment = 1
+
+[node name="IngredientsList" type="VBoxContainer" parent="MainLayout/ContentArea/DetailPanel"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="CookButton" type="Button" parent="MainLayout/ContentArea/DetailPanel"]
+custom_minimum_size = Vector2(0, 50)
+text = "开始烹饪"
+size_flags_vertical = 2
+
+[node name="Separator" type="HSeparator" parent="MainLayout/ContentArea/DetailPanel"]
+custom_minimum_size = Vector2(0, 20)
+layout_mode = 2
+
+[node name="BuffTitle" type="Label" parent="MainLayout/ContentArea/DetailPanel"]
+custom_minimum_size = Vector2(0, 30)
+text = "当前Buff："
+horizontal_alignment = 1
+
+[node name="BuffList" type="VBoxContainer" parent="MainLayout/ContentArea/DetailPanel"]
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="StatusBar" type="Label" parent="MainLayout"]
+custom_minimum_size = Vector2(0, 40)
+text = "选择一个菜谱开始烹饪"
+horizontal_alignment = 1
+vertical_alignment = 1

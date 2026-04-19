@@ -1,0 +1,169 @@
+[gd_scene format=3 uid="uid://c14ms8s07tkro"]
+
+[ext_resource type="Script" uid="uid://c4g2fsa8ccb32" path="res://src/scripts/ui/shop_panel.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.12, 0.12, 0.16, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.25, 0.32, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.2, 0.2, 0.25, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.35, 0.35, 0.42, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="ShopPanel" type="PanelContainer" unique_id=966053417]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -280.0
+offset_right = 320.0
+offset_bottom = 280.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+script = ExtResource("1")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1838453220]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Header" type="HBoxContainer" parent="VBox" unique_id=2061503831]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="VBox/Header" unique_id=807113402]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "商店"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header" unique_id=814008425]
+custom_minimum_size = Vector2(60, 36)
+layout_mode = 2
+text = "X"
+
+[node name="ShopTypeTabs" type="HBoxContainer" parent="VBox" unique_id=182120330]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TabGeneral" type="Button" parent="VBox/ShopTypeTabs" unique_id=2064516409]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "杂货铺"
+
+[node name="TabAnimal" type="Button" parent="VBox/ShopTypeTabs" unique_id=286916661]
+custom_minimum_size = Vector2(140, 40)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "动物商店"
+
+[node name="ModeTabs" type="HBoxContainer" parent="VBox" unique_id=1796182941]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BuyBtn" type="Button" parent="VBox/ModeTabs" unique_id=547522878]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "购买"
+
+[node name="SellBtn" type="Button" parent="VBox/ModeTabs" unique_id=1088218133]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "出售"
+
+[node name="ActionBtn" type="Button" parent="VBox/ModeTabs" unique_id=625416216]
+custom_minimum_size = Vector2(140, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "确认"
+
+[node name="ItemScroll" type="ScrollContainer" parent="VBox" unique_id=1159466433]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ItemGrid" type="GridContainer" parent="VBox/ItemScroll" unique_id=406037605]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 12
+columns = 2
+
+[node name="QBox" type="HBoxContainer" parent="VBox" unique_id=1607399318]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="Minus" type="Button" parent="VBox/QBox" unique_id=108697236]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "-"
+
+[node name="QtyLabel" type="Label" parent="VBox/QBox" unique_id=354815000]
+custom_minimum_size = Vector2(60, 0)
+layout_mode = 2
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Plus" type="Button" parent="VBox/QBox" unique_id=1367825505]
+custom_minimum_size = Vector2(44, 44)
+layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+text = "+"
+
+[node name="InfoBar" type="HBoxContainer" parent="VBox" unique_id=1647502221]
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="SelectedItem" type="Label" parent="VBox/InfoBar" unique_id=1513933259]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "请选择商品"
+vertical_alignment = 1
+
+[node name="PriceDisplay" type="Label" parent="VBox/InfoBar" unique_id=820856824]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "价格: 0g"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="StatusBar" type="Label" parent="VBox" unique_id=1304154856]
+layout_mode = 2
+size_flags_vertical = 1
+text = "选择商品后进行购买或出售"
+horizontal_alignment = 1

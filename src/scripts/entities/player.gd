@@ -57,6 +57,9 @@ func _input(event: InputEvent) -> void:
 	# 鼠标点击交互
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			# UI 面板打开时，阻止点击穿透到游戏世界
+			if _is_ui_open():
+				return
 			_handle_click(event.position)
 
 	# 滚轮切换工具
@@ -130,15 +133,12 @@ func _screen_to_world(screen_pos: Vector2) -> Vector2:
 
 func _try_interact_at(world_pos: Vector2) -> bool:
 	var plots = _get_plots_at(world_pos)
-	print("[Player] _try_interact_at world_pos=", world_pos, " plots found=", plots.size())
 	for plot in plots:
 		if plot.has_method("interact"):
 			# 保存交互前的状态
 			var original_state = plot.state
 			# 执行交互
-			print("[Player] Calling plot.interact with tool=", current_tool)
 			var success = plot.interact(current_tool, Vector2.ZERO)
-			print("[Player] plot.interact returned=", success)
 			# 确定动作类型
 			var action = _get_action_name(current_tool)
 			# 发出全局信号
@@ -205,6 +205,8 @@ func _get_interact_fail_message(world_pos: Vector2) -> String:
 func _get_plots_at(world_pos: Vector2) -> Array:
 	var plots: Array = []
 	var farm = _find_farm_manager()
+	if farm == null:
+		return plots
 	if farm and farm.has_method("get_plots"):
 		var all_plots = farm.get_plots()
 		for plot in all_plots:
@@ -278,3 +280,23 @@ func get_current_tool() -> ToolType:
 
 func get_current_tool_name() -> String:
 	return TOOL_NAMES.get(current_tool, "Unknown")
+
+## 公开的工具切换方法（供外部调用，如 HUD）
+func switch_tool(tool: ToolType) -> void:
+	_switch_tool(tool)
+
+## 检查是否有 UI 面板打开（阻止点击穿透到游戏世界）
+func _is_ui_open() -> bool:
+	var root = get_tree().root
+	var hud = root.get_node_or_null("Main/HUD")
+	if hud:
+		for child in hud.get_children():
+			# 只拦截真正的交互面板节点，不拦截装饰性或常驻信息面板
+			if child is Control and child.visible and child.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				var name = child.name
+				# 排除常驻 HUD 元素（位置信息、技能面板、装饰背景等）
+				if name == "TopBarBG" or name == "HotbarBG" or name == "TopBar" or name == "Hotbar" or name == "QuickButtons" or name == "LocationInfo" or name == "SkillPanel" or name == "Notification":
+					continue
+				print("[Player] _is_ui_open=true blocked by child=%s" % name)
+				return true
+	return false

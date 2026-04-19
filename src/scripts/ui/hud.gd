@@ -74,7 +74,7 @@ var skill_panel: PanelContainer
 
 ## 快捷栏节点
 var hotbar: HBoxContainer
-var tool_slots: Array = []
+var tool_slots: Dictionary = {}  # index(int) -> slot_node(PanelContainer)
 var selected_slot: int = 0
 
 ## QuickButtons节点
@@ -83,6 +83,14 @@ var button_inventory: PanelContainer
 var button_map: PanelContainer
 var button_quest: PanelContainer
 var button_menu: PanelContainer
+var button_shop: PanelContainer
+var button_cooking: PanelContainer
+
+## 商店和烹饪面板引用
+var shop_panel: Control = null
+var cooking_panel: Control = null
+const SHOP_SCENE_PATH: String = "res://src/scenes/ui/shop_panel.tscn"
+const COOKING_SCENE_PATH: String = "res://src/scenes/ui/cooking_panel.tscn"
 
 ## 工具信息
 const TOOL_EMOJIS: Array = ["🔨", "💧", "🌰", "✋"]
@@ -111,11 +119,8 @@ var _notification_timer: float = 0.0
 # ============ 初始化 ============
 
 func _ready() -> void:
-	# 场景已通过 PackedScene 加载，无需再次实例化
-	# 节点引用在 _setup_node_references() 中设置
 	_setup_node_references()
 	_connect_signals()
-
 	# 延迟初始化，等待 Autoload 系统就绪
 	await get_tree().process_frame
 	_update_from_systems()
@@ -149,7 +154,7 @@ func _setup_node_references() -> void:
 	for i in range(HOTBAR_SLOTS):
 		var slot = hotbar.get_node_or_null("Slot_%d" % i)
 		if slot:
-			tool_slots.append(slot)
+			tool_slots[i] = slot
 			# 连接鼠标点击信号
 			slot.gui_input.connect(_on_slot_input.bind(i))
 
@@ -159,6 +164,8 @@ func _setup_node_references() -> void:
 	button_map = quick_buttons.get_node_or_null("BtnMap") if quick_buttons else null
 	button_quest = quick_buttons.get_node_or_null("BtnQuest") if quick_buttons else null
 	button_menu = quick_buttons.get_node_or_null("BtnMenu") if quick_buttons else null
+	button_shop = quick_buttons.get_node_or_null("BtnShop") if quick_buttons else null
+	button_cooking = quick_buttons.get_node_or_null("BtnCooking") if quick_buttons else null
 
 	# 连接按钮点击信号
 	if button_inventory:
@@ -169,6 +176,10 @@ func _setup_node_references() -> void:
 		button_quest.gui_input.connect(_on_quick_button_input.bind("quest"))
 	if button_menu:
 		button_menu.gui_input.connect(_on_quick_button_input.bind("menu"))
+	if button_shop:
+		button_shop.gui_input.connect(_on_quick_button_input.bind("shop"))
+	if button_cooking:
+		button_cooking.gui_input.connect(_on_quick_button_input.bind("cooking"))
 
 	# 通知标签
 	notification_label = $Notification
@@ -229,7 +240,7 @@ func _connect_signals() -> void:
 		player.tool_changed.connect(_on_tool_changed)
 
 ## 获取 Player 节点
-func _get_player():
+func _get_player() -> Node:
 	var player = get_node_or_null("/root/Main/Player")
 	if player != null:
 		return player
@@ -475,7 +486,7 @@ func _update_skill_display() -> void:
 		fishing_exp_bar.value = fishing_exp_percent
 
 func _select_slot(index: int) -> void:
-	if index < 0 or index >= tool_slots.size():
+	if not tool_slots.has(index):
 		return
 
 	var old_slot = selected_slot
@@ -484,14 +495,14 @@ func _select_slot(index: int) -> void:
 	_update_slot_style(selected_slot)
 
 func _update_hotbar_display() -> void:
-	for i in range(tool_slots.size()):
-		_update_slot_style(i)
+	for index in tool_slots.keys():
+		_update_slot_style(index)
 
 func _update_slot_style(index: int) -> void:
-	if index >= tool_slots.size():
+	if not tool_slots.has(index):
 		return
 
-	var slot = tool_slots[index]
+	var slot: PanelContainer = tool_slots[index]
 	var is_selected = (index == selected_slot)
 
 	# 创建槽位样式
@@ -572,18 +583,31 @@ func _input(event: InputEvent) -> void:
 			KEY_M: _on_quick_button_pressed("map")
 			KEY_J: _on_quick_button_pressed("quest")
 			KEY_ESCAPE: _on_quick_button_pressed("menu")
+			KEY_S: _on_quick_button_pressed("shop")
+			KEY_C: _on_quick_button_pressed("cooking")
 
 func _on_hotbar_key(index: int) -> void:
-	# 验证索引不超过快捷栏槽位数
-	if index < 0 or index >= HOTBAR_SLOTS or index >= tool_slots.size():
+	if index < 0 or index >= HOTBAR_SLOTS or not tool_slots.has(index):
 		return
 
 	_select_slot(index)
 
+	# 快捷入口槽位
+	match index:
+		9:
+			_open_shop()
+			return
+		10:
+			_open_cooking()
+			return
+		11:
+			_open_inventory()
+			return
+
 	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
 	var player = _get_player()
-	if index < 5 and player and player.has_method("_switch_tool"):
-		player._switch_tool(index)
+	if index < 5 and player and player.has_method("switch_tool"):
+		player.switch_tool(index)
 
 ## 处理槽位点击
 func _on_slot_input(event: InputEvent, slot_index: int) -> void:
@@ -593,20 +617,25 @@ func _on_slot_input(event: InputEvent, slot_index: int) -> void:
 
 ## 槽位被点击
 func _on_slot_clicked(slot_index: int) -> void:
-	if slot_index < 0 or slot_index >= tool_slots.size():
-		# 检查是否是背包按钮（Slot_11）
-		# 由于快捷栏槽位编号不连续，需要特殊处理
-		if slot_index == 11:
-			_open_inventory()
+	if not tool_slots.has(slot_index):
 		return
 
 	# 选中槽位
 	_select_slot(slot_index)
 
+	# 快捷入口槽位
+	match slot_index:
+		9:
+			_open_shop()
+			return
+		10:
+			_open_cooking()
+			return
+
 	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
 	var player = _get_player()
-	if slot_index < 5 and player and player.has_method("_switch_tool"):
-		player._switch_tool(slot_index)
+	if slot_index < 5 and player and player.has_method("switch_tool"):
+		player.switch_tool(slot_index)
 
 	# 显示提示
 	var tool_name = TOOL_NAMES[slot_index] if slot_index < TOOL_NAMES.size() else "未知"
@@ -638,8 +667,12 @@ func _on_quick_button_pressed(button_id: String) -> void:
 			_show_notification("📋 任务 (J)")
 		"menu":
 			_show_notification("⚙️ 菜单 (ESC)")
+		"shop":
+			_show_notification("🏪 商店 (S)")
+		"cooking":
+			_show_notification("🍳 烹饪 (C)")
 
-	# TODO: 实际打开对应的UI面板
+	# 实际打开对应的UI面板
 	match button_id:
 		"inventory":
 			_open_inventory()
@@ -649,6 +682,10 @@ func _on_quick_button_pressed(button_id: String) -> void:
 			_open_quest()
 		"menu":
 			_open_menu()
+		"shop":
+			_open_shop()
+		"cooking":
+			_open_cooking()
 
 ## 打开背包UI (动态加载)
 func _open_inventory() -> void:
@@ -681,6 +718,48 @@ func _open_quest() -> void:
 ## 打开菜单UI (占位，待实现)
 func _open_menu() -> void:
 	print("[HUD] Open menu - TODO: Implement menu UI")
+
+## 打开商店UI
+func _open_shop() -> void:
+	print("[HUD] _open_shop called, shop_panel: ", shop_panel)
+	if shop_panel == null:
+		var packed_scene = load(SHOP_SCENE_PATH)
+		if packed_scene:
+			shop_panel = packed_scene.instantiate()
+			add_child(shop_panel)
+			print("[HUD] Shop panel instantiated")
+		else:
+			push_error("[HUD] Failed to load shop panel: " + SHOP_SCENE_PATH)
+			return
+	
+	if shop_panel.has_method("open_panel"):
+		if shop_panel.visible:
+			print("[HUD] Closing shop panel")
+			shop_panel.close_panel()
+		else:
+			print("[HUD] Opening shop panel")
+			shop_panel.open_panel(0, 0)  # BUY mode, GENERAL store
+	else:
+		shop_panel.visible = not shop_panel.visible
+
+## 打开烹饪UI
+func _open_cooking() -> void:
+	if cooking_panel == null:
+		var packed_scene = load(COOKING_SCENE_PATH)
+		if packed_scene:
+			cooking_panel = packed_scene.instantiate()
+			add_child(cooking_panel)
+		else:
+			push_error("[HUD] Failed to load cooking panel: " + COOKING_SCENE_PATH)
+			return
+	
+	if cooking_panel.has_method("open_panel"):
+		if cooking_panel.visible:
+			cooking_panel.close_panel()
+		else:
+			cooking_panel.open_panel()
+	else:
+		cooking_panel.visible = not cooking_panel.visible
 
 # ============ 公共方法 ============
 
