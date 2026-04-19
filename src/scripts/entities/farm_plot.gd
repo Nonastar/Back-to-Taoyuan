@@ -42,6 +42,15 @@ signal plot_clicked(position: Vector2)
 signal plot_message(msg: String)  # 用于显示操作提示
 signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)  # 技能经验变化
 
+func _loc(text: String) -> String:
+	return tr(text)
+
+func _loc_fmt(template: String, values: Dictionary) -> String:
+	var result = _loc(template)
+	for key in values.keys():
+		result = result.replace("{" + str(key) + "}", str(values[key]))
+	return result
+
 # ============ Emoji 配置 ============
 
 ## 地块背景颜色
@@ -195,14 +204,14 @@ func _till() -> bool:
 		consecutive_unwatered_days = 0  # 重置计数器
 		_update_display()
 		plot_state_changed.emit(state)
-		_send_message("耕地完成！")
+		_send_message(_loc("耕地完成！"))
 		return true
 	elif state == PlotState.TILLED:
-		_send_message("这里已经耕过了")
+		_send_message(_loc("这里已经耕过了"))
 	elif state == PlotState.PLANTED or state == PlotState.GROWING:
-		_send_message("有作物，不能耕地")
+		_send_message(_loc("有作物，不能耕地"))
 	elif state == PlotState.HARVESTABLE:
-		_send_message("先收获作物")
+		_send_message(_loc("先收获作物"))
 	return false
 
 func _water() -> bool:
@@ -211,36 +220,36 @@ func _water() -> bool:
 			is_watered = true
 			_update_display()
 			plot_state_changed.emit(state)
-			_send_message("浇水完成！💧")
+			_send_message(_loc("浇水完成！💧"))
 			return true
 		else:
-			_send_message("已经浇过水了")
+			_send_message(_loc("已经浇过水了"))
 	elif state == PlotState.WASTELAND:
-		_send_message("先耕地")
+		_send_message(_loc("先耕地"))
 	elif state == PlotState.TILLED:
-		_send_message("没有作物")
+		_send_message(_loc("没有作物"))
 	elif state == PlotState.HARVESTABLE:
-		_send_message("可以收获了！")
+		_send_message(_loc("可以收获了！"))
 	return false
 
 func _plant() -> bool:
 	if state != PlotState.TILLED:
 		if state == PlotState.WASTELAND:
-			_send_message("先耕地")
+			_send_message(_loc("先耕地"))
 		elif state == PlotState.PLANTED or state == PlotState.GROWING:
-			_send_message("已经有作物了")
+			_send_message(_loc("已经有作物了"))
 		elif state == PlotState.HARVESTABLE:
-			_send_message("先收获")
+			_send_message(_loc("先收获"))
 		return false
 
 	# 检查种子
 	var seed_data = _get_selected_seed()
 	if seed_data == null or seed_data["count"] <= 0:
-		_send_message("没有种子了！")
+		_send_message(_loc("没有种子了！"))
 		return false
 
 	if InventorySystem.get_item_count(seed_data["id"]) < 1:
-		_send_message("没有种子了！")
+		_send_message(_loc("没有种子了！"))
 		return false
 
 	# 消耗种子
@@ -255,7 +264,7 @@ func _plant() -> bool:
 
 	_update_display()
 	plot_state_changed.emit(state)
-	_send_message("播种成功！🌱")
+	_send_message(_loc("播种成功！🌱"))
 	return true
 
 func _harvest() -> bool:
@@ -283,14 +292,14 @@ func _harvest() -> bool:
 
 		_update_display()
 		plot_state_changed.emit(state)
-		_send_message("收获成功！🌾 (品质: %s)" % _get_quality_name(final_quality))
+		_send_message(_loc_fmt("收获成功！🌾 (品质: {quality})", {"quality": _get_quality_name(final_quality)}))
 		return true
 	elif state == PlotState.WASTELAND:
-		_send_message("先耕地")
+		_send_message(_loc("先耕地"))
 	elif state == PlotState.TILLED:
-		_send_message("先播种")
+		_send_message(_loc("先播种"))
 	elif state == PlotState.PLANTED or state == PlotState.GROWING:
-		_send_message("作物还在生长中...")
+		_send_message(_loc("作物还在生长中..."))
 	return false
 
 ## 计算收获品质
@@ -323,11 +332,11 @@ func _calculate_harvest_quality() -> int:
 ## 获取品质名称
 func _get_quality_name(q: int) -> String:
 	match q:
-		0: return "普通"
-		1: return "优秀"
-		2: return "精良"
-		3: return "史诗"
-		_: return "普通"
+		0: return _loc("普通")
+		1: return _loc("优秀")
+		2: return _loc("精良")
+		3: return _loc("史诗")
+		_: return _loc("普通")
 
 ## 添加农耕经验
 func _add_farming_exp() -> void:
@@ -343,34 +352,34 @@ func _add_farming_exp() -> void:
 			EventBus.farming_exp_changed.emit(SkillSystem.SkillType.FARMING, current_exp, result["leveled_up"])
 
 		if result["leveled_up"]:
-			_send_message("🌾 农耕升级！Lv.%d" % result["new_level"])
+			_send_message(_loc_fmt("🌾 农耕升级！Lv.{level}", {"level": result["new_level"]}))
 
 ## 施肥操作
 func _apply_fertilizer() -> bool:
 	# 只有已耕地块才能施肥
 	if state != PlotState.TILLED:
 		if state == PlotState.WASTELAND:
-			_send_message("先耕地")
+			_send_message(_loc("先耕地"))
 		elif state == PlotState.PLANTED or state == PlotState.GROWING:
-			_send_message("已有作物，不能施肥")
+			_send_message(_loc("已有作物，不能施肥"))
 		elif state == PlotState.HARVESTABLE:
-			_send_message("先收获再施肥")
+			_send_message(_loc("先收获再施肥"))
 		return false
 
 	# 检查是否有可用的肥料
 	var fert_data = _get_selected_fertilizer()
 	if fert_data.is_empty():
-		_send_message("没有肥料了！")
+		_send_message(_loc("没有肥料了！"))
 		return false
 
 	var fert_id = fert_data.get("id", "")
 	if InventorySystem.get_item_count(fert_id) < 1:
-		_send_message("没有肥料了！")
+		_send_message(_loc("没有肥料了！"))
 		return false
 
 	# 检查是否已有相同类型肥料
 	if fertilizer_type == fert_data["type"]:
-		_send_message("这块地已经施过 %s 了" % fert_data["name"])
+		_send_message(_loc_fmt("这块地已经施过 {name} 了", {"name": fert_data["name"]}))
 		return false
 
 	# 消耗肥料
@@ -383,7 +392,7 @@ func _apply_fertilizer() -> bool:
 	moisture_preserved = fert_data["moisture_preserve"] > 0.0
 
 	_update_display()
-	_send_message("施肥成功！%s 🌱" % fert_data["name"])
+	_send_message(_loc_fmt("施肥成功！{name} 🌱", {"name": fert_data["name"]}))
 	return true
 
 ## 获取选中的肥料
@@ -495,7 +504,7 @@ func process_day(is_rainy: bool = false) -> void:
 
 			# 保湿土生效时显示提示
 			if moisture_kept and not is_watered:
-				_send_message("保湿土保留了昨日水分！")
+				_send_message(_loc("保湿土保留了昨日水分！"))
 		else:
 			consecutive_unwatered_days += 1
 			if consecutive_unwatered_days >= 2:
@@ -507,7 +516,7 @@ func process_day(is_rainy: bool = false) -> void:
 
 	# 如果是雨天，自动显示提示
 	if is_rainy and (state == PlotState.PLANTED or state == PlotState.GROWING):
-		_send_message("雨天自动浇水！🌧️")
+		_send_message(_loc("雨天自动浇水！🌧️"))
 
 ## 保湿土保留浇水的概率判定
 func _moisture_restore_chance() -> float:
@@ -526,7 +535,7 @@ func _wither_crop() -> void:
 	is_watered = false
 	_update_display()
 	plot_state_changed.emit(state)
-	_send_message("作物枯萎了！需要重新播种...")
+	_send_message(_loc("作物枯萎了！需要重新播种..."))
 
 # ============ 显示更新 ============
 

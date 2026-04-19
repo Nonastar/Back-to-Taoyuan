@@ -1,0 +1,46 @@
+key,en,translator_comment
+ui.common.empty,Empty,Generic empty state label
+ui.common.unknown,Unknown,Fallback label when data missing
+ui.common.mature,Mature,Fish/animal maturity state
+ui.common.not_mature,Not Mature,Fish/animal maturity state
+ui.common.day_count,Day {count},Generic day counter
+ui.common.inventory_count,Inventory x{count},Inventory quantity display
+ui.common.collect_success,Collected {item} x{count},Collection success notification
+ui.common.collect_none,No items available to collect,Collection empty-state notification
+ui.common.build_success,Build succeeded,Generic build success message
+ui.common.build_fail_material,Build failed: insufficient materials,Generic build failure message
+ui.fish_pond.title_add_fish,Add Fish,Fish pond add fish action
+ui.fish_pond.title_collapse,Collapse List,Fish pond collapse action
+ui.fish_pond.empty_pond,(Pond is empty),Fish pond empty list hint
+ui.fish_pond.product_none,(No pending products),Fish pond product empty hint
+ui.fish_pond.add_success,Added fish: {name},Fish added notification
+ui.fish_pond.add_fail,Add failed: pond full or fish missing in inventory,Fish add failure notification
+ui.fish_pond.remove_success,Removed {count} fish,Fish remove summary notification
+ui.fish_pond.collect_summary,Collected {count} products,Fish pond collect summary
+ui.animal_husbandry.empty_title,No animals yet,Animal panel empty title
+ui.animal_husbandry.empty_hint,Buy some animals to get started,Animal panel empty hint
+ui.animal_husbandry.action_feed,Feed,Single animal feed button
+ui.animal_husbandry.action_pet,Pet,Single animal pet button
+ui.animal_husbandry.action_heal,Heal,Single animal heal button
+ui.animal_husbandry.status_sick,Sick,Animal status flag
+ui.animal_husbandry.status_hungry,Hungry,Animal status flag
+ui.animal_husbandry.status_fed,Fed Today,Animal status flag
+ui.animal_husbandry.status_petted,Petted Today,Animal status flag
+ui.animal_husbandry.status_adult,Adult,Animal maturity state
+ui.animal_husbandry.status_child,Young,Animal maturity state
+ui.animal_husbandry.feed_success,Fed {name} successfully! Friendship: {friendship},Single feed success notification
+ui.animal_husbandry.feed_fail,Feed failed: no feed or already fed today,Single feed failure notification
+ui.animal_husbandry.pet_success,Petted {name} successfully! Friendship: {friendship},Single pet success notification
+ui.animal_husbandry.pet_fail,Pet failed: already petted today,Single pet failure notification
+ui.animal_husbandry.feed_all_success,Fed {count} animals!,Batch feed success notification
+ui.animal_husbandry.feed_all_fail,Not enough hay. Need {count},Batch feed failure notification
+ui.animal_husbandry.pet_all_success,Petted {count} animals!,Batch pet success notification
+ui.animal_husbandry.shop_unavailable,Shop feature is not available yet,Shop unavailable hint
+entity.farm_plot.till_done,Soil tilled successfully,Farm plot till success
+entity.farm_plot.till_already,This plot is already tilled,Farm plot till already state
+entity.farm_plot.seed_missing,No seeds left,Farm plot seed missing
+entity.farm_plot.seed_done,Seed planted successfully,Farm plot seed success
+entity.farm_plot.water_done,Watered successfully,Farm plot water success
+entity.farm_plot.harvest_done,Harvest successful! (Quality: {quality}),Farm plot harvest success
+entity.farm_plot.growing,Crop is still growing,Farm plot growing state
+entity.farm_plot.fertilize_done,Fertilized successfully: {name},Farm plot fertilize success

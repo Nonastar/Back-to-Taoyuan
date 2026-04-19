@@ -1470,6 +1470,46 @@ static func get_instance() -> MyClass:
 
 ---
 
+### 问题53: TSCN 文件 `parent` 属性层级错误导致场景解析失败
+
+**错误:**
+```gdscript
+# 错误: 将 VBox 的 parent 写成根节点名 "ShopPanel"
+[node name="VBox" type="VBoxContainer" parent="ShopPanel"]   # 错误!
+[node name="Header" type="HBoxContainer" parent="VBox"]       # 正确
+[node name="Title" type="Label" parent="VBox/Header"]       # 正确
+```
+
+**错误现象:**
+```
+场景文件 "shop_panel.tscn" 无效或损坏。
+```
+
+**原因:** `parent` 的值不是节点的实际父节点路径。`VBox` 实际是挂在根节点下的，所以 `parent` 应该是 `"."`，而不是 `"ShopPanel"`。
+
+**Godot 4 TSCN format=3 正确规则:**
+
+| 节点位置 | `parent` 值 | 示例 |
+|---|---|---|
+| 根节点的直接子节点 | `"."` | `parent="."` |
+| 挂在 VBox/Header 等一级子节点下 | `"父节点名"` | `parent="VBox"` |
+| 挂在更深的子节点下 | `"父路径"` | `parent="VBox/Header"` |
+
+**正确写法:**
+```gdscript
+[node name="ShopPanel" type="PanelContainer"]          # 根节点，无 parent
+[node name="VBox" type="VBoxContainer" parent="."]       # 直接挂在根下
+[node name="Header" type="HBoxContainer" parent="VBox"] # 挂在 VBox 下
+[node name="Title" type="Label" parent="VBox/Header"]   # 挂在 Header 下
+```
+
+**教训:**
+1. `parent` 填的是**当前节点直接父节点**的路径，不是根节点
+2. 一级子节点的 `parent` 永远是 `"."`
+3. 深度大于 1 的节点，`parent` 才写完整路径（如 `"VBox/Header"`）
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -1520,6 +1560,7 @@ static func get_instance() -> MyClass:
 - [ ] Dictionary.keys()/values() 排序前调用 .duplicate()
 - [ ] 非 Autoload UI 类通过节点组或路径获取实例
 - [ ] 静态方法只能访问静态变量，单例实例变量也要用 static 声明
+- [ ] TSCN `parent` 属性：根节点一级子节点用 `"."`，其他用实际父节点路径
 
 ---
 

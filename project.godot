@@ -37,6 +37,8 @@ WeatherSystem="*res://src/scripts/autoload/weather_system.gd"
 NotificationManager="*res://src/scripts/autoload/notification_manager.gd"
 ToolSystem="*res://src/scripts/autoload/tool_system.gd"
 SceneManager="*res://src/scripts/autoload/scene_manager.gd"
+Shop="*res://src/scripts/autoload/shop_system.gd"
+CookingSystem="*res://src/scripts/autoload/cooking_system.gd"
 Player="*res://src/scripts/entities/player.gd"
 
 [display]

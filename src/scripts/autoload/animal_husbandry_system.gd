@@ -1061,6 +1061,10 @@ func _try_produce(animal: Dictionary, animal_data: Dictionary) -> void:
 func _get_animal_data(animal_id: String) -> Dictionary:
 	return ANIMAL_DATA.get(animal_id, {})
 
+## 获取动物数据（公开方法，供外部调用）
+func get_animal_data(animal_id: String) -> Dictionary:
+	return _get_animal_data(animal_id)
+
 func _generate_unique_id() -> String:
 	return "animal_" + str(Time.get_ticks_usec())
 

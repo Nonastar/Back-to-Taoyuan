@@ -52,3 +52,20 @@ See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 ## Context Management
 
 @.claude/docs/context-management.md
+
+## Development Checklist
+
+**每次编写代码前必须完成：**
+
+1. 📋 阅读 `docs/FIXES.md` 的检查清单，确保避免所有已知错误模式
+2. ⚠️ 常见错误类型：
+   - Autoload 脚本不能使用 `class_name` 或 `@onready`
+   - TSCN 文件中不能使用 `#` 注释
+   - 类型使用 `int` 而非 `enum`
+   - 方法名不与 `Resource` 内置方法冲突
+   - 返回类型必须与实际返回值匹配（用默认值代替 null）
+   - `[ext_resource]` 和 `[sub_resource]` 必须在节点引用之前定义
+3. ✅ 对照检查清单逐项确认后再开始编码
+
+> **为什么要这样做？** `docs/FIXES.md` 记录了项目中犯过的所有错误，
+> 每次开发前参考可以有效降低报错率，提升开发效率。

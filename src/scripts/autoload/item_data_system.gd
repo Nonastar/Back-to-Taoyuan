@@ -123,8 +123,11 @@ func get_items_by_tag(tag: String) -> Array[ItemDef]:
 	return result
 
 ## 获取所有物品
-func get_all_items() -> Array[ItemDef]:
-	return _items.values()
+func get_all_items() -> Array:
+	var result: Array[ItemDef] = []
+	for item_def in _items.values():
+		result.append(item_def)
+	return result
 
 ## 获取物品数量
 func get_item_count() -> int:

@@ -25,7 +25,6 @@ const INTERIOR_PATHS: Dictionary = {
 	"forest_pond": "res://src/scenes/interiors/fish_pond.tscn",
 	"mountain_lake": "res://src/scenes/interiors/fish_pond.tscn",
 	"ocean": "res://src/scenes/interiors/fish_pond.tscn",
-	"shop": "res://src/scenes/interiors/shop.tscn",
 	"cabin": "res://src/scenes/interiors/cabin.tscn",
 	"mine_entrance": "res://src/scenes/interiors/mine_entrance.tscn",
 	"animal": "res://src/scenes/interiors/animal_coop.tscn"
@@ -298,10 +297,11 @@ func _load_world_scene(path: String) -> bool:
 	return true
 
 func _load_interior_scene(path: String, building_id: String) -> bool:
-	var interior_scene = load(path)
-	if not interior_scene:
-		push_error("[SceneManager] Failed to load interior scene: %s" % path)
+	if not FileAccess.file_exists(path):
+		push_error("[SceneManager] Interior scene not found: %s" % path)
 		return false
+
+	var interior_scene = load(path)
 
 	var interior = interior_scene.instantiate()
 	if not interior:

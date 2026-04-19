@@ -51,7 +51,7 @@ const PANELS: Dictionary = {
 
 	# 桃源村 (6个)
 	"village": {"name": "村落", "group": LocationGroup.VILLAGE, "emoji": "🏘️"},
-	"shop": {"name": "商店", "group": LocationGroup.VILLAGE, "emoji": "🛒", "scene": "res://src/scenes/interiors/shop.tscn"},
+	"shop": {"name": "商店", "group": LocationGroup.VILLAGE, "emoji": "🛒"},
 	"cooking": {"name": "烹饪", "group": LocationGroup.VILLAGE, "emoji": "🍳"},
 	"upgrade": {"name": "工坊", "group": LocationGroup.VILLAGE, "emoji": "🔧"},
 	"museum": {"name": "博物馆", "group": LocationGroup.VILLAGE, "emoji": "🏛️"},

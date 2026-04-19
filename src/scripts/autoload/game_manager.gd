@@ -31,6 +31,8 @@ var is_new_game: bool = true
 # 当前存档槽位
 var current_save_slot: int = -1
 
+const DEFAULT_WORLD: String = "farm"
+
 func _ready() -> void:
 	# 初始化完成，进入标题画面
 	current_state = GameState.TITLE
@@ -54,16 +56,30 @@ func can_receive_input() -> bool:
 func start_new_game() -> void:
 	is_new_game = true
 	current_save_slot = -1
-	# TODO: 初始化新游戏数据
-	# TODO: 切换到游戏场景
+	if not _initialize_new_game_data():
+		push_error("[GameManager] Failed to initialize new game data")
+		current_state = GameState.TITLE
+		return
+
+	_enter_gameplay_world()
 	current_state = GameState.PLAYING
 
 ## 继续游戏
 func continue_game(slot: int) -> void:
+	if slot < 0:
+		push_error("[GameManager] Invalid save slot: %d" % slot)
+		current_state = GameState.TITLE
+		return
+
 	current_save_slot = slot
 	is_new_game = false
-	# TODO: 加载存档数据
-	# TODO: 切换到游戏场景
+
+	if not _load_save_slot(slot):
+		push_warning("[GameManager] Failed to load slot %d, fallback to title" % slot)
+		current_state = GameState.TITLE
+		return
+
+	_enter_gameplay_world()
 	current_state = GameState.PLAYING
 
 ## 打开存档菜单
@@ -87,3 +103,29 @@ func resume_game() -> void:
 func quit_game() -> void:
 	print("[GameManager] Quitting game...")
 	get_tree().quit()
+
+func _initialize_new_game_data() -> bool:
+	if TimeManager:
+		TimeManager.current_day = 1
+		TimeManager.current_year = 1
+	if SceneManager and SceneManager.has_method("switch_world"):
+		SceneManager.current_interior = ""
+	return true
+
+func _load_save_slot(slot: int) -> bool:
+	if not SaveManager or not SaveManager.has_method("load_game"):
+		push_warning("[GameManager] SaveManager unavailable, skip loading")
+		return true
+
+	if not SaveManager.has_method("has_save"):
+		return SaveManager.load_game(slot)
+
+	if not SaveManager.has_save(slot):
+		push_warning("[GameManager] Save slot %d does not exist" % slot)
+		return false
+
+	return SaveManager.load_game(slot)
+
+func _enter_gameplay_world() -> void:
+	if SceneManager and SceneManager.has_method("switch_world"):
+		SceneManager.switch_world(DEFAULT_WORLD)

@@ -69,40 +69,39 @@ func test_pondable_fish_data_structure():
 
 ## 测试 can_build 初始返回（无 PlayerStats/InventorySystem）
 func test_can_build_without_external_systems():
-	## 测试环境无 PlayerStats/InventorySystem，can_build 应返回 false
-	## 因为会尝试调用不存在的 has_method("get_money")
 	var can = _pond.can_build()
-	## can_build 在无外部系统时通过所有检查会返回 true（见源码）
-	## 但因为 PlayerStats/InventorySystem 可能为 null，has_method 返回 false
-	## 所以 can_build 会跳过检查，最终返回 true（假设未建造）
 	assert_true(can is bool, "can_build应返回布尔值")
 
 ## 测试建造成功
 func test_build_pond_success():
-	## build_pond() 内部调用 can_build()，can_build() 依赖 PlayerStats autoload
-	## 测试环境中 PlayerStats.money=0 会导致 can_build() 返回 false
-	## 所以改为直接验证建造后的内部状态（不调用 build_pond）
-	## 验证未建造时 is_built() 返回 false
 	assert_false(_pond.is_built(), "初始应未建造")
-	## 模拟建造：直接设置状态
 	_pond._is_built = true
 	_pond._fish_in_pond = Array([], TYPE_DICTIONARY, "", null)
 	_pond._capacity = _pond.BASE_CAPACITY
 	_pond._pending_products = Array([], TYPE_DICTIONARY, "", null)
 	_pond._days_elapsed = 0
-	## 验证建造后状态正确
 	assert_true(_pond.is_built(), "建造后应为已建造")
 	assert_eq(_pond.get_fish_count(), 0, "新建鱼塘鱼类数量为0")
 	assert_false(_pond.has_products_to_collect(), "新建鱼塘无产物")
 
 ## 测试重复建造失败
 func test_build_twice_fails():
-	## can_build() 依赖 PlayerStats，改为直接测试重复 build_pond() 的行为
-	## 模拟第一次建造
 	_pond._is_built = true
-	## 调用 build_pond()，此时 can_build() 返回 false
 	var success = _pond.build_pond()
 	assert_false(success, "重复建造应返回 false")
+
+func test_can_add_fish_fails_when_not_built():
+	assert_false(_pond.can_add_fish("bluegill"), "未建造时不能放鱼")
+
+func test_can_add_fish_fails_for_unknown_fish():
+	_pond._is_built = true
+	assert_false(_pond.can_add_fish("unknown_fish"), "未知鱼种不能放入鱼塘")
+
+func test_can_add_fish_fails_when_capacity_full():
+	_pond._is_built = true
+	_pond._capacity = 1
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 0})
+	assert_false(_pond.can_add_fish("carp"), "鱼塘满时不能继续放鱼")
 
 # ============ 鱼类数量和容量测试 ============
 
@@ -214,6 +213,11 @@ func test_collect_clears_pending():
 	_pond._pending_products.append({"product_id": "milk", "quality": "fine", "quantity": 1})
 	_pond.collect_products()
 	assert_eq(_pond._pending_products.size(), 0, "收集后待收列表应清空")
+
+func test_remove_fish_invalid_index_returns_false():
+	_pond._is_built = true
+	assert_false(_pond.remove_fish(-1), "负索引应返回false")
+	assert_false(_pond.remove_fish(0), "空鱼塘移除应返回false")
 
 # ============ 存档序列化测试 ============
 

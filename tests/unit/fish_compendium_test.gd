@@ -36,12 +36,10 @@ func test_initial_undiscovered_list_contains_all():
 
 ## 测试首次捕获记录新鱼
 func test_record_catch_new_fish():
-	## 模拟记录一条新鱼（bluegill 在 FISH_DATA 中存在）
 	var result = _compendium.record_catch("bluegill", 1, 0)
-	## record_catch 可能因无 FishingSystem.FISH_DATA 而静默失败
-	## 检查是否有任何副作用
-	if result:
-		assert_true(result, "记录成功应返回true")
+	assert_true(result, "记录新鱼应返回true")
+	assert_true(_compendium.is_discovered("bluegill"), "新鱼应标记为已发现")
+	assert_eq(_compendium.get_catch_count("bluegill"), 1, "首次记录捕获次数应为1")
 
 ## 测试重复捕获增加计数
 func test_record_catch_increments_count():
@@ -90,10 +88,10 @@ func test_record_catch_does_not_downgrade_best_quality():
 
 ## 测试无效鱼类记录失败
 func test_record_catch_invalid_fish_returns_false():
-	## 由于 _is_valid_fish 会因无 FishingSystem 返回 true（允许所有ID）
-	## 这个测试只验证返回值类型
 	var result = _compendium.record_catch("nonexistent_fish", 1, 0)
 	assert_true(result is bool, "返回值应为布尔值")
+	assert_true(result, "无FishingSystem时应允许记录未知鱼ID")
+	assert_true(_compendium.is_discovered("nonexistent_fish"), "应创建并标记发现记录")
 
 # ============ 发现状态测试 ============
 
@@ -137,6 +135,13 @@ func test_progress_text_format():
 	assert_true("已钓:" in text, "进度文本应包含'已钓:'")
 	assert_true("/" in text, "进度文本应包含'/'")
 	assert_true("%" in text, "进度文本应包含百分比")
+
+func test_record_catch_increases_progress():
+	_compendium._total_fish_count = 10
+	var before = _compendium.get_progress()
+	_compendium.record_catch("bluegill", 1, 0)
+	var after = _compendium.get_progress()
+	assert_gt(after, before, "记录新鱼后进度应提升")
 
 # ============ 鱼类列表测试 ============
 

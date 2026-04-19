@@ -54,6 +54,15 @@ static var _instance: FishPondUI = null
 static func get_instance() -> FishPondUI:
 	return _instance
 
+func _t(text: String) -> String:
+	return tr(text)
+
+func _fmt(template: String, values: Dictionary) -> String:
+	var result = _t(template)
+	for key in values.keys():
+		result = result.replace("{" + str(key) + "}", str(values[key]))
+	return result
+
 static func show_pond_ui() -> void:
 	if _instance == null:
 		push_warning("[FishPondUI] Instance not found")
@@ -238,7 +247,12 @@ func _add_cost_item(emoji_name: String, needed: int, have: int) -> void:
 
 	var label = Label.new()
 	var status = "✅" if have >= needed else "❌"
-	label.text = "%s x%d (%s持有: %d)" % [emoji_name, needed, status, have]
+	label.text = _fmt("{emoji} x{needed} ({status}持有: {have})", {
+		"emoji": emoji_name,
+		"needed": needed,
+		"status": status,
+		"have": have
+	})
 	label.modulate = COLOR_MATURE if have >= needed else COLOR_DISABLE
 	_build_cost_vbox.add_child(label)
 
@@ -284,7 +298,7 @@ func _update_fish_list() -> void:
 	# 如果没有鱼
 	if fish_list.is_empty():
 		var label = Label.new()
-		label.text = "  (鱼塘是空的)"
+		label.text = _t("  (鱼塘是空的)")
 		label.modulate = COLOR_DISABLE
 		_fish_vbox.add_child(label)
 
@@ -313,23 +327,23 @@ func _create_fish_card(fish: Dictionary, index: int) -> Control:
 
 	# 鱼类名称
 	var name_label = Label.new()
-	name_label.text = fish.get("name", "未知")
+	name_label.text = fish.get("name", _t("未知"))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_label)
 
 	# 天数
 	var days_label = Label.new()
-	days_label.text = "第%d天" % fish.get("days_in_pond", 0)
+	days_label.text = _fmt("第{day}天", {"day": fish.get("days_in_pond", 0)})
 	days_label.custom_minimum_size = Vector2(70, 0)
 	hbox.add_child(days_label)
 
 	# 成熟状态
 	var status_label = Label.new()
 	if fish.get("is_mature", false):
-		status_label.text = "✅成熟"
+		status_label.text = _t("✅成熟")
 		status_label.modulate = COLOR_MATURE
 	else:
-		status_label.text = "⏳未成熟"
+		status_label.text = _t("⏳未成熟")
 		status_label.modulate = COLOR_IMMATURE
 	status_label.custom_minimum_size = Vector2(80, 0)
 	hbox.add_child(status_label)
@@ -367,7 +381,7 @@ func _update_product_list() -> void:
 
 	if products.is_empty():
 		var label = Label.new()
-		label.text = "(无待收获产物)"
+		label.text = _t("(无待收获产物)")
 		label.modulate = COLOR_DISABLE
 		_product_hbox.add_child(label)
 	else:
@@ -457,16 +471,16 @@ func _on_pond_state_changed() -> void:
 	_update_display()
 
 func _on_product_collected(product_id: String, quality: String, quantity: int) -> void:
-	_show_notification("收获了: %s x%d" % [product_id, quantity])
+	_show_notification(_fmt("收获了: {item} x{count}", {"item": product_id, "count": quantity}))
 
 func _on_build_pressed() -> void:
 	if not FishPondSystem:
 		return
 
 	if FishPondSystem.build_pond():
-		_show_notification("鱼塘建造成功!")
+		_show_notification(_t("鱼塘建造成功!"))
 	else:
-		_show_notification("建造失败: 材料不足")
+		_show_notification(_t("建造失败: 材料不足"))
 
 func _on_remove_pressed() -> void:
 	if not FishPondSystem or _selected_indices.is_empty():
@@ -483,7 +497,7 @@ func _on_remove_pressed() -> void:
 			removed_count += 1
 
 	_selected_indices.clear()
-	_show_notification("取出了 %d 条鱼" % removed_count)
+	_show_notification(_fmt("取出了 {count} 条鱼", {"count": removed_count}))
 
 func _on_collect_pressed() -> void:
 	if not FishPondSystem:
@@ -491,9 +505,9 @@ func _on_collect_pressed() -> void:
 
 	var collected = FishPondSystem.collect_products()
 	if collected > 0:
-		_show_notification("收获了 %d 件产物!" % collected)
+		_show_notification(_fmt("收获了 {count} 件产物!", {"count": collected}))
 	else:
-		_show_notification("没有可收获的产物")
+		_show_notification(_t("没有可收获的产物"))
 
 func _on_add_fish_toggled() -> void:
 	_add_fish_expanded = not _add_fish_expanded
@@ -502,7 +516,7 @@ func _on_add_fish_toggled() -> void:
 		_add_fish_container.visible = _add_fish_expanded
 
 	if _add_fish_btn:
-		_add_fish_btn.text = "➕ 放入鱼类" if not _add_fish_expanded else "➖ 收起列表"
+		_add_fish_btn.text = _t("➕ 放入鱼类") if not _add_fish_expanded else _t("➖ 收起列表")
 
 func _on_add_fish_row_pressed(fish_id: String) -> void:
 	if not FishPondSystem:
@@ -516,11 +530,11 @@ func _on_add_fish_row_pressed(fish_id: String) -> void:
 			if fish.get("fish_id") == fish_id:
 				name = fish.get("name", fish_id)
 				break
-		_show_notification("放入了: %s" % name)
+		_show_notification(_fmt("放入了: {name}", {"name": name}))
 		# 刷新显示
 		_update_display()
 	else:
-		_show_notification("放入失败: 鱼塘已满或背包没有这条鱼")
+		_show_notification(_t("放入失败: 鱼塘已满或背包没有这条鱼"))
 
 func _create_add_fish_row(fish: Dictionary, can_add: bool) -> Control:
 	var panel = PanelContainer.new()
@@ -538,20 +552,20 @@ func _create_add_fish_row(fish: Dictionary, can_add: bool) -> Control:
 
 	# 名称
 	var name_label = Label.new()
-	name_label.text = fish.get("name", "未知")
+	name_label.text = fish.get("name", _t("未知"))
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(name_label)
 
 	# 背包数量
 	var inv_count = InventorySystem.get_item_count(fish.get("fish_id", "")) if InventorySystem else 0
 	var inv_label = Label.new()
-	inv_label.text = "背包 x%d" % inv_count
+	inv_label.text = _fmt("背包 x{count}", {"count": inv_count})
 	inv_label.custom_minimum_size = Vector2(80, 0)
 	hbox.add_child(inv_label)
 
 	# 成熟天数
 	var days_label = Label.new()
-	days_label.text = "%d天成熟" % fish.get("maturity_days", 5)
+	days_label.text = _fmt("{day}天成熟", {"day": fish.get("maturity_days", 5)})
 	days_label.custom_minimum_size = Vector2(80, 0)
 	hbox.add_child(days_label)
 
@@ -563,7 +577,7 @@ func _create_add_fish_row(fish: Dictionary, can_add: bool) -> Control:
 
 	# 放入按钮
 	var add_btn = Button.new()
-	add_btn.text = "放入" if can_add else "已满" if not can_add else "没有"
+	add_btn.text = _t("放入") if can_add else _t("已满")
 	add_btn.custom_minimum_size = Vector2(60, 30)
 	add_btn.disabled = not can_add
 	add_btn.pressed.connect(_on_add_fish_row_pressed.bind(fish.get("fish_id", "")))

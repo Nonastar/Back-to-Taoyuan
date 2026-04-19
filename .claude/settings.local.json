@@ -12,18 +12,40 @@
       "Bash(cd:*)",
       "Bash(test:*)",
       "Bash(grep:*)",
-      "Bash(while read:*)",
-      "Bash(xargs -n1 basename)",
+      "Bash(ping:*)",
+      "Bash(where:*)",
+      "Bash(where.exe:*)",
+      "Bash(Remove-Item:*)",
+      "Bash(Remove-Item -Recurse -Force \"E:\\\\Projects\\\\taoyuan\\\\prototypes\\\\farming-core-loop\")",
+      "Bash(godot:*)",
+      "Skill(sprint-plan)",
+      "Skill(sprint-plan:*)",
+      "mcp__acp__Edit",
+      "Skill(scope-check)",
+      "Skill(scope-check:*)",
+      "mcp__acp__Write",
+      "Skill(milestone-review)",
+      "Skill(milestone-review:*)",
+      "Skill(team-ui)",
+      "Skill(team-ui:*)",
       "Skill(code-review)",
       "Skill(code-review:*)",
-      "mcp__acp__Edit",
-      "Skill(retrospective)",
-      "Skill(retrospective:*)",
-      "mcp__acp__Write"
+      "WebFetch(domain:minimax-algeng-chat-tts.oss-cn-wulanchabu.aliyuncs.com)",
+      "WebSearch",
+      "WebFetch(domain:docs.godotengine.org)",
+      "WebFetch(domain:github.com)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   },
   "enabledPlugins": {
     "skill-creator@claude-plugins-official": true
+  },
+  "hooks": {
+    "session-start": {
+      "prompt": "会话开始时，首先阅读 docs/FIXES.md 的检查清单部分。记住以下常见错误类型：\n1. Autoload 脚本不能使用 class_name 或 @onready\n2. TSCN 文件中不能使用 # 注释\n3. 类型使用 int 而非 enum\n4. 方法名不与 Resource 内置方法冲突\n5. 返回类型必须与实际返回值匹配\n6. [ext_resource] 和 [sub_resource] 必须在节点引用之前定义\n\n后续开发任务中，对照检查清单逐项确认后再开始编码。"
+    }
   },
   "outputStyle": "Structural Thinking",
   "apiBaseUrl": "https://code.newcli.com/claude/aws/v1",
