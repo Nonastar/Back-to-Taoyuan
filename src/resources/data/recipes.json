@@ -1,0 +1,84 @@
+{
+  "recipes": {
+    "egg_dish": {
+      "id": "egg_dish",
+      "name": "煎蛋",
+      "ingredients": { "egg": 1 },
+      "output_item_id": "egg_dish",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "stamina_restore", "min": 20, "max": 50 }
+    },
+    "bread": {
+      "id": "bread",
+      "name": "烤面包",
+      "ingredients": { "wheat": 1 },
+      "output_item_id": "bread",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "speed", "min": 10, "max": 20 }
+    },
+    "juice": {
+      "id": "juice",
+      "name": "果汁",
+      "ingredients": { "fruit": 1 },
+      "output_item_id": "juice",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "stamina_restore", "min": 15, "max": 30 }
+    },
+    "veg_soup": {
+      "id": "veg_soup",
+      "name": "蔬菜汤",
+      "ingredients": { "vegetable": 1 },
+      "output_item_id": "veg_soup",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "stamina_restore", "min": 20, "max": 40 }
+    },
+    "meat_soup": {
+      "id": "meat_soup",
+      "name": "肉汤",
+      "ingredients": { "meat": 1 },
+      "output_item_id": "meat_soup",
+      "cook_time_days": 2,
+      "buff_on_eat": { "type": "stamina_restore", "min": 30, "max": 60 }
+    },
+    "fish_soup": {
+      "id": "fish_soup",
+      "name": "鱼汤",
+      "ingredients": { "fish": 1 },
+      "output_item_id": "fish_soup",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "luck", "min": 5, "max": 15 }
+    },
+    "cake": {
+      "id": "cake",
+      "name": "蛋糕",
+      "ingredients": { "egg": 1, "milk": 1 },
+      "output_item_id": "cake",
+      "cook_time_days": 2,
+      "buff_on_eat": { "type": "stamina_restore", "min": 40, "max": 80 }
+    },
+    "jam": {
+      "id": "jam",
+      "name": "果酱",
+      "ingredients": { "fruit": 2 },
+      "output_item_id": "jam",
+      "cook_time_days": 2,
+      "buff_on_eat": { "type": "luck", "min": 10, "max": 20 }
+    },
+    "cheese": {
+      "id": "cheese",
+      "name": "奶酪",
+      "ingredients": { "milk": 2 },
+      "output_item_id": "cheese",
+      "cook_time_days": 3,
+      "buff_on_eat": { "type": "speed", "min": 15, "max": 25 }
+    },
+    "honey_dish": {
+      "id": "honey_dish",
+      "name": "蜂蜜料理",
+      "ingredients": { "honey": 1 },
+      "output_item_id": "honey_dish",
+      "cook_time_days": 1,
+      "buff_on_eat": { "type": "stamina_restore", "min": 25, "max": 45 }
+    }
+  }
+}

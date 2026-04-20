@@ -39,6 +39,7 @@ ToolSystem="*res://src/scripts/autoload/tool_system.gd"
 SceneManager="*res://src/scripts/autoload/scene_manager.gd"
 Shop="*res://src/scripts/autoload/shop_system.gd"
 CookingSystem="*res://src/scripts/autoload/cooking_system.gd"
+DataLoader="*res://src/scripts/autoload/data_loader.gd"
 Player="*res://src/scripts/entities/player.gd"
 
 [display]

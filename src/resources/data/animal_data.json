@@ -1,0 +1,125 @@
+{
+  "buildings": {
+    "coop": {
+      "name": "鸡舍",
+      "description": "可容纳小动物（鸡、鸭）",
+      "capacity": 8,
+      "cost_money": 1000,
+      "cost_wood": 30,
+      "animal_types": ["chicken", "duck"]
+    },
+    "barn": {
+      "name": "谷仓",
+      "description": "可容纳大型动物（牛、羊、猪、山羊）",
+      "capacity": 4,
+      "cost_money": 2000,
+      "cost_wood": 50,
+      "animal_types": ["cow", "sheep", "pig", "goat"]
+    }
+  },
+  "animals": {
+    "chicken_white": {
+      "name": "白鸡",
+      "type": "chicken",
+      "buy_price": 400,
+      "maturity_days": 3,
+      "production_rate": 0.6,
+      "product_id": "egg",
+      "building_type": "coop",
+      "emoji": "🐔"
+    },
+    "chicken_brown": {
+      "name": "棕鸡",
+      "type": "chicken",
+      "buy_price": 400,
+      "maturity_days": 3,
+      "production_rate": 0.6,
+      "product_id": "egg",
+      "building_type": "coop",
+      "emoji": "🐔"
+    },
+    "duck": {
+      "name": "鸭子",
+      "type": "duck",
+      "buy_price": 500,
+      "maturity_days": 4,
+      "production_rate": 0.5,
+      "product_id": "duck_egg",
+      "building_type": "coop",
+      "emoji": "🦆"
+    },
+    "cow": {
+      "name": "牛",
+      "type": "cow",
+      "buy_price": 1000,
+      "maturity_days": 5,
+      "production_rate": 0.7,
+      "product_id": "milk",
+      "building_type": "barn",
+      "emoji": "🐄"
+    },
+    "sheep": {
+      "name": "绵羊",
+      "type": "sheep",
+      "buy_price": 800,
+      "maturity_days": 4,
+      "production_rate": 0.5,
+      "product_id": "wool",
+      "building_type": "barn",
+      "emoji": "🐑"
+    },
+    "pig": {
+      "name": "猪",
+      "type": "pig",
+      "buy_price": 1200,
+      "maturity_days": 6,
+      "production_rate": 0.4,
+      "product_id": "truffle",
+      "building_type": "barn",
+      "emoji": "🐷"
+    },
+    "goat": {
+      "name": "山羊",
+      "type": "goat",
+      "buy_price": 900,
+      "maturity_days": 4,
+      "production_rate": 0.6,
+      "product_id": "goat_milk",
+      "building_type": "barn",
+      "emoji": "🐐"
+    }
+  },
+  "quality": {
+    "base_high_quality_chance": 0.1,
+    "weights": {
+      "0": 0.70,
+      "1": 0.20,
+      "2": 0.09,
+      "3": 0.01
+    }
+  },
+  "sickness": {
+    "base_chance": 0.01,
+    "dirty_2_days_chance": 0.05,
+    "dirty_3_days_chance": 0.15,
+    "heal_cost_money": 100,
+    "heal_item_id": "medicine",
+    "recovery_friendship": 30
+  },
+  "friendship": {
+    "max": 1000,
+    "feed_min": 1,
+    "feed_max": 3,
+    "pet_min": 5,
+    "pet_max": 12,
+    "pickup_penalty": 10,
+    "clean_bonus": 1,
+    "levels": {
+      " Stranger": { "threshold": 0, "quality_bonus": 0.0 },
+      "Pal": { "threshold": 200, "quality_bonus": 0.02 },
+      "Friend": { "threshold": 400, "quality_bonus": 0.05 },
+      "Best Friend": { "threshold": 700, "quality_bonus": 0.10 }
+    }
+  },
+  "feed_cost": 1
+}

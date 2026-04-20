@@ -33,6 +33,14 @@ func _ready() -> void:
 	_load_state()
 	_connect_signals()
 
+## 数据初始化（由 _ready() 或外部调用，可注入外部数据源）
+func init(data_source: Object = null) -> void:
+	if data_source != null and data_source.has_method("load_recipes"):
+		recipes = data_source.load_recipes()
+		print("[CookingSystem] Recipes loaded from injected source")
+	else:
+		_initialize_recipes()
+
 func _connect_signals() -> void:
 	# 连接日期变化信号，推进烹饪和Buff
 	if EventBus and EventBus.has_signal("time_day_changed"):
@@ -41,7 +49,15 @@ func _connect_signals() -> void:
 # ============ 食谱初始化 ============
 
 func _initialize_recipes() -> void:
-	# 10个基础食谱
+	# 优先从 DataLoader 加载 JSON 配置
+	if DataLoader:
+		var data = DataLoader.load_json("recipes.json")
+		if data.has("recipes") and not data["recipes"].is_empty():
+			recipes = data["recipes"]
+			print("[CookingSystem] Loaded %d recipes from JSON" % recipes.size())
+			return
+	# 兜底：硬编码默认食谱（仅在新项目或 JSON 缺失时使用）
+	print("[CookingSystem] No recipes.json found, using built-in defaults")
 	recipes["egg_dish"] = {
 		"id": "egg_dish",
 		"name": "煎蛋",
@@ -159,20 +175,20 @@ func finish_cooking() -> void:
 	if not _is_cooking or _current_recipe_id.is_empty():
 		return
 
-	var recipe = recipes[_current_recipe_id]
+	var recipe_id = _current_recipe_id
+	var recipe = recipes[recipe_id]
 	var output_id = recipe.get("output_item_id", "")
-	
-	# 添加产物到背包
+
+	# 添加产物到背包（默认普通品质）
 	if not output_id.is_empty():
-		InventorySystem.add_item(output_id, 1)
-	
+		InventorySystem.add_item(output_id, 1, Quality.NORMAL)
+
 	# 清理状态
-	var output = output_id
 	_is_cooking = false
 	_current_recipe_id = ""
 	_remaining_days = 0
-	
-	cooking_finished.emit(output)
+
+	cooking_finished.emit(recipe_id)
 
 # ============ 食用操作 ============
 
@@ -195,8 +211,9 @@ func eat_dish(item_id: String) -> Dictionary:
 		}
 		_active_buffs.append(new_buff)
 		buff_applied.emit(new_buff)
+		return { "success": true, "message": "食用成功", "buff": new_buff }
 
-	return { "success": true, "message": "食用成功", "buff": buff_data }
+	return { "success": true, "message": "食用成功", "buff": {} }
 
 func _get_dish_buff(item_id: String) -> Dictionary:
 	for recipe in recipes.values():

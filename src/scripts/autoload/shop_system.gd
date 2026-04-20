@@ -11,20 +11,63 @@ signal sale_completed(item_id: String, quantity: int, money_earned: int)
 signal shop_opened(shop_id: String)
 signal shop_closed(shop_id: String)
 
-# Simple shop registry (MVP)
-const SHOPS: Dictionary = {
-	"general_store": {"name": "General Store", "start_hour": 9, "end_hour": 17},
-	"animal_shop":   {"name": "Animal Shop",  "start_hour": 9, "end_hour": 17}
-}
-
 # Shop ID enum for code safety
 enum ShopId {
 	GENERAL_STORE = 0,
 	ANIMAL_SHOP = 1
 }
 
+## 数据初始化（由 init() 调用，可注入外部数据源）
+func init(data_source: Object = null) -> void:
+	if data_source != null and data_source.has_method("load_shop_data"):
+		var data = data_source.load_shop_data()
+		if not data.is_empty():
+			_shops_data = data
+			print("[ShopSystem] Shop data loaded from injected source")
+			return
+	_initialize_from_json()
+
+func _initialize_from_json() -> void:
+	if DataLoader:
+		var data = DataLoader.load_json("shop_data.json")
+		if data.has("shops") and not data["shops"].is_empty():
+			_shops_data = data["shops"]
+			_sell_price_multiplier = data.get("sell_price_multiplier", 0.5)
+			print("[ShopSystem] Loaded shops from JSON: " + str(_shops_data.keys()))
+			return
+	# 兜底硬编码（仅在新项目或 JSON 缺失时使用）
+	_shops_data = {
+		"general_store": {
+			"name": "杂货店",
+			"start_hour": 9,
+			"end_hour": 17,
+			"categories_for_sale": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+		},
+		"animal_shop": {
+			"name": "动物商店",
+			"start_hour": 9,
+			"end_hour": 17,
+			"animals": [
+				{"animal_id": "chicken_white", "name": "白鸡", "price": 400, "stock": 5},
+				{"animal_id": "chicken_brown", "name": "棕鸡", "price": 400, "stock": 5},
+				{"animal_id": "duck", "name": "鸭子", "price": 500, "stock": 4},
+				{"animal_id": "cow", "name": "牛", "price": 1000, "stock": 3},
+				{"animal_id": "sheep", "name": "绵羊", "price": 800, "stock": 3},
+				{"animal_id": "pig", "name": "猪", "price": 1200, "stock": 2},
+				{"animal_id": "goat", "name": "山羊", "price": 900, "stock": 4}
+			]
+		}
+	}
+	_sell_price_multiplier = 0.5
+	print("[ShopSystem] No shop_data.json found, using built-in defaults")
+
 func _ready() -> void:
-	pass
+	init()
+
+# ============ 商店配置（运行时数据）============
+
+var _shops_data: Dictionary = {}  # 从 JSON 加载
+var _sell_price_multiplier: float = 0.5
 
 # ============ 商店物品列表 ============
 
@@ -49,8 +92,8 @@ func _get_general_store_items() -> Array:
 		if item_def == null:
 			continue
 		
-		# 只显示可以购买的物品 (category 不是 NONE)
-		if item_def.category == 0:  # ItemCategory.NONE
+		# 只显示可出售类物品（跳过种子类，杂货店不卖种子）
+		if item_def.category == ItemCategory.SEED:
 			continue
 		
 		var item_info = {
@@ -65,14 +108,18 @@ func _get_general_store_items() -> Array:
 	return items
 
 func _get_animal_shop_items() -> Array:
-	# 动物商店物品
-	var items: Array = [
-		{"item_id": "chicken", "name": "鸡", "price": 500, "stock": 5},
-		{"item_id": "cow", "name": "牛", "price": 1500, "stock": 3},
-		{"item_id": "sheep", "name": "羊", "price": 1000, "stock": 3},
-		{"item_id": "pig", "name": "猪", "price": 2000, "stock": 2},
-		{"item_id": "goat", "name": "山羊", "price": 800, "stock": 4}
-	]
+	# 从 JSON 加载的动物商店数据
+	var shop_data: Dictionary = _shops_data.get("animal_shop", {})
+	var animals: Array = shop_data.get("animals", [])
+	# 转换为 shop_item 格式
+	var items: Array = []
+	for animal: Dictionary in animals:
+		items.append({
+			"item_id": animal.get("animal_id", ""),
+			"name": animal.get("name", ""),
+			"price": animal.get("price", 0),
+			"stock": animal.get("stock", -1)
+		})
 	return items
 
 # 兼容旧版本方法名
@@ -80,10 +127,10 @@ func get_general_store_items() -> Array:
 	return _get_general_store_items()
 
 func is_shop_open(shop_id: String) -> bool:
-	if not SHOPS.has(shop_id):
+	if not _shops_data.has(shop_id):
 		return false
-	var info = SHOPS[shop_id]
-	var hour = TimeManager.current_hour if TimeManager else 8
+	var info: Dictionary = _shops_data[shop_id]
+	var hour: int = TimeManager.current_hour if TimeManager else 8
 	return hour >= int(info.get("start_hour", 0)) and hour < int(info.get("end_hour", 0))
 
 func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
@@ -96,7 +143,6 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 			ShopId.GENERAL_STORE: shop_id_str = "general_store"
 			ShopId.ANIMAL_SHOP: shop_id_str = "animal_shop"
 	
-	var result := {"success": false, "message": "Unknown error"}
 	if quantity <= 0 or item_id.is_empty():
 		return {"success": false, "message": "Invalid parameters"}
 	if not is_shop_open(shop_id_str):
@@ -138,15 +184,14 @@ func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 			ShopId.GENERAL_STORE: shop_id_str = "general_store"
 			ShopId.ANIMAL_SHOP: shop_id_str = "animal_shop"
 	
-	var result := {"success": false, "money_earned": 0}
 	if quantity <= 0 or item_id.is_empty():
-		return result
+		return {"success": false, "money_earned": 0}
 	if not is_shop_open(shop_id_str):
-		return result
+		return {"success": false, "money_earned": 0}
 
 	var item_def = ItemDataSystem.get_item_def(item_id)
 	if item_def == null:
-		return result
+		return {"success": false, "money_earned": 0}
 
 	var remaining: int = quantity
 	var money_earned: int = 0
@@ -159,18 +204,21 @@ func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		if avail <= 0:
 			continue
 		var to_sell = mini(avail, remaining)
-		var price = ItemDataSystem.calculate_sell_price(item_def.sell_price, q)
+		var base_price: int = ItemDataSystem.calculate_sell_price(item_def.sell_price, q)
+		var price: int = int(base_price * _sell_price_multiplier)
 		money_earned += price * to_sell
 		remaining -= to_sell
 		sold += to_sell
 
 	if sold > 0:
+		# quality=-1: InventorySystem 优先移除低品质物品（先卖普通，再卖良品…）
+		# 这是有意设计：玩家通常想保留高品质物品后出售
 		InventorySystem.remove_item(item_id, sold, -1)
 		PlayerStats.earn_money(money_earned)
 		sale_completed.emit(item_id, sold, money_earned)
 		return {"success": true, "money_earned": money_earned}
 
-	return result
+	return {"success": false, "money_earned": 0}
 
 # Save/load integration (minimal)
 func get_save_data() -> Dictionary:

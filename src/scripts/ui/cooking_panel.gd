@@ -56,33 +56,27 @@ func _connect_signals() -> void:
 	# Keyboard handling: ESC to close is implemented in _unhandled_input
 
 func _setup_dynamic_styles() -> void:
-	if has_method("add_theme_stylebox_override"):
-		var btn_style = StyleBoxFlat.new()
-		btn_style.bg_color = UITokens.BUTTON_NORMAL
-		btn_style.border_color = UITokens.PANEL_BORDER
-		btn_style.corner_radius_top_left = UITokens.RADIUS_MD
-		btn_style.corner_radius_top_right = UITokens.RADIUS_MD
-		btn_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-		btn_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-		btn_style.content_margin_left = UITokens.SPACE_16
-		btn_style.content_margin_right = UITokens.SPACE_16
-		btn_style.content_margin_top = UITokens.SPACE_8
-		btn_style.content_margin_bottom = UITokens.SPACE_8
-		if cook_button:
-			cook_button.add_theme_stylebox_override("normal", btn_style)
-		var hover_style = StyleBoxFlat.new()
-		hover_style.bg_color = UITokens.BUTTON_HOVER
-		hover_style.border_color = UITokens.PANEL_BORDER
-		hover_style.corner_radius_top_left = UITokens.RADIUS_MD
-		hover_style.corner_radius_top_right = UITokens.RADIUS_MD
-		hover_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-		hover_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-		hover_style.content_margin_left = UITokens.SPACE_16
-		hover_style.content_margin_right = UITokens.SPACE_16
-		hover_style.content_margin_top = UITokens.SPACE_8
-		hover_style.content_margin_bottom = UITokens.SPACE_8
-		if cook_button:
-			cook_button.add_theme_stylebox_override("hover", hover_style)
+	if not has_method("add_theme_stylebox_override"):
+		return
+	if cook_button:
+		cook_button.add_theme_stylebox_override("normal", _make_button_style(UITokens.BUTTON_NORMAL))
+		cook_button.add_theme_stylebox_override("hover", _make_button_style(UITokens.BUTTON_HOVER))
+		cook_button.add_theme_stylebox_override("pressed", _make_button_style(UITokens.BUTTON_PRESSED))
+
+## 制作按钮样式（通用布局参数）
+func _make_button_style(bg_color: Color) -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.bg_color = bg_color
+	s.border_color = UITokens.PANEL_BORDER
+	s.corner_radius_top_left = UITokens.RADIUS_MD
+	s.corner_radius_top_right = UITokens.RADIUS_MD
+	s.corner_radius_bottom_left = UITokens.RADIUS_MD
+	s.corner_radius_bottom_right = UITokens.RADIUS_MD
+	s.content_margin_left = UITokens.SPACE_16
+	s.content_margin_right = UITokens.SPACE_16
+	s.content_margin_top = UITokens.SPACE_8
+	s.content_margin_bottom = UITokens.SPACE_8
+	return s
 
 func _focus_first_recipe_if_any() -> void:
 	recipe_select_buttons.clear()
@@ -233,43 +227,52 @@ func _create_recipe_row(recipe: Dictionary) -> PanelContainer:
 ## 烹饪Panel - 菜谱选中高亮
 var _selected_recipe_row: Control = null
 
+# 缓存的菜谱行样式（避免每次高亮都重新创建 StyleBoxFlat）
+var _recipe_base_style: StyleBoxFlat = null
+var _recipe_highlight_style: StyleBoxFlat = null
+
+func _ensure_recipe_styles() -> void:
+	if _recipe_base_style == null:
+		_recipe_base_style = StyleBoxFlat.new()
+		_recipe_base_style.bg_color = Color(0.18, 0.18, 0.22, 0.8)
+		_recipe_base_style.border_color = Color(0.3, 0.3, 0.35, 1.0)
+		_recipe_base_style.border_width_left = 1
+		_recipe_base_style.border_width_top = 1
+		_recipe_base_style.border_width_right = 1
+		_recipe_base_style.border_width_bottom = 1
+		_recipe_base_style.corner_radius_top_left = 4
+		_recipe_base_style.corner_radius_top_right = 4
+		_recipe_base_style.corner_radius_bottom_right = 4
+		_recipe_base_style.corner_radius_bottom_left = 4
+		_recipe_base_style.content_margin_left = 6
+		_recipe_base_style.content_margin_right = 6
+		_recipe_base_style.content_margin_top = 4
+		_recipe_base_style.content_margin_bottom = 4
+	if _recipe_highlight_style == null:
+		_recipe_highlight_style = StyleBoxFlat.new()
+		_recipe_highlight_style.bg_color = Color(0.3, 0.25, 0.0, 0.35)
+		_recipe_highlight_style.border_color = Color(1.0, 0.84, 0.0, 1.0)
+		_recipe_highlight_style.border_width_left = 2
+		_recipe_highlight_style.border_width_top = 2
+		_recipe_highlight_style.border_width_right = 2
+		_recipe_highlight_style.border_width_bottom = 2
+		_recipe_highlight_style.corner_radius_top_left = 4
+		_recipe_highlight_style.corner_radius_top_right = 4
+		_recipe_highlight_style.corner_radius_bottom_right = 4
+		_recipe_highlight_style.corner_radius_bottom_left = 4
+		_recipe_highlight_style.content_margin_left = 6
+		_recipe_highlight_style.content_margin_right = 6
+		_recipe_highlight_style.content_margin_top = 4
+		_recipe_highlight_style.content_margin_bottom = 4
+
 func _highlight_recipe_row(row: Control, selected: bool) -> void:
 	if not row:
 		return
+	_ensure_recipe_styles()
 	if selected:
-		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.3, 0.25, 0.0, 0.35)
-		style.border_color = Color(1.0, 0.84, 0.0, 1.0)
-		style.border_width_left = 2
-		style.border_width_top = 2
-		style.border_width_right = 2
-		style.border_width_bottom = 2
-		style.corner_radius_top_left = 4
-		style.corner_radius_top_right = 4
-		style.corner_radius_bottom_right = 4
-		style.corner_radius_bottom_left = 4
-		style.content_margin_left = 6
-		style.content_margin_right = 6
-		style.content_margin_top = 4
-		style.content_margin_bottom = 4
-		row.add_theme_stylebox_override("panel", style)
+		row.add_theme_stylebox_override("panel", _recipe_highlight_style)
 	else:
-		var base_style = StyleBoxFlat.new()
-		base_style.bg_color = Color(0.18, 0.18, 0.22, 0.8)
-		base_style.border_color = Color(0.3, 0.3, 0.35, 1.0)
-		base_style.border_width_left = 1
-		base_style.border_width_top = 1
-		base_style.border_width_right = 1
-		base_style.border_width_bottom = 1
-		base_style.corner_radius_top_left = 4
-		base_style.corner_radius_top_right = 4
-		base_style.corner_radius_bottom_right = 4
-		base_style.corner_radius_bottom_left = 4
-		base_style.content_margin_left = 6
-		base_style.content_margin_right = 6
-		base_style.content_margin_top = 4
-		base_style.content_margin_bottom = 4
-		row.add_theme_stylebox_override("panel", base_style)
+		row.add_theme_stylebox_override("panel", _recipe_base_style)
 
 func _on_select_recipe(recipe: Dictionary) -> void:
 	selected_recipe_id = recipe.get("id", "")

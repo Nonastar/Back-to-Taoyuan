@@ -1,0 +1,25 @@
+{
+  "shops": {
+    "general_store": {
+      "name": "杂货店",
+      "start_hour": 9,
+      "end_hour": 17,
+      "categories_for_sale": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    },
+    "animal_shop": {
+      "name": "动物商店",
+      "start_hour": 9,
+      "end_hour": 17,
+      "animals": [
+        { "animal_id": "chicken_white", "name": "白鸡", "price": 400, "stock": 5 },
+        { "animal_id": "chicken_brown", "name": "棕鸡", "price": 400, "stock": 5 },
+        { "animal_id": "duck", "name": "鸭子", "price": 500, "stock": 4 },
+        { "animal_id": "cow", "name": "牛", "price": 1000, "stock": 3 },
+        { "animal_id": "sheep", "name": "绵羊", "price": 800, "stock": 3 },
+        { "animal_id": "pig", "name": "猪", "price": 1200, "stock": 2 },
+        { "animal_id": "goat", "name": "山羊", "price": 900, "stock": 4 }
+      ]
+    }
+  },
+  "sell_price_multiplier": 0.5
+}

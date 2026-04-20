@@ -31,44 +31,53 @@ var _all_items: Array = []  # 当前商品列表，用于按索引查找
 var _selected_card_index: int = -1
 var _selected_card: PanelContainer = null
 
+# 缓存的卡片样式（避免每次高亮都重新创建 StyleBoxFlat）
+var _card_base_style: StyleBoxFlat = null
+var _card_highlight_style: StyleBoxFlat = null
+
+func _ensure_card_styles() -> void:
+	if _card_base_style == null:
+		_card_base_style = StyleBoxFlat.new()
+		_card_base_style.bg_color = Color(0.18, 0.18, 0.22, 0.8)
+		_card_base_style.border_color = Color(0.3, 0.3, 0.35, 1.0)
+		_card_base_style.border_width_left = 1
+		_card_base_style.border_width_top = 1
+		_card_base_style.border_width_right = 1
+		_card_base_style.border_width_bottom = 1
+		_card_base_style.corner_radius_top_left = 4
+		_card_base_style.corner_radius_top_right = 4
+		_card_base_style.corner_radius_bottom_right = 4
+		_card_base_style.corner_radius_bottom_left = 4
+		_card_base_style.content_margin_left = 8
+		_card_base_style.content_margin_right = 8
+		_card_base_style.content_margin_top = 6
+		_card_base_style.content_margin_bottom = 6
+	if _card_highlight_style == null:
+		_card_highlight_style = StyleBoxFlat.new()
+		_card_highlight_style.bg_color = Color(0.3, 0.25, 0.0, 0.35)
+		_card_highlight_style.border_color = Color(1.0, 0.84, 0.0, 1.0)
+		_card_highlight_style.border_width_left = 2
+		_card_highlight_style.border_width_top = 2
+		_card_highlight_style.border_width_right = 2
+		_card_highlight_style.border_width_bottom = 2
+		_card_highlight_style.corner_radius_top_left = 4
+		_card_highlight_style.corner_radius_top_right = 4
+		_card_highlight_style.corner_radius_bottom_right = 4
+		_card_highlight_style.corner_radius_bottom_left = 4
+		_card_highlight_style.content_margin_left = 8
+		_card_highlight_style.content_margin_right = 8
+		_card_highlight_style.content_margin_top = 6
+		_card_highlight_style.content_margin_bottom = 6
+
 ## 应用选中卡片高亮（金色边框 + 背景微亮）
 func _highlight_card(card: Control, selected: bool) -> void:
 	if not card:
 		return
+	_ensure_card_styles()
 	if selected:
-		var highlight_style = StyleBoxFlat.new()
-		highlight_style.bg_color = Color(0.3, 0.25, 0.0, 0.35)
-		highlight_style.border_color = Color(1.0, 0.84, 0.0, 1.0)
-		highlight_style.border_width_left = 2
-		highlight_style.border_width_top = 2
-		highlight_style.border_width_right = 2
-		highlight_style.border_width_bottom = 2
-		highlight_style.corner_radius_top_left = 4
-		highlight_style.corner_radius_top_right = 4
-		highlight_style.corner_radius_bottom_right = 4
-		highlight_style.corner_radius_bottom_left = 4
-		highlight_style.content_margin_left = 8
-		highlight_style.content_margin_right = 8
-		highlight_style.content_margin_top = 6
-		highlight_style.content_margin_bottom = 6
-		card.add_theme_stylebox_override("panel", highlight_style)
+		card.add_theme_stylebox_override("panel", _card_highlight_style)
 	else:
-		var base_style = StyleBoxFlat.new()
-		base_style.bg_color = Color(0.18, 0.18, 0.22, 0.8)
-		base_style.border_color = Color(0.3, 0.3, 0.35, 1.0)
-		base_style.border_width_left = 1
-		base_style.border_width_top = 1
-		base_style.border_width_right = 1
-		base_style.border_width_bottom = 1
-		base_style.corner_radius_top_left = 4
-		base_style.corner_radius_top_right = 4
-		base_style.corner_radius_bottom_right = 4
-		base_style.corner_radius_bottom_left = 4
-		base_style.content_margin_left = 8
-		base_style.content_margin_right = 8
-		base_style.content_margin_top = 6
-		base_style.content_margin_bottom = 6
-		card.add_theme_stylebox_override("panel", base_style)
+		card.add_theme_stylebox_override("panel", _card_base_style)
 
 # ============ UI节点 ============
 
@@ -133,88 +142,55 @@ func _connect_signals() -> void:
 		quantity_plus.pressed.connect(_on_quantity_plus)
 
 func _setup_dynamic_styles() -> void:
-	# Apply UITokens-based panel style for consistent visuals
-	if has_method("add_theme_stylebox_override"):
-		var panel_style = StyleBoxFlat.new()
-		panel_style.bg_color = UITokens.PANEL_BG
-		panel_style.border_color = UITokens.PANEL_BORDER
-		panel_style.corner_radius_top_left = UITokens.RADIUS_MD
-		panel_style.corner_radius_top_right = UITokens.RADIUS_MD
-		panel_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-		panel_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-		panel_style.content_margin_left = UITokens.SPACE_16
-		panel_style.content_margin_right = UITokens.SPACE_16
-		panel_style.content_margin_top = UITokens.SPACE_16
-		panel_style.content_margin_bottom = UITokens.SPACE_16
-		add_theme_stylebox_override("panel", panel_style)
-		# Button styling for main actions
-		if buy_button:
-			var btn_style = StyleBoxFlat.new()
-			btn_style.bg_color = UITokens.BUTTON_NORMAL
-			btn_style.border_color = UITokens.PANEL_BORDER
-			btn_style.corner_radius_top_left = UITokens.RADIUS_MD
-			btn_style.corner_radius_top_right = UITokens.RADIUS_MD
-			btn_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-			btn_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-			btn_style.content_margin_left = UITokens.SPACE_16
-			btn_style.content_margin_right = UITokens.SPACE_16
-			btn_style.content_margin_top = UITokens.SPACE_8
-			btn_style.content_margin_bottom = UITokens.SPACE_8
-			buy_button.add_theme_stylebox_override("normal", btn_style)
-		if sell_button:
-			var btn_style2 = StyleBoxFlat.new()
-			btn_style2.bg_color = UITokens.BUTTON_NORMAL
-			btn_style2.border_color = UITokens.PANEL_BORDER
-			btn_style2.corner_radius_top_left = UITokens.RADIUS_MD
-			btn_style2.corner_radius_top_right = UITokens.RADIUS_MD
-			btn_style2.corner_radius_bottom_left = UITokens.RADIUS_MD
-			btn_style2.corner_radius_bottom_right = UITokens.RADIUS_MD
-			btn_style2.content_margin_left = UITokens.SPACE_16
-			btn_style2.content_margin_right = UITokens.SPACE_16
-			btn_style2.content_margin_top = UITokens.SPACE_8
-			btn_style2.content_margin_bottom = UITokens.SPACE_8
-			sell_button.add_theme_stylebox_override("normal", btn_style2)
-		if action_button:
-			var btn_style3 = StyleBoxFlat.new()
-			btn_style3.bg_color = UITokens.BUTTON_NORMAL
-			btn_style3.border_color = UITokens.PANEL_BORDER
-			btn_style3.corner_radius_top_left = UITokens.RADIUS_MD
-			btn_style3.corner_radius_top_right = UITokens.RADIUS_MD
-			btn_style3.corner_radius_bottom_left = UITokens.RADIUS_MD
-			btn_style3.corner_radius_bottom_right = UITokens.RADIUS_MD
-			btn_style3.content_margin_left = UITokens.SPACE_16
-			btn_style3.content_margin_right = UITokens.SPACE_16
-			btn_style3.content_margin_top = UITokens.SPACE_8
-			btn_style3.content_margin_bottom = UITokens.SPACE_8
-			action_button.add_theme_stylebox_override("normal", btn_style3)
+	if not has_method("add_theme_stylebox_override"):
+		return
+	# 面板样式
+	add_theme_stylebox_override("panel", _make_panel_style(UITokens.PANEL_BG))
+	# 按钮样式
+	_apply_button_styles(buy_button, UITokens.BUTTON_NORMAL)
+	_apply_button_styles(sell_button, UITokens.BUTTON_NORMAL)
+	_apply_button_styles(action_button, UITokens.BUTTON_NORMAL)
 
-			# Hover state for Action button
-			var btn_hover_style = StyleBoxFlat.new()
-			btn_hover_style.bg_color = UITokens.BUTTON_HOVER
-			btn_hover_style.border_color = UITokens.PANEL_BORDER
-			btn_hover_style.corner_radius_top_left = UITokens.RADIUS_MD
-			btn_hover_style.corner_radius_top_right = UITokens.RADIUS_MD
-			btn_hover_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-			btn_hover_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-			btn_hover_style.content_margin_left = UITokens.SPACE_16
-			btn_hover_style.content_margin_right = UITokens.SPACE_16
-			btn_hover_style.content_margin_top = UITokens.SPACE_8
-			btn_hover_style.content_margin_bottom = UITokens.SPACE_8
-			action_button.add_theme_stylebox_override("hover", btn_hover_style)
+## 制作面板样式
+func _make_panel_style(bg_color: Color) -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.bg_color = bg_color
+	s.border_color = UITokens.PANEL_BORDER
+	s.corner_radius_top_left = UITokens.RADIUS_MD
+	s.corner_radius_top_right = UITokens.RADIUS_MD
+	s.corner_radius_bottom_right = UITokens.RADIUS_MD
+	s.corner_radius_bottom_left = UITokens.RADIUS_MD
+	s.content_margin_left = UITokens.SPACE_16
+	s.content_margin_right = UITokens.SPACE_16
+	s.content_margin_top = UITokens.SPACE_16
+	s.content_margin_bottom = UITokens.SPACE_16
+	return s
 
-			# Pressed state for Action button
-			var btn_pressed_style = StyleBoxFlat.new()
-			btn_pressed_style.bg_color = UITokens.BUTTON_PRESSED
-			btn_pressed_style.border_color = UITokens.PANEL_BORDER
-			btn_pressed_style.corner_radius_top_left = UITokens.RADIUS_MD
-			btn_pressed_style.corner_radius_top_right = UITokens.RADIUS_MD
-			btn_pressed_style.corner_radius_bottom_left = UITokens.RADIUS_MD
-			btn_pressed_style.corner_radius_bottom_right = UITokens.RADIUS_MD
-			btn_pressed_style.content_margin_left = UITokens.SPACE_16
-			btn_pressed_style.content_margin_right = UITokens.SPACE_16
-			btn_pressed_style.content_margin_top = UITokens.SPACE_8
-			btn_pressed_style.content_margin_bottom = UITokens.SPACE_8
-			action_button.add_theme_stylebox_override("pressed", btn_pressed_style)
+## 制作按钮样式并附加到按钮（含 normal/hover/pressed 三态）
+func _apply_button_styles(btn: Button, normal_color: Color) -> void:
+	if not btn:
+		return
+	var normal_style = _make_button_style(normal_color)
+	btn.add_theme_stylebox_override("normal", normal_style)
+	var hover_style = _make_button_style(UITokens.BUTTON_HOVER)
+	btn.add_theme_stylebox_override("hover", hover_style)
+	var pressed_style = _make_button_style(UITokens.BUTTON_PRESSED)
+	btn.add_theme_stylebox_override("pressed", pressed_style)
+
+## 制作按钮样式（通用布局参数）
+func _make_button_style(bg_color: Color) -> StyleBoxFlat:
+	var s = StyleBoxFlat.new()
+	s.bg_color = bg_color
+	s.border_color = UITokens.PANEL_BORDER
+	s.corner_radius_top_left = UITokens.RADIUS_MD
+	s.corner_radius_top_right = UITokens.RADIUS_MD
+	s.corner_radius_bottom_left = UITokens.RADIUS_MD
+	s.corner_radius_bottom_right = UITokens.RADIUS_MD
+	s.content_margin_left = UITokens.SPACE_16
+	s.content_margin_right = UITokens.SPACE_16
+	s.content_margin_top = UITokens.SPACE_8
+	s.content_margin_bottom = UITokens.SPACE_8
+	return s
 
 func _focus_first_item_if_any() -> void:
 	item_select_buttons.clear()
@@ -336,37 +312,35 @@ func _get_sell_items() -> Array:
 	for slot in backpack_contents:
 		var item_id = slot.get("item_id", "")
 		var quantity = slot.get("quantity", 0)
-		
+
 		if item_id.is_empty() or quantity <= 0:
 			continue
-		
-		# 获取物品定义
+
+		# 获取物品定义（一次查询，复用于名称和价格）
 		var item_def = null
 		if ItemDataSystem and ItemDataSystem.has_method("get_item_def"):
 			item_def = ItemDataSystem.get_item_def(item_id)
-		
+
 		if item_def == null:
 			continue
-		
-		# 聚合物品
+
+		# 聚合物品（同时缓存 item_def 供后续价格计算复用）
 		if not item_aggregation.has(item_id):
 			item_aggregation[item_id] = {
 				"item_id": item_id,
-				"name": item_def.name if item_def else item_id,
+				"name": item_def.name,
 				"total_quantity": 0,
-				"icon": "📦"
+				"icon": "📦",
+				"item_def": item_def  # 缓存以避免重复查询
 			}
 		item_aggregation[item_id]["total_quantity"] += quantity
-	
+
 	# 转换为列表
 	for item_id in item_aggregation:
 		var item_data = item_aggregation[item_id]
-		# 使用物品定义中的出售价格 (出售价为原价的一半)
-		var item_def = ItemDataSystem.get_item_def(item_id)
-		var sell_price = 0
-		if item_def != null:
-			sell_price = int(item_def.sell_price * 0.5)
-		
+		var item_def: Dictionary = item_data["item_def"]
+		var sell_price = int(item_def.sell_price * 0.5) if item_def else 0
+
 		sell_items.append({
 			"item_id": item_data["item_id"],
 			"name": item_data["name"],

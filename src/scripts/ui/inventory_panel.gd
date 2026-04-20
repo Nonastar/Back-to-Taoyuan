@@ -90,15 +90,15 @@ func _delayed_init() -> void:
 	_update_display()
 
 ## 显示面板 (带动画)
-func show_panel() -> void:
+func open_panel() -> void:
 	# 如果背包网格还未初始化，先初始化
 	if backpack_grid == null or backpack_slots.is_empty():
 		_delayed_init()
 
-	if visible:
+	if is_visible:
 		return
-	visible = true
 	is_visible = true
+	show()
 	scale = Vector2(0.95, 0.95)
 
 	# 缩放动画
@@ -110,17 +110,18 @@ func show_panel() -> void:
 	_grab_focus()
 
 ## 隐藏面板 (带动画)
-func hide_panel() -> void:
-	if not visible:
+func close_panel() -> void:
+	if not is_visible:
 		return
+
+	is_visible = false
 
 	# 缩小动画
 	var tween = create_tween()
 	tween.tween_property(self, "scale", Vector2(0.95, 0.95), 0.15).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tween.finished
 
-	visible = false
-	is_visible = false
+	hide()
 	scale = Vector2(1.0, 1.0)  # 重置缩放
 	_release_focus()
 
@@ -141,7 +142,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
 		match event.keycode:
 			KEY_ESCAPE:
-				hide_panel()
+				close_panel()
 			KEY_TAB:
 				_switch_tab_next()
 			KEY_1:
@@ -237,7 +238,7 @@ func _activate_selected_slot() -> void:
 
 ## 关闭按钮
 func _on_close_button_pressed() -> void:
-	hide_panel()
+	close_panel()
 
 ## 整理按钮
 func _on_sort_button_pressed() -> void:

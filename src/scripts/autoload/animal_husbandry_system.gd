@@ -223,6 +223,39 @@ signal animal_friendship_changed(unique_id: String, old_friendship: int, new_fri
 var _buildings: Dictionary = {}  ## {building_type: BuildingState}
 var _pending_products: Array[Dictionary] = []  ## 待收获产物
 var _days_elapsed: int = 0  ## 系统运行天数
+var _rng: RandomNumberGenerator  ## 共享随机数生成器，避免每帧 new 实例
+
+## ============ 运行时配置（从 JSON 加载，const 为默认值）============
+
+# 饲料消耗
+var _feed_cost: int = FEED_COST_HAY
+
+# 好感度
+var _friendship_max: int = FRIENDSHIP_MAX
+var _friendship_feed_min: int = FRIENDSHIP_FEED_MIN
+var _friendship_feed_max: int = FRIENDSHIP_FEED_MAX
+var _friendship_pet_min: int = FRIENDSHIP_PET_MIN
+var _friendship_pet_max: int = FRIENDSHIP_PET_MAX
+var _friendship_pickup_penalty: int = FRIENDSHIP_PICKUP_PENALTY
+var _friendship_clean_bonus: int = FRIENDSHIP_CLEAN_BONUS
+
+# 疾病
+var _sick_chance_base: float = SICK_CHANCE_BASE
+var _sick_chance_dirty_2: float = SICK_CHANCE_DIRTY_2_DAYS
+var _sick_chance_dirty_3: float = SICK_CHANCE_DIRTY_3_DAYS
+var _heal_cost: int = HEAL_COST
+var _heal_item_id: String = HEAL_ITEM_ID
+var _sickness_recovery_friendship: int = SICKNESS_RECOVERY_FRIENDSHIP
+
+# 品质
+var _base_high_quality_chance: float = BASE_HIGH_QUALITY_CHANCE
+var _quality_weights: Dictionary = QUALITY_WEIGHTS.duplicate()
+
+# 动物定义（从 JSON 加载）
+var _animal_definitions: Dictionary = ANIMAL_DATA.duplicate()
+
+# 建筑定义（从 JSON 加载）
+var _building_definitions: Dictionary = {}
 
 # ============ BuildingState 结构 ============
 # var capacity: int
@@ -231,7 +264,87 @@ var _days_elapsed: int = 0  ## 系统运行天数
 
 # ============ 初始化 ============
 
+## 数据初始化（由 init() 调用，可注入外部数据源）
+func init(data_source: Object = null) -> void:
+	if data_source != null and data_source.has_method("load_animal_data"):
+		var data: Dictionary = data_source.load_animal_data()
+		if not data.is_empty():
+			_apply_config(data)
+			print("[AnimalHusbandrySystem] Config loaded from injected source")
+			return
+	_initialize_from_json()
+
+func _initialize_from_json() -> void:
+	if DataLoader:
+		var data: Dictionary = DataLoader.load_json("animal_data.json")
+		if not data.is_empty():
+			_apply_config(data)
+			print("[AnimalHusbandrySystem] Loaded config from JSON")
+			return
+	# 兜底：使用代码常量（JSON 缺失时保持行为不变）
+	print("[AnimalHusbandrySystem] No animal_data.json found, using built-in defaults")
+
+## 将加载的配置应用到运行时变量
+func _apply_config(data: Dictionary) -> void:
+	# 疾病配置
+	var sickness: Dictionary = data.get("sickness", {})
+	_sick_chance_base = sickness.get("base_chance", SICK_CHANCE_BASE)
+	_sick_chance_dirty_2 = sickness.get("dirty_2_days_chance", SICK_CHANCE_DIRTY_2_DAYS)
+	_sick_chance_dirty_3 = sickness.get("dirty_3_days_chance", SICK_CHANCE_DIRTY_3_DAYS)
+	_heal_cost = sickness.get("heal_cost_money", HEAL_COST)
+	_heal_item_id = sickness.get("heal_item_id", HEAL_ITEM_ID)
+	_sickness_recovery_friendship = sickness.get("recovery_friendship", SICKNESS_RECOVERY_FRIENDSHIP)
+
+	# 品质配置
+	var quality: Dictionary = data.get("quality", {})
+	_base_high_quality_chance = quality.get("base_high_quality_chance", BASE_HIGH_QUALITY_CHANCE)
+	_quality_weights = quality.get("weights", QUALITY_WEIGHTS.duplicate())
+
+	# 好感度配置
+	var friendship: Dictionary = data.get("friendship", {})
+	_friendship_max = friendship.get("max", FRIENDSHIP_MAX)
+	_friendship_feed_min = friendship.get("feed_min", FRIENDSHIP_FEED_MIN)
+	_friendship_feed_max = friendship.get("feed_max", FRIENDSHIP_FEED_MAX)
+	_friendship_pet_min = friendship.get("pet_min", FRIENDSHIP_PET_MIN)
+	_friendship_pet_max = friendship.get("pet_max", FRIENDSHIP_PET_MAX)
+	_friendship_pickup_penalty = friendship.get("pickup_penalty", FRIENDSHIP_PICKUP_PENALTY)
+	_friendship_clean_bonus = friendship.get("clean_bonus", FRIENDSHIP_CLEAN_BONUS)
+
+	# 饲料成本
+	_feed_cost = data.get("feed_cost", FEED_COST_HAY)
+
+	# 动物定义（从 buildings/animals 中提取，building_type 需映射到枚举）
+	var animals: Dictionary = data.get("animals", {})
+	if not animals.is_empty():
+		var mapped: Dictionary = {}
+		for animal_id: String in animals.keys():
+			var animal_def: Dictionary = animals[animal_id].duplicate()
+			var bt_str: String = animal_def.get("building_type", "")
+			var bt_int: int = _string_to_building_type(bt_str)
+			if bt_int >= 0:
+				animal_def["building_type"] = bt_int
+			# 转换 animal type 字符串到枚举
+			var type_str: String = animal_def.get("type", "")
+			var type_int: int = _string_to_animal_type(type_str)
+			if type_int >= 0:
+				animal_def["type"] = type_int
+			mapped[animal_id] = animal_def
+		_animal_definitions = mapped
+
+	# 建筑定义（从 buildings 中提取，JSON 键为字符串需映射到枚举）
+	var buildings: Dictionary = data.get("buildings", {})
+	if not buildings.is_empty():
+		var mapped: Dictionary = {}
+		for key in buildings.keys():
+			var enum_key: int = _string_to_building_type(key)
+			if enum_key >= 0:
+				mapped[enum_key] = buildings[key]
+		_building_definitions = mapped
+
 func _ready() -> void:
+	_rng = RandomNumberGenerator.new()
+	_rng.randomize()
+	_initialize_from_json()
 	_connect_signals()
 	print("[AnimalHusbandrySystem] Initialized")
 
@@ -264,7 +377,7 @@ func get_animals_in_building(building_type: BuildingType) -> Array:
 
 ## 获取建筑容量
 func get_building_capacity(building_type: BuildingType) -> int:
-	var info = BUILDING_INFO.get(building_type, {})
+	var info: Dictionary = _building_definitions.get(building_type, BUILDING_INFO.get(building_type, {}))
 	return info.get("capacity", 0)
 
 ## 获取指定建筑中的动物数量
@@ -277,9 +390,9 @@ func can_build(building_type: BuildingType) -> bool:
 	if _buildings.has(building_type):
 		return false
 
-	var info = BUILDING_INFO.get(building_type, {})
-	var cost_money = info.get("cost_money", 0)
-	var cost_wood = info.get("cost_wood", 0)
+	var info: Dictionary = _building_definitions.get(building_type, BUILDING_INFO.get(building_type, {}))
+	var cost_money: int = info.get("cost_money", 0)
+	var cost_wood: int = info.get("cost_wood", 0)
 
 	## 检查金钱
 	if PlayerStats and PlayerStats.has_method("get_money"):
@@ -299,9 +412,9 @@ func build_building(building_type: BuildingType) -> bool:
 		print("[AnimalHusbandrySystem] Cannot build building: " + str(building_type))
 		return false
 
-	var info = BUILDING_INFO.get(building_type, {})
-	var cost_money = info.get("cost_money", 0)
-	var cost_wood = info.get("cost_wood", 0)
+	var info: Dictionary = _building_definitions.get(building_type, BUILDING_INFO.get(building_type, {}))
+	var cost_money: int = info.get("cost_money", 0)
+	var cost_wood: int = info.get("cost_wood", 0)
 
 	## 扣除费用
 	if PlayerStats and PlayerStats.has_method("spend_money"):
@@ -392,19 +505,19 @@ func feed_animals() -> int:
 
 	## 检查饲料是否足够 (每只动物1个干草)
 	if InventorySystem and InventorySystem.has_method("get_item_count"):
-		var hay_count = InventorySystem.get_item_count("hay")
-		var total_cost = total_animals * FEED_COST_HAY
+		var hay_count: int = InventorySystem.get_item_count("hay")
+		var total_cost: int = total_animals * _feed_cost
 		if hay_count < total_cost:
 			print("[AnimalHusbandrySystem] Not enough hay to feed all animals: need %d, have %d" % [total_cost, hay_count])
 			return -1
 
 	## 消耗饲料 (按动物数量)
 	if InventorySystem and InventorySystem.has_method("remove_item"):
-		var total_cost = total_animals * FEED_COST_HAY
+		var total_cost: int = total_animals * _feed_cost
 		InventorySystem.remove_item("hay", total_cost)
 
 	## 重置所有动物的产出状态（喂养后可以产出）
-	var fed_count = 0
+	var fed_count: int = 0
 	for building in _buildings.values():
 		var animals = building.get("animals", [])
 		for animal in animals:
@@ -414,7 +527,7 @@ func feed_animals() -> int:
 
 	animal_fed.emit("")
 	animal_state_changed.emit()
-	print("[AnimalHusbandrySystem] Fed %d animals, cost %d hay" % [fed_count, fed_count * FEED_COST_HAY])
+	print("[AnimalHusbandrySystem] Fed %d animals, cost %d hay" % [fed_count, fed_count * _feed_cost])
 	return fed_count
 
 ## 检查是否有可喂养动物
@@ -433,7 +546,7 @@ func get_total_animals_to_feed() -> int:
 
 ## 获取总喂养成本 (干草数量)
 func get_total_feed_cost() -> int:
-	return get_total_animals_to_feed() * FEED_COST_HAY
+	return get_total_animals_to_feed() * _feed_cost
 
 ## 检查是否有足够的饲料喂养所有动物
 func has_enough_feed() -> bool:
@@ -467,9 +580,9 @@ func get_pending_products() -> Array:
 
 ## 获取可购买的动物列表
 func get_buyable_animals() -> Array:
-	var result = []
-	for animal_id in ANIMAL_DATA.keys():
-		var data = ANIMAL_DATA[animal_id].duplicate()
+	var result: Array = []
+	for animal_id in _animal_definitions.keys():
+		var data: Dictionary = _animal_definitions[animal_id].duplicate()
 		data["animal_id"] = animal_id
 		## 检查是否已满
 		var building_type = data.get("building_type", -1)
@@ -485,9 +598,9 @@ func get_buyable_animals() -> Array:
 
 ## 获取所有可养殖动物信息
 func get_all_animal_info() -> Array:
-	var result = []
-	for animal_id in ANIMAL_DATA.keys():
-		var data = ANIMAL_DATA[animal_id].duplicate()
+	var result: Array = []
+	for animal_id in _animal_definitions.keys():
+		var data: Dictionary = _animal_definitions[animal_id].duplicate()
 		data["animal_id"] = animal_id
 		result.append(data)
 	return result
@@ -535,12 +648,10 @@ static func get_friendship_progress(friendship: int) -> float:
 
 ## 获取指定动物的好感度
 func get_animal_friendship(unique_id: String) -> int:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				return animal.get("friendship", 0)
-	return -1  # 未找到
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return -1
+	return result["animal"].get("friendship", 0)
 
 ## 获取指定动物的好感度等级
 func get_animal_friendship_level(unique_id: String) -> String:
@@ -565,109 +676,78 @@ func get_animal_friendship_progress(unique_id: String) -> float:
 
 ## 内部方法：修改动物好感度
 func _modify_friendship(unique_id: String, delta: int) -> int:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for i in range(animals.size()):
-			var animal = animals[i]
-			if animal.get("unique_id") == unique_id:
-				var old_friendship = animal.get("friendship", 0)
-				var new_friendship = clamp(old_friendship + delta, 0, FRIENDSHIP_MAX)
-				animals[i]["friendship"] = new_friendship
-				animal_friendship_changed.emit(unique_id, old_friendship, new_friendship)
-				return new_friendship
-	return -1
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return -1
+	var animal = result["animal"]
+	var old_friendship = animal.get("friendship", 0)
+	var new_friendship: int = clamp(old_friendship + delta, 0, _friendship_max)
+	animal["friendship"] = new_friendship
+	animal_friendship_changed.emit(unique_id, old_friendship, new_friendship)
+	return new_friendship
 
 ## 喂养单个动物（增加好感度+1~3）
 func feed_single_animal(unique_id: String) -> bool:
-	var friendship = get_animal_friendship(unique_id)
-	if friendship < 0:
+	var result = _find_animal(unique_id)
+	if result.is_empty():
 		return false  # 动物不存在
 
-	# 检查是否已喂养
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				if animal.get("fed_today", false):
-					print("[AnimalHusbandrySystem] Animal already fed today: " + unique_id)
-					return false
-				break
+	var animal = result["animal"]
+	if animal.get("fed_today", false):
+		print("[AnimalHusbandrySystem] Animal already fed today: " + unique_id)
+		return false
 
 	# 检查饲料
 	if InventorySystem and InventorySystem.has_method("get_item_count"):
-		if InventorySystem.get_item_count("hay") < FEED_COST_HAY:
+		if InventorySystem.get_item_count("hay") < _feed_cost:
 			print("[AnimalHusbandrySystem] Not enough hay to feed")
 			return false
-
-	# 消耗饲料
-	if InventorySystem and InventorySystem.has_method("remove_item"):
-		InventorySystem.remove_item("hay", FEED_COST_HAY)
+		InventorySystem.remove_item("hay", _feed_cost)
 
 	# 随机好感度增量 (+1~3)
-	var rng = RandomNumberGenerator.new()
-	var friendship_delta = rng.randi_range(FRIENDSHIP_FEED_MIN, FRIENDSHIP_FEED_MAX)
+	var friendship_delta: int = _rng.randi_range(_friendship_feed_min, _friendship_feed_max)
 	_modify_friendship(unique_id, friendship_delta)
 
 	# 标记已喂养
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for i in range(animals.size()):
-			if animals[i].get("unique_id") == unique_id:
-				animals[i]["fed_today"] = true
-				break
+	animal["fed_today"] = true
 
 	print("[AnimalHusbandrySystem] Fed animal: " + unique_id + " (+" + str(friendship_delta) + " friendship)")
 	return true
 
 ## 抚摸单个动物（增加好感度+5~12）
 func pet_single_animal(unique_id: String) -> bool:
-	var friendship = get_animal_friendship(unique_id)
-	if friendship < 0:
+	var result = _find_animal(unique_id)
+	if result.is_empty():
 		return false  # 动物不存在
 
-	# 检查是否已抚摸
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				if animal.get("pet_today", false):
-					print("[AnimalHusbandrySystem] Animal already pet today: " + unique_id)
-					return false
-				break
+	var animal = result["animal"]
+	if animal.get("pet_today", false):
+		print("[AnimalHusbandrySystem] Animal already pet today: " + unique_id)
+		return false
 
 	# 随机好感度增量 (+5~12)
-	var rng = RandomNumberGenerator.new()
-	var friendship_delta = rng.randi_range(FRIENDSHIP_PET_MIN, FRIENDSHIP_PET_MAX)
+	var friendship_delta: int = _rng.randi_range(_friendship_pet_min, _friendship_pet_max)
 	_modify_friendship(unique_id, friendship_delta)
 
 	# 标记已抚摸
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for i in range(animals.size()):
-			if animals[i].get("unique_id") == unique_id:
-				animals[i]["pet_today"] = true
-				break
+	animal["pet_today"] = true
 
 	print("[AnimalHusbandrySystem] Pet animal: " + unique_id + " (+" + str(friendship_delta) + " friendship)")
 	return true
 
 ## 检查指定动物今日是否已喂养
 func is_animal_fed(unique_id: String) -> bool:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				return animal.get("fed_today", false)
-	return false
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return false
+	return result["animal"].get("fed_today", false)
 
 ## 检查指定动物今日是否已抚摸
 func is_animal_pet(unique_id: String) -> bool:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				return animal.get("pet_today", false)
-	return false
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return false
+	return result["animal"].get("pet_today", false)
 
 ## 获取所有动物的详细信息（包含好感度）
 func get_all_animals_with_friendship() -> Array:
@@ -695,43 +775,39 @@ func get_all_animals_with_friendship() -> Array:
 
 ## 获取指定动物的详细信息
 func get_animal_details(unique_id: String) -> Dictionary:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				var friendship = animal.get("friendship", 0)
-				return {
-					"unique_id": unique_id,
-					"animal_id": animal.get("animal_id", ""),
-					"friendship": friendship,
-					"friendship_level": get_friendship_level_name(friendship),
-					"friendship_progress": get_friendship_progress(friendship),
-					"quality_bonus": get_quality_bonus(friendship),
-					"fed_today": animal.get("fed_today", false),
-					"pet_today": animal.get("pet_today", false),
-					"is_mature": animal.get("is_mature", false),
-					"has_produced_today": animal.get("has_produced_today", false),
-					"is_sick": animal.get("is_sick", false),
-					"days_in_building": animal.get("days_in_building", 0)
-				}
-	return {}
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return {}
+	var animal = result["animal"]
+	var friendship = animal.get("friendship", 0)
+	return {
+		"unique_id": unique_id,
+		"animal_id": animal.get("animal_id", ""),
+		"friendship": friendship,
+		"friendship_level": get_friendship_level_name(friendship),
+		"friendship_progress": get_friendship_progress(friendship),
+		"quality_bonus": get_quality_bonus(friendship),
+		"fed_today": animal.get("fed_today", false),
+		"pet_today": animal.get("pet_today", false),
+		"is_mature": animal.get("is_mature", false),
+		"has_produced_today": animal.get("has_produced_today", false),
+		"is_sick": animal.get("is_sick", false),
+		"days_in_building": animal.get("days_in_building", 0)
+	}
 
 # ============ 疾病系统 ============
 
 ## 检查动物是否生病
 func is_animal_sick(unique_id: String) -> bool:
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
-			if animal.get("unique_id") == unique_id:
-				return animal.get("is_sick", false)
-	return false
+	var result = _find_animal(unique_id)
+	if result.is_empty():
+		return false
+	return result["animal"].get("is_sick", false)
 
 ## 检查是否有生病动物
 func has_sick_animals() -> bool:
 	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
+		for animal in building.get("animals", []):
 			if animal.get("is_sick", false):
 				return true
 	return false
@@ -740,8 +816,7 @@ func has_sick_animals() -> bool:
 func get_sick_animals() -> Array:
 	var result = []
 	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for animal in animals:
+		for animal in building.get("animals", []):
 			if animal.get("is_sick", false):
 				result.append({
 					"unique_id": animal.get("unique_id", ""),
@@ -753,17 +828,17 @@ func get_sick_animals() -> Array:
 ## 计算生病概率 (基于建筑脏乱天数)
 func get_sick_probability(building_type: BuildingType) -> float:
 	if not _buildings.has(building_type):
-		return SICK_CHANCE_BASE
+		return _sick_chance_base
 
 	var building = _buildings[building_type]
-	var dirty_days = building.get("dirty_days", 0)
+	var dirty_days: int = building.get("dirty_days", 0)
 
 	if dirty_days >= 3:
-		return SICK_CHANCE_DIRTY_3_DAYS  ## 15%
+		return _sick_chance_dirty_3  ## 15%
 	elif dirty_days >= 2:
-		return SICK_CHANCE_DIRTY_2_DAYS  ## 5%
+		return _sick_chance_dirty_2  ## 5%
 	else:
-		return SICK_CHANCE_BASE  ## 1%
+		return _sick_chance_base  ## 1%
 
 ## 获取建筑脏乱天数
 func get_building_dirty_days(building_type: BuildingType) -> int:
@@ -785,7 +860,7 @@ func clean_building(building_type: BuildingType) -> bool:
 	## 所有动物好感度+1
 	for animal in animals:
 		var unique_id = animal.get("unique_id", "")
-		_modify_friendship(unique_id, FRIENDSHIP_CLEAN_BONUS)
+		_modify_friendship(unique_id, _friendship_clean_bonus)
 
 	animal_state_changed.emit()
 	print("[AnimalHusbandrySystem] Cleaned building: " + str(building_type))
@@ -798,35 +873,32 @@ func heal_animal(unique_id: String) -> Dictionary:
 		return {"success": false, "message": "动物没有生病"}
 
 	## 检查治疗费用 (金币或物品)
-	var has_item = false
+	var has_item: bool = false
 	if InventorySystem and InventorySystem.has_method("get_item_count"):
-		var medicine_count = InventorySystem.get_item_count(HEAL_ITEM_ID)
+		var medicine_count: int = InventorySystem.get_item_count(_heal_item_id)
 		has_item = medicine_count > 0
 
 	## 优先使用物品，如果没有则使用金币
 	if has_item:
 		## 消耗治疗物品
 		if InventorySystem and InventorySystem.has_method("remove_item"):
-			InventorySystem.remove_item(HEAL_ITEM_ID, 1)
+			InventorySystem.remove_item(_heal_item_id, 1)
 	elif PlayerStats and PlayerStats.has_method("spend_money"):
 		## 检查金币
-		if PlayerStats.get_money() < HEAL_COST:
-			return {"success": false, "message": "金币不足 (需要 %d)" % HEAL_COST}
+		if PlayerStats.get_money() < _heal_cost:
+			return {"success": false, "message": "金币不足 (需要 %d)" % _heal_cost}
 		## 扣除金币
-		PlayerStats.spend_money(HEAL_COST)
+		PlayerStats.spend_money(_heal_cost)
 	else:
 		return {"success": false, "message": "无法进行支付"}
 
 	## 治疗动物
-	for building in _buildings.values():
-		var animals = building.get("animals", [])
-		for i in range(animals.size()):
-			if animals[i].get("unique_id") == unique_id:
-				animals[i]["is_sick"] = false
-				break
+	var result = _find_animal(unique_id)
+	if not result.is_empty():
+		result["animal"]["is_sick"] = false
 
 	## 增加好感度
-	var friendship_delta = _modify_friendship(unique_id, SICKNESS_RECOVERY_FRIENDSHIP)
+	var friendship_delta: int = _modify_friendship(unique_id, _sickness_recovery_friendship)
 
 	animal_healed.emit(unique_id)
 	animal_state_changed.emit()
@@ -849,12 +921,12 @@ func can_heal_animal(unique_id: String) -> bool:
 
 	## 检查治疗物品
 	if InventorySystem and InventorySystem.has_method("get_item_count"):
-		if InventorySystem.get_item_count(HEAL_ITEM_ID) > 0:
+		if InventorySystem.get_item_count(_heal_item_id) > 0:
 			return true
 
 	## 检查金币
 	if PlayerStats and PlayerStats.has_method("get_money"):
-		return PlayerStats.get_money() >= HEAL_COST
+		return PlayerStats.get_money() >= _heal_cost
 
 	return false
 
@@ -868,32 +940,30 @@ func has_healable_animals() -> bool:
 ## quality_bonus: 好感度带来的品质加成 (0.0 - 0.10)
 ## 返回: Quality.NORMAL (0), Quality.FINE (1), Quality.EXCELLENT (2), 或 Quality.SUPREME (3)
 func calculate_product_quality(quality_bonus: float) -> int:
-	var rng = RandomNumberGenerator.new()
-
 	## 最终高品质概率 = 基础概率 + 好感度加成
-	var final_high_quality_chance = clamp(BASE_HIGH_QUALITY_CHANCE + quality_bonus, 0.0, 1.0)
+	var final_high_quality_chance: float = clamp(_base_high_quality_chance + quality_bonus, 0.0, 1.0)
 
 	## 掷骰决定是否高品质
-	var roll = rng.randf()
+	var roll: float = _rng.randf()
 	if roll >= final_high_quality_chance:
 		return Quality.NORMAL  # 70%概率普通品质
 
 	## 进入高品质池，掷骰决定具体品质
 	## 调整权重以适应高质量概率增加
-	var high_roll = rng.randf()
+	var high_roll: float = _rng.randf()
 
-	## 史诗品质：1%
-	if high_roll < QUALITY_WEIGHTS[Quality.SUPREME]:
+	## 史诗品质
+	if high_roll < _quality_weights.get(Quality.SUPREME, 0.01):
 		return Quality.SUPREME
 
-	## 精良品质：9%
-	high_roll -= QUALITY_WEIGHTS[Quality.SUPREME]
-	if high_roll < QUALITY_WEIGHTS[Quality.EXCELLENT]:
+	## 精良品质
+	high_roll -= _quality_weights.get(Quality.SUPREME, 0.01)
+	if high_roll < _quality_weights.get(Quality.EXCELLENT, 0.09):
 		return Quality.EXCELLENT
 
-	## 优秀品质：20%
-	high_roll -= QUALITY_WEIGHTS[Quality.EXCELLENT]
-	if high_roll < QUALITY_WEIGHTS[Quality.FINE]:
+	## 优秀品质
+	high_roll -= _quality_weights.get(Quality.EXCELLENT, 0.09)
+	if high_roll < _quality_weights.get(Quality.FINE, 0.20):
 		return Quality.FINE
 
 	## 默认优秀品质（如果以上都不中）
@@ -1020,8 +1090,7 @@ func _check_animal_maturity(animal: Dictionary) -> void:
 func _check_animal_sickness(animal: Dictionary, building_type: BuildingType) -> void:
 	if animal.get("is_sick", false):
 		return
-	var rng_sick = RandomNumberGenerator.new()
-	var sick_roll = rng_sick.randf()
+	var sick_roll = _rng.randf()
 	var sick_chance = get_sick_probability(building_type)
 	if sick_roll < sick_chance:
 		animal["is_sick"] = true
@@ -1036,9 +1105,8 @@ func _maybe_produce_product(animal: Dictionary) -> void:
 	_try_produce(animal, animal_data)
 
 func _try_produce(animal: Dictionary, animal_data: Dictionary) -> void:
-	var rng = RandomNumberGenerator.new()
 	var production_rate = animal_data.get("production_rate", 0.5)
-	var roll = rng.randf()
+	var roll = _rng.randf()
 
 	if roll < production_rate:
 		var product_id = animal_data.get("product_id", "")
@@ -1059,11 +1127,37 @@ func _try_produce(animal: Dictionary, animal_data: Dictionary) -> void:
 # ============ 内部方法 ============
 
 func _get_animal_data(animal_id: String) -> Dictionary:
-	return ANIMAL_DATA.get(animal_id, {})
+	return _animal_definitions.get(animal_id, {})
 
 ## 获取动物数据（公开方法，供外部调用）
 func get_animal_data(animal_id: String) -> Dictionary:
 	return _get_animal_data(animal_id)
+
+## 内部辅助方法：通过 unique_id 查找动物
+## 返回 {building_type: int, animal: Dictionary} 或空字典（未找到）
+func _find_animal(unique_id: String) -> Dictionary:
+	for building_type in _buildings.keys():
+		var animals: Array = _buildings[building_type].get("animals", [])
+		for animal in animals:
+			if animal.get("unique_id") == unique_id:
+				return {"building_type": building_type, "animal": animal}
+	return {}
+
+func _string_to_building_type(s: String) -> int:
+	match s:
+		"coop": return BuildingType.COOP
+		"barn": return BuildingType.BARN
+	return -1
+
+func _string_to_animal_type(s: String) -> int:
+	match s:
+		"chicken": return AnimalType.CHICKEN
+		"duck": return AnimalType.DUCK
+		"cow": return AnimalType.COW
+		"sheep": return AnimalType.SHEEP
+		"pig": return AnimalType.PIG
+		"goat": return AnimalType.GOAT
+	return -1
 
 func _generate_unique_id() -> String:
 	return "animal_" + str(Time.get_ticks_usec())

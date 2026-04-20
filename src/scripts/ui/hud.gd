@@ -171,14 +171,19 @@ func _setup_node_references() -> void:
 	if button_inventory:
 		button_inventory.gui_input.connect(_on_quick_button_input.bind("inventory"))
 	if button_map:
+		button_map.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_map.gui_input.connect(_on_quick_button_input.bind("map"))
 	if button_quest:
+		button_quest.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_quest.gui_input.connect(_on_quick_button_input.bind("quest"))
 	if button_menu:
+		button_menu.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_menu.gui_input.connect(_on_quick_button_input.bind("menu"))
 	if button_shop:
+		button_shop.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_shop.gui_input.connect(_on_quick_button_input.bind("shop"))
 	if button_cooking:
+		button_cooking.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_cooking.gui_input.connect(_on_quick_button_input.bind("cooking"))
 
 	# 通知标签
@@ -631,6 +636,9 @@ func _on_slot_clicked(slot_index: int) -> void:
 		10:
 			_open_cooking()
 			return
+		11:
+			_open_inventory()
+			return
 
 	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
 	var player = _get_player()
@@ -695,15 +703,17 @@ func _open_inventory() -> void:
 		if packed_scene:
 			inventory_panel = packed_scene.instantiate()
 			add_child(inventory_panel)
+			# 新实例 visible=true 但 is_visible=false，立即隐藏以避免 toggle 逻辑误判
+			inventory_panel.visible = false
 		else:
 			push_error("[HUD] Failed to load inventory panel: " + INVENTORY_SCENE_PATH)
 			return
 
-	if inventory_panel.has_method("show_panel"):
+	if inventory_panel.has_method("open_panel"):
 		if inventory_panel.visible:
-			inventory_panel.hide_panel()
+			inventory_panel.close_panel()
 		else:
-			inventory_panel.show_panel()
+			inventory_panel.open_panel()
 	else:
 		inventory_panel.visible = not inventory_panel.visible
 
