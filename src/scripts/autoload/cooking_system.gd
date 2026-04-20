@@ -29,14 +29,17 @@ var _remaining_days: int = 0
 var _current_input_qualities: Dictionary = {}  # {ingredient_id: quality} 用于产出品质计算
 
 var _active_buffs: Array = []  # [{ "type": String, "value": int, "remaining_days": int }]
+var _state_loaded: bool = false  # 防重入标志
 var _known_recipes: Dictionary = {}  # {recipe_id: cook_count} — 0=未知, 1-9=已知, 10+=精通
+var _output_to_recipe: Dictionary = {}  # 反向索引: {output_item_id: recipe_id} 用于O(1)查找
 
 # ============ 生命周期 ============
 
 func _ready() -> void:
 	rng.randomize()
 	_initialize_recipes()
-	_load_state()
+	if not _state_loaded:
+		_load_state()
 	_connect_signals()
 
 ## 数据初始化（由 _ready() 或外部调用，可注入外部数据源）
@@ -181,6 +184,10 @@ func cook_item(recipe_id: String) -> bool:
 	# 标记为已知配方
 	if not _known_recipes.has(recipe_id):
 		_known_recipes[recipe_id] = 0
+	# 建立反向索引
+	var output_id = recipe.get("output_item_id", "")
+	if not output_id.is_empty():
+		_output_to_recipe[output_id] = recipe_id
 
 	cooking_started.emit(recipe_id)
 	return true
@@ -263,9 +270,10 @@ func eat_dish(item_id: String) -> Dictionary:
 	return { "success": true, "message": "食用成功", "buff": {} }
 
 func _get_dish_buff(item_id: String) -> Dictionary:
-	for recipe in recipes.values():
-		if recipe.get("output_item_id", "") == item_id:
-			return recipe.get("buff_on_eat", {})
+	# O(1) 反向索引查找
+	var recipe_id = _output_to_recipe.get(item_id, "")
+	if not recipe_id.is_empty() and recipes.has(recipe_id):
+		return recipes[recipe_id].get("buff_on_eat", {})
 	return {}
 
 func _on_day_changed(day: int, season_name: String, year: int) -> void:
@@ -389,6 +397,7 @@ func _calculate_output_quality() -> int:
 	return min_quality
 
 ## 获取某种食材在背包中的最低品质（返回存在的最高品质）
+## 注意：调用前已确保食材在背包中，此处只做品质判定
 func _get_lowest_ingredient_quality(ing_id: String) -> int:
 	# 从低到高检查各品质，找到第一个有库存的品质
 	var qualities = [Quality.NORMAL, Quality.FINE, Quality.EXCELLENT, Quality.SUPREME]
@@ -417,6 +426,7 @@ func _load_state() -> void:
 		var data = json.get_data()
 		if typeof(data) == TYPE_DICTIONARY:
 			load_save_data(data)
+		_state_loaded = true
 
 func save_state() -> void:
 	var data = get_save_data()

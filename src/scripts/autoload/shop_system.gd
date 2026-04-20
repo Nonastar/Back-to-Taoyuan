@@ -187,7 +187,7 @@ func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 	if quantity <= 0 or item_id.is_empty():
 		return {"success": false, "money_earned": 0}
 	if not is_shop_open(shop_id_str):
-		return {"success": false, "money_earned": 0}
+		return {"success": false, "message": "Shop is closed", "money_earned": 0}
 
 	var item_def = ItemDataSystem.get_item_def(item_id)
 	if item_def == null:

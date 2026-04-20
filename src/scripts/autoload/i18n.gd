@@ -44,7 +44,7 @@ func translate(key: String) -> String:
 ## 格式化翻译字符串 (支持 %s/%d 占位符)
 ## 用法: I18n.trf("animal.cured", ["小鸡", "10"])
 func trf(key: String, args: Array = []) -> String:
-	var template := tr(key)
+	var template := translate(key)
 	if template == key or args.is_empty():
 		return template
 	return template % args
