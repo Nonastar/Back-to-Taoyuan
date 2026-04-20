@@ -285,3 +285,8 @@ cooking.finished,烹饪完成！,Cooking finished!,成功消息
 shop.item_not_found,物品不存在,Item not found,错误消息
 shop.invalid_params,参数错误,Invalid parameters,错误消息
 shop.no_cooking_in_progress,当前没有在进行的烹饪,No cooking in progress,错误消息
+
+
+# ============ 背包UI ============
+inventory.select_tool_detail,选择一个工具查看详情,Select a tool to view details,提示文本
+inventory.no_items,背包为空,No items in inventory,提示文本

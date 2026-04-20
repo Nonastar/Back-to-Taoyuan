@@ -171,7 +171,7 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		InventorySystem.remove_item(item_id, quantity, quality)
 		return {"success": false, "message": "Payment failed"}
 
-		purchase_completed.emit(item_id, quantity, total_cost)
+	purchase_completed.emit(item_id, quantity, total_cost)
 	return {"success": true, "message": "Purchased", "total_cost": total_cost}
 
 func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:

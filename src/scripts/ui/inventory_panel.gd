@@ -394,7 +394,7 @@ func _show_context_menu(slot_index: int, is_temp: bool) -> void:
 		context_menu.add_item("解锁", 3)
 	else:
 		context_menu.add_item("锁定", 3)
-	context_menu.add_item("出售", 4)
+	context_menu.add_item(I18n.translate("ui.sell"), 4)
 
 	# 显示菜单
 	context_menu.id_pressed.connect(_on_context_menu_id_pressed)
@@ -1057,7 +1057,7 @@ func _create_tools_tab_content() -> void:
 	detail_panel.add_child(detail_vbox)
 
 	var detail_label = Label.new()
-	detail_label.text = "选择一个工具查看详情"
+	detail_label.text = I18n.translate("inventory.select_tool_detail")
 	detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	detail_vbox.add_child(detail_label)
 
