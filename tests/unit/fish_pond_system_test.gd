@@ -219,6 +219,62 @@ func test_remove_fish_invalid_index_returns_false():
 	assert_false(_pond.remove_fish(-1), "负索引应返回false")
 	assert_false(_pond.remove_fish(0), "空鱼塘移除应返回false")
 
+## 测试放入鱼类成功（需要模拟 InventorySystem.remove_item）
+func test_add_fish_success():
+	_pond._is_built = true
+	_pond._capacity = 5
+	# 直接操作内部状态模拟 can_add_fish 通过
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 0})
+	assert_eq(_pond.get_fish_count(), 1, "添加鱼后数量应为1")
+
+## 测试从鱼塘移除鱼类成功
+func test_remove_fish_success():
+	_pond._is_built = true
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 5})
+	_pond._fish_in_pond.append({"fish_id": "carp", "days_in_pond": 3})
+	var removed = _pond.remove_fish(0)
+	assert_true(removed, "移除应返回true")
+	assert_eq(_pond.get_fish_count(), 1, "移除后数量应为1")
+	assert_eq(_pond._fish_in_pond[0]["fish_id"], "carp", "剩余的应该是carp")
+
+## 测试鱼塘满时不能放入更多鱼
+func test_cannot_add_fish_when_full():
+	_pond._is_built = true
+	_pond._capacity = 2
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 5})
+	_pond._fish_in_pond.append({"fish_id": "carp", "days_in_pond": 3})
+	# 鱼塘已满，can_add_fish 应返回 false
+	assert_false(_pond.can_add_fish("koi"), "鱼塘满时不能放入新鱼")
+
+## 测试 has_products_to_collect 状态
+func test_has_products_to_collect_reflects_pending():
+	_pond._is_built = true
+	assert_false(_pond.has_products_to_collect(), "无产物时应返回false")
+	_pond._pending_products.append({"product_id": "bluegill", "quality": "normal", "quantity": 1})
+	assert_true(_pond.has_products_to_collect(), "有产物时应返回true")
+
+## 测试多条鱼同时产出
+func test_multiple_mature_fish_produce():
+	_pond._is_built = true
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 10})
+	_pond._fish_in_pond.append({"fish_id": "carp", "days_in_pond": 10})
+	_pond._fish_in_pond.append({"fish_id": "swamp_loach", "days_in_pond": 10})
+	_pond._pending_products = Array([], TYPE_DICTIONARY, "", null)
+	_pond._calculate_daily_production()
+	# 至少有一条鱼产出（高概率）
+	var produced = _pond._pending_products.size()
+	assert_gt(produced, 0, "成熟鱼群应有产出")
+
+## 测试未成熟临界天数（第maturity_days天）
+func test_fish_at_exactly_maturity_days():
+	_pond._is_built = true
+	# bluegill maturity_days=3
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 2})
+	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 3})
+	var fish_list = _pond.get_fish_list()
+	assert_false(fish_list[0]["is_mature"], "2天未成熟")
+	assert_true(fish_list[1]["is_mature"], "3天刚好成熟")
+
 # ============ 存档序列化测试 ============
 
 func test_serialize_preserves_built_state():

@@ -7,11 +7,15 @@ extends Node
 
 signal cooking_started(recipe_id: String)
 signal cooking_finished(output_item_id: String)
+signal cooking_cancelled(recipe_id: String, refunded_ingredients: Dictionary)
 signal buff_applied(buff: Dictionary)
 
 # ============ 常量 ============
 
 const SAVE_PATH := "user://cooking_save.json"
+const MASTERY_COUNT_FOR_MASTERED := 10       # 精通所需次数
+const QUALITY_INHERIT_MODE := "minimum"        # 产出品质 = 投入最低品质
+const CANCEL_REFUND_RATIO := 0.5              # 取消烹饪返还50%食材
 
 # ============ 属性 ============
 
@@ -22,8 +26,10 @@ var recipes := {}
 var _is_cooking: bool = false
 var _current_recipe_id: String = ""
 var _remaining_days: int = 0
+var _current_input_qualities: Dictionary = {}  # {ingredient_id: quality} 用于产出品质计算
 
 var _active_buffs: Array = []  # [{ "type": String, "value": int, "remaining_days": int }]
+var _known_recipes: Dictionary = {}  # {recipe_id: cook_count} — 0=未知, 1-9=已知, 10+=精通
 
 # ============ 生命周期 ============
 
@@ -145,28 +151,36 @@ func cook_item(recipe_id: String) -> bool:
 	if _is_cooking:
 		print("[CookingSystem] Already cooking")
 		return false
-	
+
 	if not recipes.has(recipe_id):
 		print("[CookingSystem] Recipe not found: " + recipe_id)
 		return false
-	
+
 	var recipe = recipes[recipe_id]
 	var ingredients = recipe.get("ingredients", {})
-	
-	# 检查食材
+
+	# 检查食材并记录每种食材的品质（用于产出品质计算）
+	_current_input_qualities.clear()
 	for ing_id in ingredients.keys():
 		if not InventorySystem.has_item(ing_id, ingredients[ing_id]):
 			print("[CookingSystem] Missing ingredient: " + ing_id)
 			return false
-	
+		# 记录投入的最低品质
+		var q = _get_lowest_ingredient_quality(ing_id)
+		_current_input_qualities[ing_id] = q
+
 	# 移除食材
 	for ing_id in ingredients.keys():
 		InventorySystem.remove_item(ing_id, ingredients[ing_id])
-	
-		# 开始烹饪
+
+	# 开始烹饪
 	_is_cooking = true
 	_current_recipe_id = recipe_id
 	_remaining_days = recipe.get("cook_time_days", 1)
+
+	# 标记为已知配方
+	if not _known_recipes.has(recipe_id):
+		_known_recipes[recipe_id] = 0
 
 	cooking_started.emit(recipe_id)
 	return true
@@ -179,18 +193,51 @@ func finish_cooking() -> void:
 	var recipe = recipes[recipe_id]
 	var output_id = recipe.get("output_item_id", "")
 
-	# 添加产物到背包（默认普通品质）
+	# 产出品质 = 投入最低品质
+	var output_quality: int = _calculate_output_quality()
+
+	# 添加产物到背包
 	if not output_id.is_empty():
-		InventorySystem.add_item(output_id, 1, Quality.NORMAL)
+		InventorySystem.add_item(output_id, 1, output_quality)
+
+	# 精通计数
+	if _known_recipes.has(recipe_id):
+		_known_recipes[recipe_id] += 1
 
 	# 清理状态
 	_is_cooking = false
 	_current_recipe_id = ""
 	_remaining_days = 0
+	_current_input_qualities.clear()
 
 	cooking_finished.emit(recipe_id)
 
-# ============ 食用操作 ============
+## 取消烹饪 — 退还50%食材
+func cancel_cooking() -> Dictionary:
+	if not _is_cooking or _current_recipe_id.is_empty():
+		return {"success": false, "message": "No cooking in progress"}
+
+	var recipe_id = _current_recipe_id
+	var recipe = recipes[recipe_id]
+	var ingredients = recipe.get("ingredients", {})
+
+	# 退还50%食材（向上取整）
+	var refunded: Dictionary = {}
+	for ing_id in ingredients.keys():
+		var refund_amount = maxi(1, ceili(ingredients[ing_id] * CANCEL_REFUND_RATIO))
+		InventorySystem.add_item(ing_id, refund_amount)
+		refunded[ing_id] = refund_amount
+
+	# 清理状态
+	_is_cooking = false
+	_current_recipe_id = ""
+	_remaining_days = 0
+	_current_input_qualities.clear()
+
+	cooking_cancelled.emit(recipe_id, refunded)
+	return {"success": true, "refunded": refunded}
+
+## ============ 食用操作 ============
 
 func eat_dish(item_id: String) -> Dictionary:
 	# 检查背包
@@ -251,7 +298,8 @@ func get_save_data() -> Dictionary:
 		"is_cooking": _is_cooking,
 		"current_recipe_id": _current_recipe_id,
 		"remaining_days": _remaining_days,
-		"active_buffs": _active_buffs
+		"active_buffs": _active_buffs,
+		"known_recipes": _known_recipes
 	}
 
 func load_save_data(data: Dictionary) -> void:
@@ -261,6 +309,67 @@ func load_save_data(data: Dictionary) -> void:
 	_current_recipe_id = data.get("current_recipe_id", "")
 	_remaining_days = data.get("remaining_days", 0)
 	_active_buffs = data.get("active_buffs", [])
+	_known_recipes = data.get("known_recipes", {})
+
+# ============ 配方查询 ============
+
+## 获取配方所需食材
+func get_recipe_ingredients(recipe_id: String) -> Dictionary:
+	if not recipes.has(recipe_id):
+		return {}
+	return recipes[recipe_id].get("ingredients", {}).duplicate(true)
+
+## 获取配方食用后的Buff
+func get_recipe_buff(recipe_id: String) -> Dictionary:
+	if not recipes.has(recipe_id):
+		return {}
+	return recipes[recipe_id].get("buff_on_eat", {}).duplicate(true)
+
+## 获取所有已知配方状态
+## 返回 {recipe_id: {status: "unknown"|"known"|"mastered", cook_count: int}}
+func get_known_recipes() -> Dictionary:
+	return _known_recipes.duplicate()
+
+## 获取配方状态文字描述
+func get_recipe_status(recipe_id: String) -> String:
+	if not _known_recipes.has(recipe_id):
+		return "unknown"
+	var count: int = _known_recipes[recipe_id]
+	if count >= MASTERY_COUNT_FOR_MASTERED:
+		return "mastered"
+	return "known"
+
+## 获取当前可用的配方（已知且食材足够）
+func get_available_recipes() -> Array:
+	var available: Array = []
+	for recipe_id in recipes.keys():
+		if not _known_recipes.has(recipe_id):
+			continue  # 未发现
+		if is_recipe_ingredients_available(recipe_id):
+			available.append(recipe_id)
+	return available
+
+## 检查配方食材是否足够
+func is_recipe_ingredients_available(recipe_id: String) -> bool:
+	if not recipes.has(recipe_id):
+		return false
+	var ingredients = recipes[recipe_id].get("ingredients", {})
+	for ing_id in ingredients.keys():
+		if not InventorySystem.has_item(ing_id, ingredients[ing_id]):
+			return false
+	return true
+
+## 获取当前正在烹饪的配方ID
+func get_current_recipe_id() -> String:
+	return _current_recipe_id if _is_cooking else ""
+
+## 获取烹饪剩余天数
+func get_remaining_cooking_days() -> int:
+	return _remaining_days if _is_cooking else 0
+
+## 获取配方状态: 0=未知, 1+=已知(数字=烹饪次数)
+func get_recipe_mastery_count(recipe_id: String) -> int:
+	return _known_recipes.get(recipe_id, 0)
 
 # ============ Buff查询 ============
 
@@ -268,6 +377,25 @@ func get_active_buffs() -> Array:
 	return _active_buffs.duplicate()
 
 # ============ 内部方法 ============
+
+## 计算产出品质 — 投入最低品质
+func _calculate_output_quality() -> int:
+	if _current_input_qualities.is_empty():
+		return Quality.NORMAL
+	var min_quality: int = Quality.SUPREME
+	for q in _current_input_qualities.values():
+		if q < min_quality:
+			min_quality = q
+	return min_quality
+
+## 获取某种食材在背包中的最低品质（返回存在的最高品质）
+func _get_lowest_ingredient_quality(ing_id: String) -> int:
+	# 从低到高检查各品质，找到第一个有库存的品质
+	var qualities = [Quality.NORMAL, Quality.FINE, Quality.EXCELLENT, Quality.SUPREME]
+	for q in qualities:
+		if InventorySystem.get_item_count(ing_id, q) > 0:
+			return q
+	return Quality.NORMAL
 
 func _load_state() -> void:
 	if not FileAccess.file_exists(SAVE_PATH):

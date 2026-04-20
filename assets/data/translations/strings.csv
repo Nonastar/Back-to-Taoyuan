@@ -1,0 +1,287 @@
+# 归园田居 — 翻译字符串表
+# 格式: key,zh,en,context
+# 用途: 本地化字符串管理
+
+# ============ 天气系统 ============
+weather.sunny,晴天,Sunny,天气名称
+weather.rainy,雨天,Rainy,天气名称
+weather.storm,暴风雨,Storm,天气名称
+weather.snowy,雪天,Snowy,天气名称
+weather.windy,大风,Windy,天气名称
+weather.green_rain,绿雨,Green Rain,天气名称
+weather.unknown,未知,Unknown,天气名称
+
+# ============ 季节系统 ============
+season.spring,春,Spring,季节名称
+season.summer,夏,Summer,季节名称
+season.autumn,秋,Autumn,季节名称
+season.winter,冬,Winter,季节名称
+
+# ============ 时间系统 ============
+time.morning,早晨,Morning,时段名称
+time.afternoon,下午,Afternoon,时段名称
+time.dusk,傍晚,Dusk,时段名称
+time.night,夜晚,Night,时段名称
+time.late_night,深夜,Late Night,时段名称
+time.date_format,第%d年 %s第%d天,Year %d %s Day %d,日期格式
+
+# ============ 商店系统 ============
+shop.general_store,杂货店,General Store,商店名称
+shop.animal_shop,动物商店,Animal Shop,商店名称
+shop.closed,商店已打烊,Shop is closed,提示消息
+shop.not_enough_money,金币不足,Not enough money,错误消息
+shop.inventory_full,背包已满,Inventory full,错误消息
+shop.purchase_success,购买成功,Purchase successful,提示消息
+shop.purchase_failed,购买失败,Purchase failed,错误消息
+
+# ============ 动物名称 ============
+animal.chicken_white,白鸡,White Chicken,动物名称
+animal.chicken_brown,棕鸡,Brown Chicken,动物名称
+animal.duck,鸭子,Duck,动物名称
+animal.cow,牛,Cow,动物名称
+animal.sheep,绵羊,Sheep,动物名称
+animal.pig,猪,Pig,动物名称
+animal.goat,山羊,Goat,动物名称
+animal.unknown,未知动物,Unknown Animal,错误消息
+
+# ============ 建筑名称 ============
+building.coop,鸡舍,Coop,建筑名称
+building.coop.desc,可容纳小动物（鸡、鸭）,Holds small animals (chickens, ducks),建筑描述
+building.barn,谷仓,Barn,建筑名称
+building.barn.desc,可容纳大型动物（牛、羊、猪、山羊）,Holds large animals (cows, sheep, pigs, goats),建筑描述
+building.sick,生病,Sick,状态标签
+building.mature,成年,Mature,状态标签
+building.young,幼年,Young,状态标签
+building.fed,已喂养,Fed,状态标签
+building.hungry,饥饿,Hungry,状态标签
+building.petted,已抚摸,Petted,状态标签
+building.empty,空空如也,Empty,空状态提示
+building.empty.hint,去购买小动物吧~,Go buy some animals~,空状态提示
+
+# ============ 畜牧操作 ============
+animal.treat,治疗,Treat,按钮标签
+animal.feed,喂养,Feed,按钮标签
+animal.pet,抚摸,Pet,按钮标签
+animal.not_sick,动物没有生病,Animal is not sick,错误消息
+animal.cure_need_gold,金币不足 (需要 %d),Insufficient gold (need %d),错误消息
+animal.cure_payment_failed,无法进行支付,Cannot make payment,错误消息
+animal.cured,治愈了 %s! 好感度+%d,Cured %s! Friendship +%d,成功消息
+animal.feed_success,喂养 %s 成功! 好感度: %s,Fed %s! Friendship: %s,成功消息
+animal.feed_failed,喂养失败: 饲料不足或已喂养,Feeding failed: insufficient feed or already fed,错误消息
+animal.pet_success,抚摸 %s 成功! 好感度: %s,Pet %s! Friendship: %s,成功消息
+animal.pet_failed,抚摸失败: 今日已抚摸,Petting failed: already petted today,错误消息
+animal.bulk_feed_success,喂养了 %d 只动物!,Fed %d animals!,成功消息
+animal.bulk_feed_no_animals,没有需要喂养的动物,No animals to feed,提示消息
+animal.feed_insufficient,饲料不足! 需要 %d 个干草,Insufficient feed! Need %d hay,错误消息
+animal.bulk_pet_success,抚摸了 %d 只动物!,Petted %d animals!,成功消息
+animal.bulk_pet_no_animals,没有需要抚摸的动物（或今日已抚摸/生病中）,No animals to pet (or already petted/sick),提示消息
+animal.collected,收获了 %d 件产物!,Collected %d products!,成功消息
+animal.collect_nothing,没有可收获的产物,Nothing to collect,提示消息
+animal.building_cleaned,已清理%s! 所有动物好感度+1,Cleaned %s! All animals friendship +1,成功消息
+animal.clean_failed,清理失败,Cleaning failed,错误消息
+animal.treat_success,治疗成功,Treatment successful,成功消息
+animal.treat_failed,治疗失败:,Treatment failed:,错误消息
+animal.sick_notification,⚠️ %s 生病了! 需要治疗才能产出,%s is sick! Needs treatment to produce,警告消息
+animal.healed_notification,✅ %s 已痊愈! 恢复产出,%s has recovered! Resuming production,通知消息
+animal.friendship_changed,%s 好感度: %s -> %s,%s Friendship: %s -> %s,通知消息
+animal.collected_item,收获了: %s x%d,Collected: %s x%d,通知消息
+animal.shop_not_open,商店功能暂未开放，请前往村落购买动物,Shop not available, please visit the village to buy animals,提示消息
+
+# ============ 畜牧UI标签 ============
+ui.coop_tab,🐔 鸡舍 (%d/%d),🐔 Coop (%d/%d),标签
+ui.barn_tab,🐄 谷仓 (%d/%d),🐄 Barn (%d/%d),标签
+ui.building_label,【%s】,[%s],标签
+ui.feed_cost,需要: 干草 x%d (持有: %d),Need: Hay x%d (Have: %d),提示
+ui.feed_cost_insufficient,需要: 干草 x%d (持有: %d) - 饲料不足!,Need: Hay x%d (Have: %d) - Feed insufficient!,警告
+ui.dirty_warning,⚠️ 脏乱: %d天 (生病概率: %d%%),⚠️ Dirty: %d days (Sickness chance: %d%%),警告
+ui.building_clean,✅ 建筑干净,✅ Building clean,状态
+ui.build_building,🏗️ 建造建筑,🏗️ Build Building,按钮
+ui.full,满员,Full,状态标签
+ui.go_to_shop,🛒 去商店,🛒 Go to Shop,按钮
+ui.unknown,未知,Unknown,通用回退
+
+# ============ 烹饪系统 ============
+cooking.fried_egg,煎蛋,Fried Egg,食谱名称
+cooking.bread,烤面包,Bread,食谱名称
+cooking.juice,果汁,Fruit Juice,食谱名称
+cooking.veg_soup,蔬菜汤,Vegetable Soup,食谱名称
+cooking.meat_soup,肉汤,Meat Soup,食谱名称
+cooking.fish_soup,鱼汤,Fish Soup,食谱名称
+cooking.cake,蛋糕,Cake,食谱名称
+cooking.jam,果酱,Jam,食谱名称
+cooking.cheese,奶酪,Cheese,食谱名称
+cooking.honey_dish,蜂蜜料理,Honey Dish,食谱名称
+cooking.no_recipes,暂无菜谱,No recipes,空状态
+cooking.select,选择,Select,按钮
+cooking.start,开始烹饪,Start Cooking,按钮
+cooking.no_ingredients,无需食材,No ingredients needed,提示
+cooking.no_buffs,暂无Buff,No buffs,提示
+cooking.duration,%d天,%d days,持续时间
+cooking.select_recipe,选择一道菜谱,Select a recipe,提示
+cooking.select_first,请先选择一个菜谱,Please select a recipe first,错误消息
+cooking.recipe_not_found,菜谱不存在,Recipe not found,错误消息
+cooking.ingredient_insufficient,食材不足: %s,Insufficient ingredients: %s,错误消息
+cooking.starting,开始烹饪: %s,Starting cooking: %s,提示消息
+cooking.failed,烹饪失败,Cooking failed,错误消息
+cooking.eat_success,食用成功,Eating successful,成功消息
+cooking.eat_failed,物品不足,Items insufficient,错误消息
+
+# ============ Buff名称 ============
+buff.stamina_restore,体力恢复,Stamina Restore,Buff名称
+buff.speed,速度,Speed,Buff名称
+buff.luck,幸运,Luck,Buff名称
+
+# ============ HUD系统 ============
+hud.spring,春,Spring,季节emoji key
+hud.summer,夏,Summer,季节emoji key
+hud.autumn,秋,Autumn,季节emoji key
+hud.winter,冬,Winter,季节emoji key
+hud.hoe,锄头,Hoe,工具名称
+hud.watering_can,浇水壶,Watering Can,工具名称
+hud.seeds,种子,Seeds,工具名称
+hud.hand,手,Hand,工具名称
+hud.fertilizer,肥料,Fertilizer,工具名称
+hud.skill_upgrade,🌟 %s 升级！Lv.%d,🌟 %s Level Up! Lv.%d,技能升级通知
+hud.date_format,%s第%d天,%s Day %d,日期显示
+hud.region,%s区域,%s Region,区域标签
+hud.farming_skill,农耕 Lv.%d,Farming Lv.%d,技能显示
+hud.fishing_skill,钓鱼 Lv.%d,Fishing Lv.%d,技能显示
+hud.selected,已选择: %s,Selected: %s,工具选择通知
+hud.unknown_tool,未知,Unknown,工具回退
+hud.inventory,📦 背包 (B),📦 Inventory (B),快捷键提示
+hud.map,🗺️ 地图 (M),🗺️ Map (M),快捷键提示
+hud.quest,📋 任务 (J),📋 Quest (J),快捷键提示
+hud.menu,⚙️ 菜单 (ESC),⚙️ Menu (ESC),快捷键提示
+hud.shop,🏪 商店 (S),🏪 Shop (S),快捷键提示
+hud.cooking,🍳 烹饪 (C),🍳 Cooking (C),快捷键提示
+
+# ============ 玩家操作反馈 ============
+player.stamina_insufficient,体力不足!,Insufficient stamina!,错误消息
+player.already_tilled,这里已经耕过了,Already tilled,提示消息
+player.has_crops_cannot_till,有作物，不能耕地,Has crops, cannot till,提示消息
+player.harvest_first,先收获作物,Harvest crops first,提示消息
+player.till_first,先耕地,Till first,提示消息
+player.no_crops,没有作物,No crops,提示消息
+player.already_watered,已经浇过水了,Already watered,提示消息
+player.already_has_crop,已经有作物了,Already has crop,提示消息
+player.no_seeds,没有种子了！,No seeds left!,错误消息
+player.crop_still_growing,作物还在生长中...,Crop still growing...,提示消息
+player.switched_to,切换到: %s,Switched to: %s,提示消息
+
+# ============ 天气体力惩罚 ============
+weather.rain_stamina,雨天体力消耗增加 🌧️,Rainy stamina consumption + 🌧️,天气提示
+weather.storm_stamina,暴风雨中体力消耗增加 ⛈️,Stormy stamina consumption + ⛈️,天气提示
+weather.snow_stamina,雪天体力消耗增加 ❄️,Snowy stamina consumption + ❄️,天气提示
+weather.green_rain_stamina,绿雨体力消耗增加 🌱,Green rain stamina consumption + 🌱,天气提示
+weather.windy_stamina,大风体力消耗增加 💨,Windy stamina consumption + 💨,天气提示
+weather.bad_weather_stamina,天气恶劣，体力消耗增加,Bad weather, stamina consumption increased,天气提示
+
+# ============ 夜晚/日期 ============
+main.midnight,[Main] 午夜了！,[Main] Midnight!,系统消息
+main.new_day,[Main] 新的一天: %s 第%d天,[Main] New day: %s Day %d,系统消息
+main.good_night,晚安！,Good night!,睡眠消息
+main.fainted,昏倒了...,Fainted...,状态消息
+
+# ============ 钓鱼系统 ============
+fishing.already_fishing,正在钓鱼中...,Already fishing...,错误消息
+fishing.stamina_insufficient,体力不足！,Insufficient stamina!,错误消息
+fishing.starting,开始钓鱼...,Starting fishing...,提示消息
+fishing.not_initialized,钓鱼系统未初始化,Fishing system not initialized,错误消息
+
+# ============ 背包系统 ============
+inv.backpack_full,背包已达最大容量,Backpack at max capacity,警告消息
+inv.expand_success,背包扩容成功,Backpack expanded successfully,成功消息
+inv.expanded_to,背包已扩容至 %d 格,Backpack expanded to %d slots,成功消息
+inv.moved_back,已移回 %d 个物品,Moved back %d items,成功消息
+inv.temp_empty,临时背包为空,Temp backpack empty,提示消息
+
+# ============ 背包操作 ============
+inv.use,使用,Use,操作标签
+inv.discard,丢弃,Discard,操作标签
+inv.unlock,解锁,Unlock,操作标签
+inv.lock,锁定,Lock,操作标签
+inv.sell,出售,Sell,操作标签
+inv.discard_locked,已锁定的物品无法丢弃,Locked items cannot be discarded,错误消息
+inv.unlocked,已解锁,Unlocked,成功消息
+inv.locked,已锁定,Locked,成功消息
+
+# ============ 装备系统 ============
+inv.current_equipment,当前装备,Current Equipment,面板标题
+inv.weapon,武器,Weapon,装备槽
+inv.ring1,戒指1,Ring 1,装备槽
+inv.ring2,戒指2,Ring 2,装备槽
+inv.hat,帽子,Hat,装备槽
+inv.shoes,鞋子,Shoes,装备槽
+inv.set_none,套装: 无,Set: None,套装进度
+inv.weapon_list,武器列表,Weapon List,列表标题
+inv.ring_list,戒指列表,Ring List,列表标题
+inv.hat_list,帽子列表,Hat List,列表标题
+inv.shoes_list,鞋子列表,Shoe List,列表标题
+inv.upgrade_progress,升级进度,Upgrade Progress,面板标题
+inv.tools,工具,Tools,列表标题
+inv.watering_can_name,浇水壶,Watering Can,工具名称
+inv.hoe_name,锄头,Hoe,工具名称
+inv.pickaxe_name,镐子,Pickaxe,工具名称
+inv.fishing_rod_name,鱼竿,Fishing Rod,工具名称
+inv.sickle_name,镰刀,Sickle,工具名称
+inv.axe_name,斧头,Axe,工具名称
+inv.pan_name,平底锅,Pan,工具名称
+inv.select_tool_detail,选择一个工具查看详情,Select a tool to view details,提示消息
+inv.upgrade_button,升级 (需要材料),Upgrade (materials needed),按钮
+inv.presets_title,装备方案 (最多5个),Equipment Presets (max 5),面板标题
+inv.battle_gear,战斗装,Battle Gear,方案名称
+inv.miner_gear,矿工装,Miner Gear,方案名称
+inv.fishing_gear,钓鱼装,Fishing Gear,方案名称
+inv.farmer_gear,农夫装,Farmer Gear,方案名称
+inv.default_preset,默认,Default,方案名称
+inv.preset_details,方案详情,Preset Details,面板标题
+inv.select_preset_detail,选择一个方案查看详情,Select a preset to view details,提示消息
+inv.apply,应用,Apply,按钮
+inv.edit,编辑,Edit,按钮
+inv.delete,删除,Delete,按钮
+inv.new_preset,新建方案,New Preset,按钮
+inv.equipment_crafting,装备合成,Equipment Crafting,面板标题
+inv.ring_category,戒指,Ring,分类
+inv.hat_category,帽子,Hat,分类
+inv.shoes_category,鞋子,Shoes,分类
+inv.crafting_developing,合成系统开发中,Crafting system in development,提示消息
+inv.crafting_coming,戒指、帽子、鞋子合成功能\n将在 C05 ProcessingSystem 实现后开放,Ring, hat, shoe crafting\nwill open after C05 ProcessingSystem,提示消息
+inv.recipe_list_coming,配方列表 (待实现),Recipe list (to be implemented),提示消息
+
+# ============ 通用UI ============
+ui.no_products,暂无商品,No products,空状态
+ui.chicken,鸡,Chicken,动物标签
+ui.cow,牛,Cow,动物标签
+ui.sheep,羊,Sheep,动物标签
+ui.pig,猪,Pig,动物标签
+ui.goat,山羊,Goat,动物标签
+ui.select_product,请选择商品,Please select a product,提示消息
+ui.total_price,总价: %dg,Total: %dg,价格显示
+ui.select_first,请先选择一个商品,Please select a product first,错误消息
+ui.spent, - 花费 %d 金币, - Spent %d gold,消费消息
+ui.earned, + 获得 %d 金币, + Earned %d gold,收入消息
+ui.failed,失败: ,Failed: ,错误消息
+ui.unknown_error,未知错误,Unknown error,错误消息
+ui.buy,购买,Buy,按钮
+ui.sell,出售,Sell,按钮
+ui.stock,库存: %d,Stock: %d,库存显示
+ui.click_to_select,[ 点击选择 ],[ Click to select ],提示
+
+# ============ 通知测试（调试用） ============
+notification.test_coins,+100 金币,+100 Coins,测试消息
+notification.test_stamina,-10 体力,-10 Stamina,测试消息
+notification.test_quest,任务完成!,Quest complete!,测试消息
+notification.test_full,背包已满,Backpack full,测试消息
+notification.test_system,系统消息,System message,测试消息
+
+# ============ 畜牧系统常量 ============
+animal.disease_name,疾病,Disease,常量
+
+# ============ 新增：烹饪状态 ============
+cooking.cooking_status,正在烹饪: %s (剩余 %d 天),Cooking: %s (%d days remaining),状态显示
+cooking.finished,烹饪完成！,Cooking finished!,成功消息
+
+# ============ 新增：商店操作结果 ============
+shop.item_not_found,物品不存在,Item not found,错误消息
+shop.invalid_params,参数错误,Invalid parameters,错误消息
+shop.no_cooking_in_progress,当前没有在进行的烹饪,No cooking in progress,错误消息

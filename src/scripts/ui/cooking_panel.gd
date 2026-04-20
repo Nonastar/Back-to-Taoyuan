@@ -52,6 +52,8 @@ func _connect_signals() -> void:
 		close_button.pressed.connect(_on_close_pressed)
 	if cook_button:
 		cook_button.pressed.connect(_on_cook_pressed)
+	if CookingSystem and CookingSystem.has_signal("cooking_finished"):
+		CookingSystem.cooking_finished.connect(_on_cooking_finished)
 
 	# Keyboard handling: ESC to close is implemented in _unhandled_input
 
@@ -123,6 +125,8 @@ func open_panel() -> void:
 	_populate_recipes()
 	_update_buff_display()
 	_clear_selection()
+	# 显示当前烹饪状态
+	_update_cooking_status_display()
 	# Reset recipe focus state when opening panel
 	recipe_select_buttons.clear()
 	current_recipe_index = -1
@@ -131,6 +135,17 @@ func open_panel() -> void:
 func close_panel() -> void:
 	visible = false
 	_clear_selection()
+
+func _update_cooking_status_display() -> void:
+	if not CookingSystem:
+		return
+	var current_id = CookingSystem.get_current_recipe_id()
+	if current_id.is_empty():
+		return
+	var remaining = CookingSystem.get_remaining_cooking_days()
+	var recipe = CookingSystem.recipes.get(current_id, {})
+	var name = recipe.get("name", current_id)
+	_set_status(I18n.trf("cooking.cooking_status", [name, remaining]))
 
 # ============ 内部方法 ============
 
@@ -144,7 +159,7 @@ func _populate_recipes() -> void:
 	# 获取菜谱
 	if not CookingSystem or CookingSystem.recipes.is_empty():
 		var empty_label = Label.new()
-		empty_label.text = "暂无菜谱"
+		empty_label.text = I18n.translate("cooking.no_recipes")
 		recipe_container.add_child(empty_label)
 		return
 	
@@ -208,7 +223,7 @@ class _RecipeRow extends PanelContainer:
 
 		# 选择按钮
 		var select_btn = Button.new()
-		select_btn.text = "选择"
+		select_btn.text = I18n.translate("cooking.select")
 		select_btn.pressed.connect(_on_select_pressed)
 		hbox.add_child(select_btn)
 
@@ -303,7 +318,7 @@ func _update_recipe_detail(recipe: Dictionary) -> void:
 	# 更新按钮状态
 	if cook_button:
 		cook_button.disabled = selected_recipe_id.is_empty()
-		cook_button.text = "开始烹饪"
+		cook_button.text = I18n.translate("cooking.start")
 
 func _update_ingredients_display(recipe: Dictionary) -> void:
 	# 清除现有食材显示
@@ -313,7 +328,7 @@ func _update_ingredients_display(recipe: Dictionary) -> void:
 	var ingredients = recipe.get("ingredients", {})
 	if ingredients.is_empty():
 		var empty_label = Label.new()
-		empty_label.text = "无需食材"
+		empty_label.text = I18n.translate("cooking.no_ingredients")
 		ingredients_list.add_child(empty_label)
 		return
 	
@@ -357,7 +372,7 @@ func _update_buff_display() -> void:
 	
 	if active_buffs.is_empty():
 		var empty_label = Label.new()
-		empty_label.text = "暂无Buff"
+		empty_label.text = I18n.translate("cooking.no_buffs")
 		buff_list.add_child(empty_label)
 		return
 	
@@ -376,19 +391,22 @@ func _update_buff_display() -> void:
 		row.add_child(value_label)
 		
 		var duration_label = Label.new()
-		duration_label.text = "%d天" % buff.get("remaining_days", 0)
+		duration_label.text = I18n.trf("cooking.duration", [buff.get("remaining_days", 0)])
 		duration_label.custom_minimum_size.x = 50
 		row.add_child(duration_label)
 		
 		buff_list.add_child(row)
 
 func _get_buff_name(buff_type: String) -> String:
-	var names = {
-		"stamina_restore": "体力恢复",
-		"speed": "速度",
-		"luck": "幸运"
+	var key_map = {
+		"stamina_restore": "buff.stamina_restore",
+		"speed": "buff.speed",
+		"luck": "buff.luck"
 	}
-	return names.get(buff_type, buff_type)
+	var key = key_map.get(buff_type, "")
+	if not key.is_empty() and I18n and I18n.has_method("translate"):
+		return I18n.translate(key)
+	return buff_type
 
 func _clear_selection() -> void:
 	selected_recipe_id = ""
@@ -396,7 +414,7 @@ func _clear_selection() -> void:
 		_highlight_recipe_row(_selected_recipe_row, false)
 		_selected_recipe_row = null
 	if selected_recipe_label:
-		selected_recipe_label.text = "选择一道菜谱"
+		selected_recipe_label.text = I18n.translate("cooking.select_recipe")
 	if cook_button:
 		cook_button.disabled = true
 	
@@ -408,13 +426,13 @@ func _clear_selection() -> void:
 
 func _on_cook_pressed() -> void:
 	if selected_recipe_id.is_empty():
-		_set_status("请先选择一个菜谱")
+		_set_status(I18n.translate("cooking.select_first"))
 		return
 	
 	# 检查食材
 	var recipe = CookingSystem.recipes.get(selected_recipe_id)
 	if not recipe:
-		_set_status("菜谱不存在")
+		_set_status(I18n.translate("cooking.recipe_not_found"))
 		return
 	
 	var ingredients = recipe.get("ingredients", {})
@@ -425,23 +443,31 @@ func _on_cook_pressed() -> void:
 			have = InventorySystem.get_item_count(ing_id)
 		
 		if have < required:
-			_set_status("食材不足: %s" % ing_id)
+			_set_status(I18n.trf("cooking.ingredient_insufficient", [ing_id]))
 			return
 	
 	# 开始烹饪
 	var result = CookingSystem.cook_item(selected_recipe_id)
 	if result:
-		_set_status("开始烹饪: %s" % recipe.get("name", ""))
+		_set_status(I18n.trf("cooking.starting", [recipe.get("name", "")]))
 		# 刷新食材显示
 		_update_ingredients_display(recipe)
 		# 延迟刷新菜谱列表（烹饪完成后需要重新显示）
 		await get_tree().create_timer(0.5).timeout
 		_populate_recipes()
 	else:
-		_set_status("烹饪失败")
+		_set_status(I18n.translate("cooking.failed"))
 
 func _on_close_pressed() -> void:
 	close_panel()
+
+func _on_cooking_finished(recipe_id: String) -> void:
+	_set_status("烹饪完成！")
+	_populate_recipes()
+	_update_buff_display()
+	# Refresh the selected recipe detail if one was selected
+	if not selected_recipe_id.is_empty() and CookingSystem.recipes.has(selected_recipe_id):
+		_update_recipe_detail(CookingSystem.recipes[selected_recipe_id])
 
 func _set_status(msg: String) -> void:
 	if status_label:

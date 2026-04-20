@@ -171,8 +171,8 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		InventorySystem.remove_item(item_id, quantity, quality)
 		return {"success": false, "message": "Payment failed"}
 
-	purchase_completed.emit(item_id, quantity, total_cost)
-	return {"success": true, "message": "Purchased"}
+		purchase_completed.emit(item_id, quantity, total_cost)
+	return {"success": true, "message": "Purchased", "total_cost": total_cost}
 
 func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 	# shop_id can be int (ShopId enum) or String
@@ -226,3 +226,7 @@ func get_save_data() -> Dictionary:
 
 func load_save_data(data: Dictionary) -> void:
 	pass
+
+## 获取出售价格倍率（供UI调用）
+func get_sell_price_multiplier() -> float:
+	return _sell_price_multiplier

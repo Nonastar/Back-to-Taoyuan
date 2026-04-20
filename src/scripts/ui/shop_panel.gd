@@ -278,7 +278,7 @@ func _populate_items() -> void:
 	
 	if items.is_empty():
 		var label = Label.new()
-		label.text = "暂无商品"
+		label.text = I18n.translate("ui.no_products")
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		item_grid.add_child(label)
 		_all_items.clear()
@@ -336,10 +336,11 @@ func _get_sell_items() -> Array:
 		item_aggregation[item_id]["total_quantity"] += quantity
 
 	# 转换为列表
+	var sell_multiplier: float = 0.5 if not Shop or not Shop.has_method("get_sell_price_multiplier") else Shop.get_sell_price_multiplier()
 	for item_id in item_aggregation:
 		var item_data = item_aggregation[item_id]
 		var item_def: Dictionary = item_data["item_def"]
-		var sell_price = int(item_def.sell_price * 0.5) if item_def else 0
+		var sell_price = int(item_def.sell_price * sell_multiplier) if item_def else 0
 
 		sell_items.append({
 			"item_id": item_data["item_id"],
@@ -352,13 +353,9 @@ func _get_sell_items() -> Array:
 	return sell_items
 
 func _get_animal_shop_items() -> Array:
-	return [
-		{"item_id": "chicken", "name": "鸡", "price": 500, "stock": 5, "icon": "🐔"},
-		{"item_id": "cow", "name": "牛", "price": 1500, "stock": 3, "icon": "🐄"},
-		{"item_id": "sheep", "name": "羊", "price": 1000, "stock": 3, "icon": "🐑"},
-		{"item_id": "pig", "name": "猪", "price": 2000, "stock": 2, "icon": "🐖"},
-		{"item_id": "goat", "name": "山羊", "price": 800, "stock": 4, "icon": "🐐"}
-	]
+	if Shop and Shop.has_method("get_shop_inventory"):
+		return Shop.get_shop_inventory(Shop.ShopId.ANIMAL_SHOP)
+	return []
 
 func _create_item_card(item: Dictionary, index: int) -> PanelContainer:
 	var card = _Card.new(item, index, self)
@@ -394,7 +391,7 @@ func _update_selection_display() -> void:
 		selected_item_label.text = selected_item_name if selected_item_name else "请选择商品"
 	if price_display:
 		var total = selected_item_price * current_quantity
-		price_display.text = "总价: %dg" % total
+		price_display.text = I18n.trf("ui.total_price", [total])
 		
 		# 显示好感度折扣提示 (如果有)
 		if current_mode == ShopMode.BUY:
@@ -428,7 +425,7 @@ func _on_sell_pressed() -> void:
 
 func _on_action_pressed() -> void:
 	if selected_item_id.is_empty():
-		_set_status("请先选择一个商品")
+		_set_status(I18n.translate("ui.select_first"))
 		return
 	
 	# 检查背包空间 (购买时)
@@ -447,15 +444,15 @@ func _on_action_pressed() -> void:
 		result = Shop.sell_item(shop_id, selected_item_id, current_quantity)
 	
 	if result.get("success", false):
-		var msg = result.get("message", "成功")
+		var msg: String = I18n.translate(result.get("message", "成功"))
 		if current_mode == ShopMode.BUY:
-			msg += " - 花费 %dg" % result.get("total_price", 0)
+			msg += " " + I18n.trf("ui.spent", [result.get("total_cost", 0)])
 		else:
-			msg += " + 获得 %dg" % result.get("money_earned", 0)
+			msg += " " + I18n.trf("ui.earned", [result.get("money_earned", 0)])
 		_set_status(msg)
 		_populate_items()
 	else:
-		_set_status("失败: " + result.get("message", "未知错误"))
+		_set_status(I18n.translate("ui.failed") + result.get("message", I18n.translate("ui.unknown_error")))
 	
 	_clear_selection()
 
@@ -493,7 +490,7 @@ func _update_ui() -> void:
 	if sell_button:
 		sell_button.disabled = current_mode == ShopMode.SELL
 	if action_button:
-		action_button.text = "购买" if current_mode == ShopMode.BUY else "出售"
+		action_button.text = I18n.translate("ui.buy") if current_mode == ShopMode.BUY else I18n.translate("ui.sell")
 		action_button.disabled = selected_item_id.is_empty()
 	if tab_general:
 		tab_general.disabled = current_shop_type == ShopType.GENERAL
@@ -569,12 +566,12 @@ class _Card extends PanelContainer:
 		var stock = _item.get("stock", -1)
 		if stock > 0:
 			var stock_label = Label.new()
-			stock_label.text = "库存: %d" % stock
+			stock_label.text = I18n.trf("ui.stock", [stock])
 			info.add_child(stock_label)
 
 		# 点击选择提示
 		var select_label = Label.new()
-		select_label.text = "[ 点击选择 ]"
+		select_label.text = I18n.translate("ui.click_to_select")
 		hbox.add_child(select_label)
 
 	func _gui_input(event: InputEvent) -> void:
