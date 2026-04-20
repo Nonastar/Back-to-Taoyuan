@@ -310,7 +310,7 @@ func _on_select_recipe(recipe: Dictionary) -> void:
 func _update_recipe_detail(recipe: Dictionary) -> void:
 	# 显示菜谱名称
 	if selected_recipe_label:
-		selected_recipe_label.text = "🍳 %s" % recipe.get("name", "未知")
+		selected_recipe_label.text = "🍳 %s" % recipe.get("name", I18n.translate("ui.unknown"))
 	
 	# 显示食材需求
 	_update_ingredients_display(recipe)
@@ -426,13 +426,13 @@ func _clear_selection() -> void:
 
 func _on_cook_pressed() -> void:
 	if selected_recipe_id.is_empty():
-		_set_status(I18n.translate("cooking.select_first"))
+		_set_status(I18n.translate("cooking.select_first"), true)
 		return
 	
 	# 检查食材
 	var recipe = CookingSystem.recipes.get(selected_recipe_id)
 	if not recipe:
-		_set_status(I18n.translate("cooking.recipe_not_found"))
+		_set_status(I18n.translate("cooking.recipe_not_found"), true)
 		return
 	
 	var ingredients = recipe.get("ingredients", {})
@@ -443,7 +443,7 @@ func _on_cook_pressed() -> void:
 			have = InventorySystem.get_item_count(ing_id)
 		
 		if have < required:
-			_set_status(I18n.trf("cooking.ingredient_insufficient", [ing_id]))
+			_set_status(I18n.trf("cooking.ingredient_insufficient", [ing_id]), true)
 			return
 	
 	# 开始烹饪
@@ -456,26 +456,22 @@ func _on_cook_pressed() -> void:
 		await get_tree().create_timer(0.5).timeout
 		_populate_recipes()
 	else:
-		_set_status(I18n.translate("cooking.failed"))
+		_set_status(I18n.translate("cooking.failed"), true)
 
 func _on_close_pressed() -> void:
 	close_panel()
 
 func _on_cooking_finished(recipe_id: String) -> void:
-	_set_status("烹饪完成！")
+	_set_status(I18n.translate("cooking.finished"))
 	_populate_recipes()
 	_update_buff_display()
 	# Refresh the selected recipe detail if one was selected
 	if not selected_recipe_id.is_empty() and CookingSystem.recipes.has(selected_recipe_id):
 		_update_recipe_detail(CookingSystem.recipes[selected_recipe_id])
 
-func _set_status(msg: String) -> void:
+func _set_status(msg: String, is_error: bool = false) -> void:
 	if status_label:
 		status_label.text = msg
-		# Basic coloring: red for error-like messages, green otherwise
-		var is_error = false
-		if msg.find("失败") != -1 or msg.find("不足") != -1 or msg.find("不存在") != -1 or msg.find("错误") != -1:
-			is_error = true
 		if is_error:
 			status_label.add_theme_color_override("font_color", UITokens.ACCENT_RED)
 		else:

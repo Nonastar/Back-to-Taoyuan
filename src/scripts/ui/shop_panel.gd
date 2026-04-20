@@ -388,7 +388,7 @@ func _on_select_item(item: Dictionary) -> void:
 
 func _update_selection_display() -> void:
 	if selected_item_label:
-		selected_item_label.text = selected_item_name if selected_item_name else "请选择商品"
+		selected_item_label.text = selected_item_name if selected_item_name else I18n.translate("ui.select_first")
 	if price_display:
 		var total = selected_item_price * current_quantity
 		price_display.text = I18n.trf("ui.total_price", [total])
@@ -444,7 +444,7 @@ func _on_action_pressed() -> void:
 		result = Shop.sell_item(shop_id, selected_item_id, current_quantity)
 	
 	if result.get("success", false):
-		var msg: String = I18n.translate(result.get("message", "成功"))
+		var msg: String = I18n.translate("shop.purchase_success") if current_mode == ShopMode.BUY else I18n.translate("shop.sale_success")
 		if current_mode == ShopMode.BUY:
 			msg += " " + I18n.trf("ui.spent", [result.get("total_cost", 0)])
 		else:
@@ -452,7 +452,19 @@ func _on_action_pressed() -> void:
 		_set_status(msg)
 		_populate_items()
 	else:
-		_set_status(I18n.translate("ui.failed") + result.get("message", I18n.translate("ui.unknown_error")))
+		var err_key = result.get("message", "")
+		var err_msg = ""
+		if err_key == "Shop is closed":
+			err_msg = I18n.translate("shop.closed")
+		elif err_key == "Not enough money":
+			err_msg = I18n.translate("shop.not_enough_money")
+		elif err_key == "Inventory full":
+			err_msg = I18n.translate("shop.inventory_full")
+		elif err_key == "Item not found":
+			err_msg = I18n.translate("shop.item_not_found")
+		else:
+			err_msg = I18n.translate("ui.unknown_error")
+		_set_status(err_msg, true)
 	
 	_clear_selection()
 
