@@ -509,9 +509,13 @@ func _update_ui() -> void:
 	if tab_animal:
 		tab_animal.disabled = current_shop_type == ShopType.ANIMAL
 
-func _set_status(msg: String) -> void:
+func _set_status(msg: String, is_error: bool = false) -> void:
 	if status_label:
 		status_label.text = msg
+		if is_error:
+			status_label.add_theme_color_override("font_color", UITokens.ACCENT_RED)
+		else:
+			status_label.add_theme_color_override("font_color", UITokens.ACCENT_GREEN)
 
 # ============ 商品卡片类 ============
 # 独立类处理点击事件，避免 gui_input 信号兼容性问题
