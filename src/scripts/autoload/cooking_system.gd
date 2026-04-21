@@ -64,6 +64,7 @@ func _initialize_recipes() -> void:
 		if data.has("recipes") and not data["recipes"].is_empty():
 			recipes = data["recipes"]
 			print("[CookingSystem] Loaded %d recipes from JSON" % recipes.size())
+			_build_output_index()
 			return
 	# 兜底：硬编码默认食谱（仅在新项目或 JSON 缺失时使用）
 	print("[CookingSystem] No recipes.json found, using built-in defaults")
@@ -147,6 +148,15 @@ func _initialize_recipes() -> void:
 		"cook_time_days": 1,
 		"buff_on_eat": { "type": "stamina_restore", "min": 25, "max": 45 }
 	}
+	_build_output_index()
+
+## 建立 output_item_id -> recipe_id 反向索引
+func _build_output_index() -> void:
+	_output_to_recipe.clear()
+	for rid in recipes.keys():
+		var output_id = recipes[rid].get("output_item_id", "")
+		if not output_id.is_empty():
+			_output_to_recipe[output_id] = rid
 
 # ============ 烹饪操作 ============
 
@@ -184,10 +194,7 @@ func cook_item(recipe_id: String) -> bool:
 	# 标记为已知配方
 	if not _known_recipes.has(recipe_id):
 		_known_recipes[recipe_id] = 0
-	# 建立反向索引
-	var output_id = recipe.get("output_item_id", "")
-	if not output_id.is_empty():
-		_output_to_recipe[output_id] = recipe_id
+	
 
 	cooking_started.emit(recipe_id)
 	return true

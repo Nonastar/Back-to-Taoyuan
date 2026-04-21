@@ -236,6 +236,77 @@ func _create_default_items() -> void:
 	_is_loaded = true
 	items_loaded.emit()
 
+	# 注册鱼类和烹饪产出物品（void方法）
+	_create_fish_items()
+	_create_cooking_outputs()
+
+
+## 创建鱼类物品定义（供测试和游戏使用）
+func _create_fish_items() -> void:
+	# 注册所有鱼类物品（与 FishingSystem.FISH_DATA 对应）
+	# 这些物品在鱼塘取出、钓鱼捕获后添加到背包
+	var fish_items = [
+		["bluegill", "蓝鳃鱼", "常见的淡水鱼，可食用", 10],
+		["carp", "鲤鱼", "常见的淡水鱼，可食用", 25],
+		["frog", "青蛙", "湿地水域的青蛙，可食用", 15],
+		["koi", "锦鲤", "色彩鲜艳的观赏鱼，可食用", 100],
+		["catfish", "鲶鱼", "河流中的大型鱼，可食用", 50],
+		["trout", "鳟鱼", "冷水流域的鲜美鱼，可食用", 30],
+		["bass", "鲈鱼", "湖泊中的掠食鱼，可食用", 45],
+		["snow_fish", "雪鱼", "寒冷水域的珍稀鱼，可食用", 80],
+		["golden_fish", "金鱼", "金色的美丽鱼，可食用", 150],
+		["eel", "鳗鱼", "河流中的蛇形鱼，可食用", 150],
+		["salmon", "三文鱼", "海洋回流鱼，富含营养", 60],
+		["mountain_trout", "山鳟", "高海拔冷水鳟鱼，可食用", 120],
+		["ice_fish", "冰鱼", "极寒水域的透明鱼，可食用", 200],
+		["magic_fish", "魔法鱼", "蕴含魔力的神秘鱼，可食用", 250],
+		["swamp_creature", "沼泽生物", "沼泽中的奇特生物，可食用", 100],
+		["tuna", "金枪鱼", "大洋中的大型鱼类，可食用", 180],
+		["swordfish", "剑鱼", "长嘴的海洋掠食者，可食用", 300],
+		["shark", "鲨鱼", "海洋顶级掠食者，可食用", 500],
+		["legendary_fish", "传说鱼", "传说中的稀世鱼类", 1000],
+		["mythical_fish", "神话鱼", "神话中记载的神奇鱼类", 5000],
+		["treasure_fish", "宝藏鱼", "据说藏着宝藏的鱼类", 800]
+	]
+	for d in fish_items:
+		var item = ItemDef.new()
+		item.id = d[0]
+		item.name = d[1]
+		item.description = d[2]
+		item.category = ItemCategory.FISH
+		item.sell_price = d[3]
+		item.icon_path = ""
+		item.max_stack = DEFAULT_MAX_STACK
+		_register_item(item)
+
+## 创建烹饪产出物品定义（供测试使用）
+func _create_cooking_outputs() -> ItemDef:
+	# 创建10种烹饪产出物品（与 CookingSystem.recipes 对应）
+	# 这些物品在测试中被 eat_dish() 添加到背包
+	var items_data = [
+		["egg_dish", "煎蛋", "香喷喷的煎蛋，食用恢复体力", 15],
+		["bread", "烤面包", "香脆的烤面包，食用加速移动", 20],
+		["juice", "果汁", "清爽的果汁，食用恢复体力", 18],
+		["veg_soup", "蔬菜汤", "清淡的蔬菜汤，食用恢复体力", 22],
+		["meat_soup", "肉汤", "浓郁的肉汤，食用恢复体力", 30],
+		["fish_soup", "鱼汤", "鲜美的鱼汤，食用增加幸运", 28],
+		["cake", "蛋糕", "甜美的蛋糕，食用大幅恢复体力", 40],
+		["jam", "果酱", "甜甜的果酱，食用增加幸运", 25],
+		["cheese", "奶酪", "浓郁的奶酪，食用加速移动", 35],
+		["honey_dish", "蜂蜜料理", "甜蜜的蜂蜜料理，食用恢复体力", 32]
+	]
+	for d in items_data:
+		var item = ItemDef.new()
+		item.id = d[0]
+		item.name = d[1]
+		item.description = d[2]
+		item.category = ItemCategory.FOOD
+		item.sell_price = d[3]
+		item.icon_path = ""
+		item.max_stack = DEFAULT_MAX_STACK
+		_register_item(item)
+	return null  # 不返回单个物品，而是注册多个
+
 ## 创建铜矿定义
 func _create_copper_ore() -> ItemDef:
 	var item = ItemDef.new()

@@ -329,7 +329,7 @@ func _update_from_systems() -> void:
 
 	if TimeManager:
 		_current_day = TimeManager.current_day
-		_current_season = TimeManager.get_season_name()
+		_current_season = TimeManager.SEASON_NAMES[TimeManager.current_season]
 		_current_time = TimeManager.current_hour
 
 	if WeatherSystem:

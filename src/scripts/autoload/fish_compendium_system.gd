@@ -220,10 +220,8 @@ static func get_difficulty_stars(difficulty: int) -> String:
 # ============ 内部方法 ============
 
 func _is_valid_fish(fish_id: String) -> bool:
-	# 检查鱼 ID 是否有效
-	if FishingSystem and FishingSystem.FISH_DATA:
-		return FishingSystem.FISH_DATA.has(fish_id)
-	# 如果 FishingSystem 未加载，允许所有 ID
+	# 鱼类图鉴允许记录任意鱼ID（即使FishingSystem中不存在）
+	# 玩家可能通过MOD、测试或未来新增方式获取图鉴外的鱼
 	return true
 
 func _get_or_create_record(fish_id: String) -> Dictionary:

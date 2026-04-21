@@ -20,10 +20,10 @@ func test_shop_id_enum_values():
 	assert_eq(_shop.ShopId.ANIMAL_SHOP, 1, "动物商店ID应为1")
 
 func test_shops_dictionary_structure():
-	assert_true(_shop.SHOPS.has("general_store"), "应包含杂货铺")
-	assert_true(_shop.SHOPS.has("animal_shop"), "应包含动物商店")
-	assert_eq(_shop.SHOPS["general_store"]["start_hour"], 9, "杂货铺开始营业时间为9点")
-	assert_eq(_shop.SHOPS["general_store"]["end_hour"], 17, "杂货铺结束营业时间为17点")
+	assert_true(_shop._shops_data.has("general_store"), "应包含杂货铺")
+	assert_true(_shop._shops_data.has("animal_shop"), "应包含动物商店")
+	assert_eq(_shop._shops_data["general_store"]["start_hour"], 9, "杂货铺开始营业时间为9点")
+	assert_eq(_shop._shops_data["general_store"]["end_hour"], 17, "杂货铺结束营业时间为17点")
 
 # ============ 营业时间测试 ============
 
