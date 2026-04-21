@@ -38,11 +38,11 @@ func _initialize_game() -> void:
 
 	print("[Main] All autoloads verified")
 
+	# 动态加载导航面板（先加载，后加入树的 UI 会覆盖先加入的）
+	_load_navigation_panel()
+
 	# 动态加载 HUD 场景
 	_load_hud()
-
-	# 动态加载导航面板
-	_load_navigation_panel()
 
 	# 连接事件信号
 	_setup_event_signals()

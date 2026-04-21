@@ -23,9 +23,9 @@ const TAB_SHORTCUTS: Dictionary = {
 	KEY_5: Tab.CRAFTING
 }
 
-const SLOT_SIZE: int = 56
+const SLOT_SIZE: int = 64
 const SLOT_SPACING: int = 4
-const COLUMNS: int = 5
+const COLUMNS: int = 10
 const INITIAL_CAPACITY: int = 24
 const TEMP_CAPACITY: int = 10
 
@@ -580,6 +580,19 @@ func _create_backpack_grid() -> void:
 		var slot = _create_slot_node(i, false)
 		backpack_grid.add_child(slot)
 		backpack_slots.append(slot)
+	# 布局结束后强制修正每个格子尺寸为 SLOT_SIZE，防止被 GridContainer 均分撑大
+	call_deferred("_force_slot_sizes_deferred", backpack_slots)
+
+func _force_slot_sizes_deferred(slots: Array) -> void:
+	"""布局结束后强制修正格子及图标尺寸，防止被 GridContainer 均分撑大"""
+	for slot in slots:
+		if slot:
+			slot.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
+			slot.size = Vector2(SLOT_SIZE, SLOT_SIZE)
+			var icon = slot.get_node_or_null("IconContainer/Icon") as Control
+			if icon:
+				icon.custom_minimum_size = Vector2(SLOT_SIZE - 2, SLOT_SIZE - 2)
+				icon.size = Vector2(SLOT_SIZE - 2, SLOT_SIZE - 2)
 
 func _create_temp_grid() -> void:
 	if not temp_backpack_container:
@@ -607,12 +620,29 @@ func _create_slot_node(index: int, is_temp: bool) -> PanelContainer:
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	slot.add_theme_stylebox_override("normal", style)
+	# QualityBorder 先添加（在底层，不挡图标）
+	var quality_border = ColorRect.new()
+	quality_border.name = "QualityBorder"
+	quality_border.color = COLORS["border_light"]
+	quality_border.anchors_preset = Control.PRESET_FULL_RECT
+	quality_border.set_offsets_preset(Control.PRESET_FULL_RECT)
+	quality_border.offset_left = 3
+	quality_border.offset_top = 3
+	quality_border.offset_right = -3
+	quality_border.offset_bottom = -3
+	slot.add_child(quality_border)
 	var icon_container = CenterContainer.new()
 	icon_container.name = "IconContainer"
+	icon_container.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	icon_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	slot.add_child(icon_container)
 	var icon = TextureRect.new()
 	icon.name = "Icon"
 	icon.visible = false
+	# 固定 Icon 节点尺寸，IGNORE_SIZE + STRETCH_SCALE 让 128px 图标缩放填满此区域
+	icon.custom_minimum_size = Vector2(SLOT_SIZE, SLOT_SIZE)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_SCALE
 	icon_container.add_child(icon)
 	var quantity = Label.new()
 	quantity.name = "QuantityLabel"
@@ -621,10 +651,6 @@ func _create_slot_node(index: int, is_temp: bool) -> PanelContainer:
 	quantity.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
 	quantity.visible = false
 	slot.add_child(quantity)
-	var quality_border = ColorRect.new()
-	quality_border.name = "QualityBorder"
-	quality_border.color = COLORS["border_light"]
-	slot.add_child(quality_border)
 	var hover = Panel.new()
 	hover.name = "HoverOverlay"
 	hover.visible = false
@@ -673,22 +699,24 @@ func _update_slot_display(slot: PanelContainer, item_id: String, quantity: int, 
 	var icon = slot.get_node_or_null("IconContainer/Icon") as TextureRect
 	var quantity_label = slot.get_node_or_null("QuantityLabel") as Label
 	var quality_border = slot.get_node_or_null("QualityBorder") as ColorRect
-	var icon_container = slot.get_node_or_null("IconContainer") as CenterContainer
 	if icon:
 		if item_id.is_empty():
 			icon.texture = null
 			icon.visible = false
 		else:
 			var item_def = ItemDataSystem.get_item_def(item_id) if ItemDataSystem else null
-			# 检查是否有有效的图标文件
+			var icon_path = ""
 			if item_def and not item_def.icon_path.is_empty() and ResourceLoader.exists(item_def.icon_path):
-				icon.texture = load(item_def.icon_path)
+				icon_path = item_def.icon_path
+			else:
+				# 使用统一的占位图标
+				icon_path = "res://icon.svg"
+			if ResourceLoader.exists(icon_path):
+				icon.texture = load(icon_path)
 				icon.visible = true
 			else:
-				# 没有图标时，尝试显示物品名称的第一个字符作为后备
+				icon.texture = null
 				icon.visible = false
-				# 在 IconContainer 中创建一个后备 Label 显示物品标识
-				_update_slot_backup_display(slot, item_id, icon_container)
 	if quantity_label:
 		if item_id.is_empty() or quantity <= 1:
 			quantity_label.visible = false

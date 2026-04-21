@@ -7,7 +7,7 @@ extends PanelContainer
 # ============ 常量 ============
 
 ## 格子尺寸
-const SLOT_SIZE: int = 56
+const SLOT_SIZE: int = 64
 
 ## 品质颜色
 const QUALITY_COLORS: Dictionary = {

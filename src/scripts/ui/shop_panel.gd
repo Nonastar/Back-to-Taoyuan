@@ -339,7 +339,7 @@ func _get_sell_items() -> Array:
 	var sell_multiplier: float = 0.5 if not Shop or not Shop.has_method("get_sell_price_multiplier") else Shop.get_sell_price_multiplier()
 	for item_id in item_aggregation:
 		var item_data = item_aggregation[item_id]
-		var item_def: Dictionary = item_data["item_def"]
+		var item_def = item_data["item_def"] as Resource
 		var sell_price = int(item_def.sell_price * sell_multiplier) if item_def else 0
 
 		sell_items.append({
@@ -418,26 +418,26 @@ func _on_tab_animal_pressed() -> void:
 func _on_buy_pressed() -> void:
 	current_mode = ShopMode.BUY
 	_update_ui()
+	_populate_items()
 
 func _on_sell_pressed() -> void:
 	current_mode = ShopMode.SELL
+	_clear_selection()
 	_update_ui()
+	_populate_items()
 
 func _on_action_pressed() -> void:
 	if selected_item_id.is_empty():
 		_set_status(I18n.translate("ui.select_first"))
 		return
-	
+
 	# 检查背包空间 (购买时)
-	# 购买时检查背包空间（Shop.buy_item也会检查，但提前检查可以给出更友好的提示）
 	if current_mode == ShopMode.BUY:
-		# 简单检查：如果背包满了，buy_item会返回失败
-		# 这里不做预检查，让buy_item处理
 		pass
-	
+
 	var result = {}
 	var shop_id = Shop.ShopId.GENERAL_STORE if current_shop_type == ShopType.GENERAL else Shop.ShopId.ANIMAL_SHOP
-	
+
 	if current_mode == ShopMode.BUY:
 		result = Shop.buy_item(shop_id, selected_item_id, current_quantity)
 	else:
