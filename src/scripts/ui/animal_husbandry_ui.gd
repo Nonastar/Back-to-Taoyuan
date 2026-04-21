@@ -748,8 +748,19 @@ func _on_close_pressed() -> void:
 	_hide_ui()
 
 func _on_shop_pressed() -> void:
-	# 商店功能暂未实现，显示提示
-	_show_notification(_t("商店功能暂未开放，请前往村落购买动物"))
+	# 通过 HUD 打开商店面板（与 HUD 按钮行为一致）
+	if HUD and HUD.has_method("toggle_shop"):
+		HUD.toggle_shop()
+	else:
+		# 后备：直接实例化商店面板
+		var shop_scene_path = "res://src/scenes/ui/shop_panel.tscn"
+		var shop_scene = load(shop_scene_path)
+		if shop_scene:
+			var shop_panel = shop_scene.instantiate()
+			add_child(shop_panel)
+			if shop_panel.has_method("open_panel"):
+				shop_panel.open_panel(0, 0)  # BUY mode, GENERAL store
+	_show_notification(_t("前往商店购买动物"))
 	_hide_ui()
 
 # ============ 悬停效果 ============

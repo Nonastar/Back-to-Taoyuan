@@ -85,7 +85,7 @@ func continue_game(slot: int) -> void:
 ## 打开存档菜单
 func open_save_menu() -> void:
 	current_state = GameState.MENU_OPEN
-	# TODO: 显示存档菜单UI
+	# 打开存档菜单 UI，详见 design/gdd/ui/save-menu-ui.md
 
 ## 暂停游戏
 func pause_game() -> void:
