@@ -236,9 +236,10 @@ func _create_default_items() -> void:
 	_is_loaded = true
 	items_loaded.emit()
 
-	# 注册鱼类和烹饪产出物品（void方法）
+	# 注册鱼类、烹饪产出和动物物品（void方法）
 	_create_fish_items()
 	_create_cooking_outputs()
+	_create_animal_items()
 
 
 ## 创建鱼类物品定义（供测试和游戏使用）
@@ -306,6 +307,28 @@ func _create_cooking_outputs() -> ItemDef:
 		item.max_stack = DEFAULT_MAX_STACK
 		_register_item(item)
 	return null  # 不返回单个物品，而是注册多个
+
+## 创建动物物品定义（供动物商店购买使用）
+func _create_animal_items() -> void:
+	var animals = [
+		["chicken_white", "白鸡", "白色的产蛋鸡，产蛋率高", 400],
+		["chicken_brown", "棕鸡", "棕色的产蛋鸡，产蛋率一般", 400],
+		["duck", "鸭子", "可产鸭蛋的水禽", 500],
+		["cow", "牛", "可产牛奶的奶牛", 1000],
+		["sheep", "绵羊", "可剪羊毛的绵羊", 800],
+		["pig", "猪", "可出售的高价值动物", 1200],
+		["goat", "山羊", "可产羊奶的山羊", 900],
+	]
+	for d in animals:
+		var item = ItemDef.new()
+		item.id = d[0]
+		item.name = d[1]
+		item.description = d[2]
+		item.category = ItemCategory.ANIMAL
+		item.sell_price = d[3]
+		item.icon_path = ""
+		item.max_stack = 1  # 动物不可堆叠
+		_register_item(item)
 
 ## 创建铜矿定义
 func _create_copper_ore() -> ItemDef:

@@ -23,6 +23,7 @@ const TOOL: int = 13
 const BOOK: int = 14
 const QUEST: int = 15
 const RELIC: int = 16
+const ANIMAL: int = 17
 
 # ============ 分类名称 ============
 
@@ -43,7 +44,8 @@ const NAMES: Dictionary = {
 	TOOL: "工具",
 	BOOK: "书籍",
 	QUEST: "任务物品",
-	RELIC: "文物"
+	RELIC: "文物",
+	ANIMAL: "动物"
 }
 
 # ============ 分类堆叠限制 ============
@@ -65,7 +67,8 @@ const STACK_LIMITS: Dictionary = {
 	TOOL: 1,
 	BOOK: 9999,
 	QUEST: 1,
-	RELIC: 1
+	RELIC: 1,
+	ANIMAL: 1
 }
 
 # ============ 静态方法 ============
