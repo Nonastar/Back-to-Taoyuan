@@ -53,10 +53,10 @@ func test_get_shop_inventory_returns_array():
 
 func test_animal_shop_items():
 	var items = _shop.get_shop_inventory(_shop.ShopId.ANIMAL_SHOP)
-	assert_eq(items.size(), 5, "动物商店应有5种动物")
+	assert_eq(items.size(), 7, "动物商店应有7种动物")
 	# 验证动物种类
 	var animal_ids = items.map(func(item): return item.get("item_id"))
-	assert_true("chicken" in animal_ids, "应包含鸡")
+	assert_true("chicken_white" in animal_ids or "chicken_brown" in animal_ids, "应包含鸡")
 	assert_true("cow" in animal_ids, "应包含牛")
 	assert_true("sheep" in animal_ids, "应包含羊")
 
