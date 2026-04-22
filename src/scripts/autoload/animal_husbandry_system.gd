@@ -380,6 +380,10 @@ func get_building_capacity(building_type: BuildingType) -> int:
 	var info: Dictionary = _building_definitions.get(building_type, BUILDING_INFO.get(building_type, {}))
 	return info.get("capacity", 0)
 
+## 获取建筑定义信息（含名称、费用等）
+func get_building_def_info(building_type: BuildingType) -> Dictionary:
+	return _building_definitions.get(building_type, BUILDING_INFO.get(building_type, {}))
+
 ## 获取指定建筑中的动物数量
 func get_building_animal_count(building_type: BuildingType) -> int:
 	var animals = get_animals_in_building(building_type)

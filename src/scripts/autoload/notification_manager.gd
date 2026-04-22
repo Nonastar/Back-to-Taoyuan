@@ -169,6 +169,8 @@ func _show_notification(text: String, duration: float, color: Color) -> void:
 
 	# 查找HUD并使用其通知系统
 	var hud = _find_hud()
+	print("[NotificationManager] _show_notification: text=%s, hud=%s, has_show_message=%s" % [
+		text, hud, hud.has_method("show_message") if hud else "N/A"])
 	if hud and hud.has_method("show_message"):
 		hud.show_message(text, color)
 		# 等待duration后显示下一条

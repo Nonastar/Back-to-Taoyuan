@@ -148,7 +148,6 @@ func _setup_node_references() -> void:
 			if bottom_buttons:
 				_close_btn = bottom_buttons.get_node_or_null("CloseBtn")
 				_shop_btn = bottom_buttons.get_node_or_null("ShopBtn")
-				print("[AnimalHusbandryUI] _shop_btn=%s, _close_btn=%s" % [_shop_btn, _close_btn])
 
 	# 设置悬停效果
 	_setup_hover_effect(_coop_tab_btn)
@@ -572,10 +571,8 @@ func _update_button_states() -> void:
 		var is_built = AnimalHusbandrySystem.is_building_built(building_type)
 		var animal_count = AnimalHusbandrySystem.get_building_animal_count(building_type) if is_built else 0
 		var capacity = AnimalHusbandrySystem.get_building_capacity(building_type) if is_built else 0
-		_shop_btn.disabled = not is_built or animal_count >= capacity
-		print("[AnimalHusbandryUI] _shop_btn state: is_built=%s, building_type=%s, disabled=%s, text_will_be=%s" % [
-			is_built, building_type, _shop_btn.disabled,
-			"🏗️ 建造建筑" if not is_built else ("满员" if animal_count >= capacity else "🛒 去商店")])
+		# 按钮始终可点：未建→建造对话框，满员→提示，建筑有空→去商店
+		_shop_btn.disabled = false
 		if not is_built:
 			_shop_btn.text = _t("🏗️ 建造建筑")
 		elif animal_count >= capacity:
@@ -752,14 +749,81 @@ func _on_close_pressed() -> void:
 	_hide_ui()
 
 func _on_shop_pressed() -> void:
-	# 直接实例化商店面板（与动物畜牧UI使用一致的方式）
+	var building_type = AnimalHusbandrySystem.BuildingType.COOP if _current_building_type == 0 else AnimalHusbandrySystem.BuildingType.BARN
+	var is_built = AnimalHusbandrySystem.is_building_built(building_type)
+	var animal_count = AnimalHusbandrySystem.get_building_animal_count(building_type) if is_built else 0
+	var capacity = AnimalHusbandrySystem.get_building_capacity(building_type) if is_built else 0
+
+	if not is_built:
+		# 弹出建造确认
+		_show_build_confirmation(building_type)
+	elif animal_count >= capacity:
+		# 建筑已满 → 提示
+		_show_notification(I18n.translate("animal.building_full"))
+	else:
+		# 建筑有空 → 去商店购买动物
+		_open_shop_for_animals()
+
+## 弹出建造确认对话框
+func _show_build_confirmation(building_type: int) -> void:
+	var bname = I18n.translate("building.coop") if building_type == AnimalHusbandrySystem.BuildingType.COOP else I18n.translate("building.barn")
+	var cost_info = ""
+	if AnimalHusbandrySystem.has_method("get_building_def_info"):
+		var info = AnimalHusbandrySystem.get_building_def_info(building_type)
+		var money = info.get("cost_money", 0)
+		var wood = info.get("cost_wood", 0)
+		cost_info = "\n💰 %dg  🪵 %d木材" % [money, wood]
+	else:
+		# 兜底用硬编码成本
+		var money = 1000 if building_type == AnimalHusbandrySystem.BuildingType.COOP else 2000
+		var wood = 30 if building_type == AnimalHusbandrySystem.BuildingType.COOP else 50
+		cost_info = "\n💰 %dg  🪵 %d木材" % [money, wood]
+
+	var dialog = ConfirmationDialog.new()
+	dialog.dialog_text = "是否建造%s？%s" % [bname, cost_info]
+	dialog.ok_button_text = "建造"
+	dialog.cancel_button_text = "取消"
+	dialog.confirmed.connect(_on_build_confirmed.bind(building_type))
+	add_child(dialog)
+	dialog.popup_centered()
+
+## 建造确认回调
+func _on_build_confirmed(building_type: int) -> void:
+	var bname = I18n.translate("building.coop") if building_type == AnimalHusbandrySystem.BuildingType.COOP else I18n.translate("building.barn")
+	if not AnimalHusbandrySystem.has_method("can_build") or not AnimalHusbandrySystem.has_method("build_building"):
+		_show_notification(I18n.translate("ui.unknown_error"))
+		return
+	if not AnimalHusbandrySystem.can_build(building_type):
+		# 读取失败原因：金币 or 木材
+		var info = AnimalHusbandrySystem.get_building_def_info(building_type)
+		var need_money = info.get("cost_money", 0)
+		var need_wood = info.get("cost_wood", 0)
+		var have_money = PlayerStats.get_money() if PlayerStats and PlayerStats.has_method("get_money") else 0
+		var have_wood = InventorySystem.get_item_count("wood") if InventorySystem else 0
+		var missing = ""
+		if have_money < need_money:
+			missing = "金币不足 (持有%d，需%d)" % [have_money, need_money]
+		if have_wood < need_wood:
+			if not missing.is_empty():
+				missing += "，"
+			missing += "木材不足 (持有%d，需%d)" % [have_wood, need_wood]
+		_show_notification(missing)
+		return
+	var ok = AnimalHusbandrySystem.build_building(building_type)
+	if ok:
+		_show_notification("已建造%s！" % bname)
+	else:
+		_show_notification(I18n.translate("ui.unknown_error"))
+
+## 打开动物商店
+func _open_shop_for_animals() -> void:
 	var shop_scene_path = "res://src/scenes/ui/shop_panel.tscn"
 	var shop_scene = load(shop_scene_path)
 	if shop_scene:
 		var shop_panel = shop_scene.instantiate()
 		add_child(shop_panel)
 		if shop_panel.has_method("open_panel"):
-			shop_panel.open_panel(0, 0)  # BUY mode, GENERAL store
+			shop_panel.open_panel(0, 1)  # BUY mode, ANIMAL_SHOP
 	_show_notification(_t("前往商店购买动物"))
 	_hide_ui()
 
@@ -779,8 +843,10 @@ func _setup_hover_effect(button: Button) -> void:
 # ============ 通知系统 ============
 
 func _show_notification(text: String) -> void:
-	if NotificationManager and NotificationManager.has_method("show_notification"):
-		NotificationManager.show_notification(text)
+	if NotificationManager and NotificationManager.has_method("show_warning"):
+		NotificationManager.show_warning(text)
+	elif NotificationManager and NotificationManager.has_method("show_message"):
+		NotificationManager.show_message(text)
 	else:
 		print("[AnimalHusbandryUI] " + text)
 
