@@ -150,7 +150,6 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 
 	# ============ 动物商店：调用畜牧系统购买动物 ============
 	if shop_id == ShopId.ANIMAL_SHOP or shop_id_str == "animal_shop":
-		print("[ShopSystem] Animal Shop purchase: item_id=%s, quantity=%d" % [item_id, quantity])
 		if quantity > 1:
 			return {"success": false, "message": "Animals can only be bought one at a time"}
 		if not (AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("can_buy_animal")):
@@ -160,9 +159,6 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 			# 细化失败原因
 			var animal_data = AnimalHusbandrySystem.get_animal_data(item_id) if AnimalHusbandrySystem.has_method("get_animal_data") else {}
 			var building_type = animal_data.get("building_type", -1)
-			print("[ShopSystem] can_buy_animal failed: item_id=%s, building_type=%d, built=%s" % [
-				item_id, building_type,
-				AnimalHusbandrySystem.is_building_built(building_type) if AnimalHusbandrySystem.has_method("is_building_built") else "N/A"])
 			if not AnimalHusbandrySystem.is_building_built(building_type):
 				return {"success": false, "message": "Building not built"}
 			if AnimalHusbandrySystem.get_building_animal_count(building_type) >= AnimalHusbandrySystem.get_building_capacity(building_type):
@@ -171,7 +167,6 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		if not (AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("buy_animal")):
 			return {"success": false, "message": "Buy animal method unavailable"}
 		var bought = AnimalHusbandrySystem.buy_animal(item_id)
-		print("[ShopSystem] buy_animal result: %s" % bought)
 		if not bought:
 			return {"success": false, "message": "Purchase failed"}
 		var total_cost = 0

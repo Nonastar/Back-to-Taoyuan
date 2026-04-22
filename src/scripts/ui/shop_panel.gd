@@ -420,6 +420,17 @@ func _on_buy_pressed() -> void:
 	_update_ui()
 	_populate_items()
 
+## 获取动物对应的建筑名称（用于错误提示）
+func _get_building_display_name_for_animal(animal_id: String) -> String:
+	if AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("get_animal_data"):
+		var data = AnimalHusbandrySystem.get_animal_data(animal_id)
+		var bt = data.get("building_type", -1)
+		if bt == AnimalHusbandrySystem.BuildingType.COOP:
+			return I18n.translate("building.coop")
+		elif bt == AnimalHusbandrySystem.BuildingType.BARN:
+			return I18n.translate("building.barn")
+	return I18n.translate("building.coop")  # 默认为鸡舍
+
 func _on_sell_pressed() -> void:
 	current_mode = ShopMode.SELL
 	_clear_selection()
@@ -436,16 +447,11 @@ func _on_action_pressed() -> void:
 		pass
 
 	var shop_id = Shop.ShopId.GENERAL_STORE if current_shop_type == ShopType.GENERAL else Shop.ShopId.ANIMAL_SHOP
-	print("[ShopPanel] _on_action_pressed: mode=%s, shop_type=%s, shop_id=%s, item=%s, qty=%d" % [
-		current_mode, current_shop_type, shop_id, selected_item_id, current_quantity])
-
 	var result = {}
 	if current_mode == ShopMode.BUY:
 		result = Shop.buy_item(shop_id, selected_item_id, current_quantity)
 	else:
 		result = Shop.sell_item(shop_id, selected_item_id, current_quantity)
-
-	print("[ShopPanel] buy_item result: %s" % str(result))
 	
 	if result.get("success", false):
 		var msg: String = I18n.translate("shop.purchase_success") if current_mode == ShopMode.BUY else I18n.translate("shop.sale_success")
@@ -467,17 +473,17 @@ func _on_action_pressed() -> void:
 		elif err_key == "Item not found":
 			err_msg = I18n.translate("shop.item_not_found")
 		elif err_key == "Building not built":
-			err_msg = I18n.translate("animal.building_not_built")
+			var bname = _get_building_display_name_for_animal(selected_item_id)
+			err_msg = I18n.trf("animal.building_not_built", [bname])
 		elif err_key == "Building is full":
-			err_msg = I18n.translate("animal.building_full")
+			var bname = _get_building_display_name_for_animal(selected_item_id)
+			err_msg = I18n.trf("animal.building_full", [bname])
 		elif err_key == "Purchase failed":
 			err_msg = I18n.translate("animal.purchase_failed")
 		elif err_key == "Animals can only be bought one at a time":
 			err_msg = I18n.translate("animal.buy_one_at_a_time")
 		else:
-			# Fallback: 显示原始错误信息，便于调试
 			err_msg = I18n.translate("ui.unknown_error") + ": " + err_key if not err_key.is_empty() else I18n.translate("ui.unknown_error")
-		print("[ShopPanel] Purchase failed: err_key=\"%s\", raw_result=%s" % [err_key, str(result)])
 		_set_status(err_msg, true)
 	
 	_clear_selection()
