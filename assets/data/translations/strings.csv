@@ -86,8 +86,8 @@ animal.healed_notification,✅ %s 已痊愈! 恢复产出,%s has recovered! Resu
 animal.friendship_changed,%s 好感度: %s -> %s,%s Friendship: %s -> %s,通知消息
 animal.collected_item,收获了: %s x%d,Collected: %s x%d,通知消息
 animal.shop_not_open,商店功能暂未开放，请前往村落购买动物,Shop not available, please visit the village to buy animals,提示消息
-animal.building_not_built,请先建造%建筑名称%！,Build %建筑名称% first!,错误消息
-animal.building_full,%建筑名称%已满,%建筑名称% is full,错误消息
+animal.building_not_built,请先建造%s！,Build %s first!,错误消息
+animal.building_full,%s已满,%s is full,错误消息
 animal.buy_one_at_a_time,动物一次只能购买一只,Animals can only be bought one at a time,错误消息
 animal.purchase_failed,购买失败,Purchase failed,错误消息
 
