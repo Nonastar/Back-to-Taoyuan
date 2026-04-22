@@ -108,10 +108,10 @@ var _current_focus_index: int = -1
 
 func _ready() -> void:
 	_instance = self
+	set_process(true)
 	_setup_node_references()
 	_connect_signals()
-	_show_ui()  # 加载后自动显示
-	print("[AnimalHusbandryUI] Initialized")
+	_show_ui()
 
 func _setup_node_references() -> void:
 	_background = $Background if has_node("Background") else null
@@ -151,13 +151,14 @@ func _setup_node_references() -> void:
 				_close_btn = bottom_buttons.get_node_or_null("CloseBtn")
 				_shop_btn = bottom_buttons.get_node_or_null("ShopBtn")
 
-	# 创建飘窗通知Label（始终在最上层）
+		# 创建飘窗通知Label（始终在最上层）
 	_toast_label = Label.new()
 	_toast_label.name = "ToastLabel"
-	print("[AnimalHusbandryUI] Created _toast_label: " + str(_toast_label))
 	_toast_label.anchors_preset = Control.PRESET_CENTER
-	_toast_label.offset_top = -160
-	_toast_label.offset_bottom = -120
+	_toast_label.offset_left = -200
+	_toast_label.offset_top = -150
+	_toast_label.offset_right = 200
+	_toast_label.offset_bottom = -110
 	_toast_label.size = Vector2(400, 40)
 	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -917,19 +918,18 @@ func _process(delta: float) -> void:
 
 ## 显示飘窗通知（橙色警告，不被遮挡）
 func _show_toast(text: String, is_error: bool = false) -> void:
-	var label_status = "null" if _toast_label == null else "ok"
-	print("[AnimalHusbandryUI] _show_toast: text=" + text + " _toast_label=" + label_status)
 	if _toast_label == null:
 		push_error("[AnimalHusbandryUI] _toast_label is null!")
 		return
 	_toast_label.text = text
 	_toast_label.modulate.a = 0
-	# 设置颜色：橙色=警告，绿色=成功
 	_toast_label.modulate.r = 1.0
 	_toast_label.modulate.g = 0.6 if is_error else 0.9
 	_toast_label.modulate.b = 0.2 if is_error else 0.5
-	# 动画：渐入 → 显示3秒 → 渐出
+	# 停止可能正在运行的动画，重新开始
 	var tw = create_tween()
+	tw.kill()
+	tw = create_tween()
 	tw.tween_property(_toast_label, "modulate:a", 1.0, 0.25)
 	_toast_timer = 3.0
 
