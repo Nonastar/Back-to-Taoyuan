@@ -142,12 +142,40 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		match shop_id:
 			ShopId.GENERAL_STORE: shop_id_str = "general_store"
 			ShopId.ANIMAL_SHOP: shop_id_str = "animal_shop"
-	
+
 	if quantity <= 0 or item_id.is_empty():
 		return {"success": false, "message": "Invalid parameters"}
 	if not is_shop_open(shop_id_str):
 		return {"success": false, "message": "Shop is closed"}
 
+	# ============ 动物商店：调用畜牧系统购买动物 ============
+	if shop_id == ShopId.ANIMAL_SHOP or shop_id_str == "animal_shop":
+		if quantity > 1:
+			return {"success": false, "message": "Animals can only be bought one at a time"}
+		if AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("can_buy_animal"):
+			if not AnimalHusbandrySystem.can_buy_animal(item_id):
+				# 判定失败原因
+				var animal_data = AnimalHusbandrySystem.get_animal_data(item_id) if AnimalHusbandrySystem.has_method("get_animal_data") else {}
+				var building_type = animal_data.get("building_type", -1)
+				if not AnimalHusbandrySystem.is_building_built(building_type):
+					return {"success": false, "message": "Building not built"}
+				if AnimalHusbandrySystem.get_building_animal_count(building_type) >= AnimalHusbandrySystem.get_building_capacity(building_type):
+					return {"success": false, "message": "Building is full"}
+				return {"success": false, "message": "Not enough money"}
+		# 调用畜牧系统购买（扣除金币 + 添加动物到建筑）
+		if AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("buy_animal"):
+			var bought = AnimalHusbandrySystem.buy_animal(item_id)
+			if not bought:
+				return {"success": false, "message": "Purchase failed"}
+			var total_cost = 0
+			if AnimalHusbandrySystem.has_method("get_animal_data"):
+				var ad = AnimalHusbandrySystem.get_animal_data(item_id)
+				total_cost = ad.get("buy_price", 0)
+			purchase_completed.emit(item_id, 1, total_cost)
+			return {"success": true, "message": "Purchased", "total_cost": total_cost}
+		return {"success": false, "message": "AnimalHusbandrySystem not available"}
+
+	# ============ 普通商店：购买物品加入背包 ============
 	var item_def = ItemDataSystem.get_item_def(item_id)
 	if item_def == null:
 		return {"success": false, "message": "Item not found"}
