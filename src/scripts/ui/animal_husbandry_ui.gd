@@ -95,6 +95,8 @@ var _close_btn: Button
 var _shop_btn: Button  ## 新增：商店快捷按钮
 var _feed_cost_label: Label  ## 新增：喂养成本提示
 var _dirty_label: Label  ## 新增：脏乱状态提示
+var _toast_label: Label  ## 飘窗通知Label
+var _toast_timer: float = 0.0
 
 # ============ 状态 ============
 
@@ -148,6 +150,31 @@ func _setup_node_references() -> void:
 			if bottom_buttons:
 				_close_btn = bottom_buttons.get_node_or_null("CloseBtn")
 				_shop_btn = bottom_buttons.get_node_or_null("ShopBtn")
+
+	# 创建飘窗通知Label（始终在最上层）
+	_toast_label = Label.new()
+	_toast_label.name = "ToastLabel"
+	print("[AnimalHusbandryUI] Created _toast_label: " + str(_toast_label))
+	_toast_label.anchors_preset = Control.PRESET_CENTER
+	_toast_label.offset_top = -160
+	_toast_label.offset_bottom = -120
+	_toast_label.size = Vector2(400, 40)
+	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_toast_label.modulate.a = 0
+	_toast_label.z_index = 100  # 确保在最上层
+	var toast_bg = StyleBoxFlat.new()
+	toast_bg.bg_color = Color(0, 0, 0, 0.85)
+	toast_bg.corner_radius_top_left = 8
+	toast_bg.corner_radius_top_right = 8
+	toast_bg.corner_radius_bottom_right = 8
+	toast_bg.corner_radius_bottom_left = 8
+	toast_bg.content_margin_left = 16
+	toast_bg.content_margin_right = 16
+	toast_bg.content_margin_top = 8
+	toast_bg.content_margin_bottom = 8
+	_toast_label.add_theme_stylebox_override("normal", toast_bg)
+	add_child(_toast_label)
 
 	# 设置悬停效果
 	_setup_hover_effect(_coop_tab_btn)
@@ -758,8 +785,8 @@ func _on_shop_pressed() -> void:
 		# 弹出建造确认
 		_show_build_confirmation(building_type)
 	elif animal_count >= capacity:
-		# 建筑已满 → 提示
-		_show_notification(I18n.translate("animal.building_full"))
+		# 建筑已满 → 飘窗提示
+		_show_toast(I18n.translate("animal.building_full"), true)
 	else:
 		# 建筑有空 → 去商店购买动物
 		_open_shop_for_animals()
@@ -791,7 +818,7 @@ func _show_build_confirmation(building_type: int) -> void:
 func _on_build_confirmed(building_type: int) -> void:
 	var bname = I18n.translate("building.coop") if building_type == AnimalHusbandrySystem.BuildingType.COOP else I18n.translate("building.barn")
 	if not AnimalHusbandrySystem.has_method("can_build") or not AnimalHusbandrySystem.has_method("build_building"):
-		_show_notification(I18n.translate("ui.unknown_error"))
+		_show_toast(I18n.translate("ui.unknown_error"), true)
 		return
 	if not AnimalHusbandrySystem.can_build(building_type):
 		# 读取失败原因：金币 or 木材
@@ -807,13 +834,13 @@ func _on_build_confirmed(building_type: int) -> void:
 			if not missing.is_empty():
 				missing += "，"
 			missing += "木材不足 (持有%d，需%d)" % [have_wood, need_wood]
-		_show_notification(missing)
+		_show_toast(missing, true)  # 飘窗显示，不被遮挡
 		return
 	var ok = AnimalHusbandrySystem.build_building(building_type)
 	if ok:
 		_show_notification("已建造%s！" % bname)
 	else:
-		_show_notification(I18n.translate("ui.unknown_error"))
+		_show_toast(I18n.translate("ui.unknown_error"), true)
 
 ## 打开动物商店
 func _open_shop_for_animals() -> void:
@@ -879,3 +906,36 @@ func _navigate_focus(direction: int) -> void:
 	var btn = _focusable_buttons[_current_focus_index]
 	if btn and is_instance_valid(btn):
 		btn.grab_focus()
+
+# ============ 飘窗通知 ============
+
+func _process(delta: float) -> void:
+	if _toast_timer > 0:
+		_toast_timer -= delta
+		if _toast_timer <= 0:
+			_hide_toast()
+
+## 显示飘窗通知（橙色警告，不被遮挡）
+func _show_toast(text: String, is_error: bool = false) -> void:
+	var label_status = "null" if _toast_label == null else "ok"
+	print("[AnimalHusbandryUI] _show_toast: text=" + text + " _toast_label=" + label_status)
+	if _toast_label == null:
+		push_error("[AnimalHusbandryUI] _toast_label is null!")
+		return
+	_toast_label.text = text
+	_toast_label.modulate.a = 0
+	# 设置颜色：橙色=警告，绿色=成功
+	_toast_label.modulate.r = 1.0
+	_toast_label.modulate.g = 0.6 if is_error else 0.9
+	_toast_label.modulate.b = 0.2 if is_error else 0.5
+	# 动画：渐入 → 显示3秒 → 渐出
+	var tw = create_tween()
+	tw.tween_property(_toast_label, "modulate:a", 1.0, 0.25)
+	_toast_timer = 3.0
+
+func _hide_toast() -> void:
+	if not _toast_label:
+		return
+	var tw = create_tween()
+	tw.tween_property(_toast_label, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(func(): _toast_timer = 0)

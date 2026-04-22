@@ -59,6 +59,12 @@ func _connect_signals() -> void:
 ## 查找HUD
 func _find_hud() -> Control:
 	if _hud == null:
+		# 优先从 group 查找（最可靠）
+		var hud_nodes = get_tree().get_nodes_in_group("hud")
+		if hud_nodes.size() > 0:
+			_hud = hud_nodes[0] as Control
+			return _hud
+		# 兜底：递归查找
 		var root = get_tree().root
 		_hud = root.find_child("HUD", true, false) as Control
 	return _hud
@@ -169,8 +175,6 @@ func _show_notification(text: String, duration: float, color: Color) -> void:
 
 	# 查找HUD并使用其通知系统
 	var hud = _find_hud()
-	print("[NotificationManager] _show_notification: text=%s, hud=%s, has_show_message=%s" % [
-		text, hud, hud.has_method("show_message") if hud else "N/A"])
 	if hud and hud.has_method("show_message"):
 		hud.show_message(text, color)
 		# 等待duration后显示下一条

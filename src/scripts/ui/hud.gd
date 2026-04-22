@@ -121,6 +121,8 @@ var _notification_timer: float = 0.0
 func _ready() -> void:
 	_setup_node_references()
 	_connect_signals()
+	# 注册到 group，供 NotificationManager 等系统查找
+	add_to_group("hud")
 	# 延迟初始化，等待 Autoload 系统就绪
 	await get_tree().process_frame
 	_update_from_systems()
