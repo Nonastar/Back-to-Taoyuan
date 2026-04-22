@@ -65,6 +65,7 @@
 | ID | 系统名称 | 英文名 | 对应游戏系统 |
 |----|----------|--------|-------------|
 | U01 | HUD系统 | HUDSystem | 全局 |
+| U01-SUB | 飘窗通知系统 | ToastNotificationSystem | HUD子系统，所有操作反馈 |
 | U02 | 农场UI | FarmUI | 农场地块 |
 | U03 | 背包UI | InventoryUI | 库存 |
 | U04 | 技能UI | SkillUI | 技能 |
@@ -275,6 +276,7 @@
 | P18 | 市场系统 | Approved | design/gdd/feature/market-system.md | 2026-04-07 |
 | P19 | 秘密笔记系统 | Approved | design/gdd/feature/secret-note-system.md | 2026-04-07 |
 | U01 | HUD系统 | Approved | design/gdd/ui/hud-system.md | 2026-04-07 |
+| U01-SUB | 飘窗通知系统 | Approved | design/gdd/ui/toast-notification-system.md | 2026-04-22 |
 | M01 | 钓鱼小游戏 | Approved | design/gdd/minigames/fishing-mini-game.md | 2026-04-07 |
 | M02 | 德州扑克小游戏 | Approved | design/gdd/minigames/texas-hold-em-game.md | 2026-04-07 |
 | M03 | 左轮赌盘小游戏 | Approved | design/gdd/minigames/buckshot-roulette-game.md | 2026-04-07 |

@@ -82,7 +82,14 @@ signal enemy_defeated(enemy_id: String)
 signal ui_panel_opened(panel_id: String)
 signal ui_panel_closed(panel_id: String)
 signal tooltip_requested(item_id: String)
-signal notification_requested(message: String, type: String)
+signal notification_requested(
+    text: String,
+    type: ToastType,     # GAIN/COST/SUCCESS/WARNING/ERROR/SYSTEM
+    priority: int,       # 1=low, 2=normal, 3=high, 4=critical
+    duration: float,     # 显示时长（秒），默认 2.5
+    id: String,          # 唯一标识符（用于去重）
+    icon_path: String    # 图标路径（可选）
+)
 
 # ============ 杂项 ============
 signal game_paused
@@ -131,8 +138,8 @@ func _on_stamina_changed(current: float, maximum: float):
 func _on_money_changed(amount: int):
     money_label.text = "%d 金" % amount
 
-func _on_notification(message: String, type: String):
-    NotificationManager.show_message(message)
+func _on_notification(text: String, type: ToastType, priority: int, duration: float, id: String, icon_path: String):
+    NotificationManager.add_message(text, type, priority, duration, id, icon_path)
 ```
 
 ### TypedEvent 增强 (可选)
