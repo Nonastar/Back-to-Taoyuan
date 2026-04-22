@@ -148,6 +148,7 @@ func _setup_node_references() -> void:
 			if bottom_buttons:
 				_close_btn = bottom_buttons.get_node_or_null("CloseBtn")
 				_shop_btn = bottom_buttons.get_node_or_null("ShopBtn")
+				print("[AnimalHusbandryUI] _shop_btn=%s, _close_btn=%s" % [_shop_btn, _close_btn])
 
 	# 设置悬停效果
 	_setup_hover_effect(_coop_tab_btn)
@@ -572,6 +573,9 @@ func _update_button_states() -> void:
 		var animal_count = AnimalHusbandrySystem.get_building_animal_count(building_type) if is_built else 0
 		var capacity = AnimalHusbandrySystem.get_building_capacity(building_type) if is_built else 0
 		_shop_btn.disabled = not is_built or animal_count >= capacity
+		print("[AnimalHusbandryUI] _shop_btn state: is_built=%s, building_type=%s, disabled=%s, text_will_be=%s" % [
+			is_built, building_type, _shop_btn.disabled,
+			"🏗️ 建造建筑" if not is_built else ("满员" if animal_count >= capacity else "🛒 去商店")])
 		if not is_built:
 			_shop_btn.text = _t("🏗️ 建造建筑")
 		elif animal_count >= capacity:
