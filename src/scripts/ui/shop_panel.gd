@@ -435,13 +435,17 @@ func _on_action_pressed() -> void:
 	if current_mode == ShopMode.BUY:
 		pass
 
-	var result = {}
 	var shop_id = Shop.ShopId.GENERAL_STORE if current_shop_type == ShopType.GENERAL else Shop.ShopId.ANIMAL_SHOP
+	print("[ShopPanel] _on_action_pressed: mode=%s, shop_type=%s, shop_id=%s, item=%s, qty=%d" % [
+		current_mode, current_shop_type, shop_id, selected_item_id, current_quantity])
 
+	var result = {}
 	if current_mode == ShopMode.BUY:
 		result = Shop.buy_item(shop_id, selected_item_id, current_quantity)
 	else:
 		result = Shop.sell_item(shop_id, selected_item_id, current_quantity)
+
+	print("[ShopPanel] buy_item result: %s" % str(result))
 	
 	if result.get("success", false):
 		var msg: String = I18n.translate("shop.purchase_success") if current_mode == ShopMode.BUY else I18n.translate("shop.sale_success")
@@ -462,8 +466,18 @@ func _on_action_pressed() -> void:
 			err_msg = I18n.translate("shop.inventory_full")
 		elif err_key == "Item not found":
 			err_msg = I18n.translate("shop.item_not_found")
+		elif err_key == "Building not built":
+			err_msg = I18n.translate("animal.building_not_built")
+		elif err_key == "Building is full":
+			err_msg = I18n.translate("animal.building_full")
+		elif err_key == "Purchase failed":
+			err_msg = I18n.translate("animal.purchase_failed")
+		elif err_key == "Animals can only be bought one at a time":
+			err_msg = I18n.translate("animal.buy_one_at_a_time")
 		else:
-			err_msg = I18n.translate("ui.unknown_error")
+			# Fallback: 显示原始错误信息，便于调试
+			err_msg = I18n.translate("ui.unknown_error") + ": " + err_key if not err_key.is_empty() else I18n.translate("ui.unknown_error")
+		print("[ShopPanel] Purchase failed: err_key=\"%s\", raw_result=%s" % [err_key, str(result)])
 		_set_status(err_msg, true)
 	
 	_clear_selection()
