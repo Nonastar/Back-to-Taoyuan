@@ -59,6 +59,9 @@ var _capacity: int = BASE_CAPACITY
 var _pending_products: Array[Dictionary] = []  ## 待收获产物 [{product_id, quality, quantity}]
 var _days_elapsed: int = 0  ## 鱼塘已运行天数
 
+## 测试用：注入的 RNG（用于测试确定性产出）。优先于内部 rng 使用。
+var _test_rng: RandomNumberGenerator = null
+
 # ============ 初始化 ============
 
 func _ready() -> void:
@@ -291,7 +294,7 @@ func _get_fish_data(fish_id: String) -> Dictionary:
 	return PONDABLE_FISH.get(fish_id, {})
 
 func _calculate_daily_production() -> void:
-	var rng = RandomNumberGenerator.new()
+	var rng = _test_rng if _test_rng else RandomNumberGenerator.new()
 
 	for fish_entry in _fish_in_pond:
 		var fish_id = fish_entry["fish_id"]

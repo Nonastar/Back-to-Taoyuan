@@ -14,8 +14,8 @@ enum HuntingArea {
 	LAKE = 2     # 湖泊：水禽/大型猎物，慢刷新
 }
 
-## 狩猎区域信息
-const AREA_DATA: Dictionary = {
+## 狩猎区域信息（默认常量，运行时通过 JSON 覆盖）
+const AREA_DATA_DEFAULT: Dictionary = {
 	HuntingArea.BUSHES: {
 		"name": "灌木丛",
 		"description": "小型猎物出没区域",
@@ -36,8 +36,8 @@ const AREA_DATA: Dictionary = {
 	}
 }
 
-## 猎物数据
-const PREY_DATA: Dictionary = {
+## 猎物数据（默认常量，运行时通过 JSON 覆盖）
+const PREY_DATA_DEFAULT: Dictionary = {
 	"rabbit": {"name": "野兔", "drops": ["fur", "meat"], "drop_rate": 0.8, "value": 15},
 	"bird": {"name": "野鸟", "drops": ["feather", "egg"], "drop_rate": 0.7, "value": 10},
 	"squirrel": {"name": "松鼠", "drops": ["nut", "fur"], "drop_rate": 0.6, "value": 8},
@@ -47,6 +47,15 @@ const PREY_DATA: Dictionary = {
 	"duck_wild": {"name": "野鸭", "drops": ["feather", "egg", "meat"], "drop_rate": 0.7, "value": 20},
 	"goose": {"name": "鹅", "drops": ["feather", "egg"], "drop_rate": 0.6, "value": 25},
 	"heron": {"name": "苍鹭", "drops": ["feather"], "drop_rate": 0.3, "value": 35}
+}
+
+## 品质掉落阈值（默认常量，运行时通过 JSON 覆盖）
+const QUALITY_DATA_DEFAULT: Dictionary = {
+	"supreme_threshold": 0.01,
+	"excellent_threshold": 0.10,
+	"fine_threshold": 0.15,
+	"skill_drop_rate_bonus_per_level": 0.05,
+	"prospector_double_drop_chance": 0.15
 }
 
 ## 猎物状态
@@ -70,48 +79,99 @@ var _area_states: Dictionary = {}
 ## 每区域最后刷新时间 {area: int} (game minutes)
 var _last_spawn_time: Dictionary = {}
 
-## 狩猎技能等级
+## 狩猎技能等级（自管理，不依赖 SkillSystem）
+## 等待 SkillSystem 支持 HUNTING 技能后，可通过 EventBus.skill_level_up 信号同步
 var _hunting_skill_level: int = 0
 
 ## 共享随机数生成器
 var _rng: RandomNumberGenerator
+
+## 狩猎冷却状态
+var _hunt_cooldown_active: bool = false
+
+## 运行时数据（从 JSON 加载，const 为默认值兜底）
+var _area_data: Dictionary = AREA_DATA_DEFAULT.duplicate()
+var _prey_data: Dictionary = PREY_DATA_DEFAULT.duplicate()
+
+## 当前生效的狩猎区域数据（供外部只读访问）
+func get_area_data() -> Dictionary:
+	return _area_data
+
+## 当前生效的猎物数据（供外部只读访问）
+func get_prey_data() -> Dictionary:
+	return _prey_data
+
+var _quality_data: Dictionary = QUALITY_DATA_DEFAULT.duplicate()
 
 # ============ 初始化 ============
 
 func _ready() -> void:
 	_rng = RandomNumberGenerator.new()
 	_rng.randomize()
+	_initialize_from_json()
 	_initialize_areas()
 	_connect_signals()
 	print("[HuntingSystem] Initialized")
 
+func _initialize_from_json() -> void:
+	if DataLoader:
+		var data = DataLoader.load_json("hunting_data.json")
+		if not data.is_empty():
+			_area_data = _parse_area_data(data.get("areas", {}))
+			_prey_data = data.get("prey", {})
+			_quality_data = data.get("quality", QUALITY_DATA_DEFAULT.duplicate())
+			print("[HuntingSystem] Loaded config from JSON")
+			return
+	print("[HuntingSystem] No hunting_data.json found, using built-in defaults")
+
 func _initialize_areas() -> void:
-	for area in AREA_DATA.keys():
+	for area in _area_data.keys():
 		_area_states[area] = PreyState.AVAILABLE
 		_last_spawn_time[area] = -999  # 初始全部可用
+
+## 解析区域数据（JSON 键为字符串，转换为枚举 int）
+func _parse_area_data(areas_json: Dictionary) -> Dictionary:
+	var result = {}
+	for key in areas_json.keys():
+		var area_id = int(key)
+		if area_id >= 0:
+			result[area_id] = areas_json[key]
+	return result
 
 func _connect_signals() -> void:
 	if EventBus and EventBus.has_signal("time_sleep_triggered"):
 		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
+	# 监听技能升级信号（未来 SkillSystem 支持 HUNTING 后可同步等级）
+	if EventBus and EventBus.has_signal("skill_level_up"):
+		EventBus.skill_level_up.connect(_on_skill_level_up)
 
 func _on_sleep_triggered(_bedtime: int, _forced: bool) -> void:
 	# 每日结算：所有区域刷新猎物
 	_daily_respawn()
+	# 重置狩猎冷却
+	_hunt_cooldown_active = false
+
+## 监听技能升级信号，未来 SkillSystem 支持 HUNTING 后同步等级
+func _on_skill_level_up(skill_type: int, _old_level: int, _new_level: int) -> void:
+	# TODO: 当 SkillSystem 添加 HUNTING 技能后，替换为检查 skill_type
+	# if skill_type == SkillSystem.HUNTING:
+	#     _hunting_skill_level = _new_level
+	pass
 
 # ============ 狩猎区域 API ============
 
 ## 获取所有狩猎区域信息
 func get_all_areas() -> Array:
 	var result: Array = []
-	for area_id in AREA_DATA.keys():
-		var data = AREA_DATA[area_id].duplicate()
+	for area_id in _area_data.keys():
+		var data = _area_data[area_id].duplicate()
 		data["area_id"] = area_id
 		data["state"] = _area_states.get(area_id, PreyState.COOLDOWN)
 		data["available"] = _area_states.get(area_id, PreyState.COOLDOWN) == PreyState.AVAILABLE
 		# 计算剩余冷却时间
 		var last_spawn = _last_spawn_time.get(area_id, -999)
-		var respawn_min = AREA_DATA[area_id].get("respawn_minutes", 10)
-		var current_time = TimeManager.current_minute_of_day if TimeManager else 0
+		var respawn_min = _area_data[area_id].get("respawn_minutes", 10)
+		var current_time = TimeManager.current_hour * 60 if TimeManager else 0
 		var elapsed = current_time - last_spawn
 		data["cooldown_remaining"] = maxf(0.0, respawn_min - elapsed)
 		result.append(data)
@@ -123,19 +183,26 @@ func is_area_available(area: int) -> bool:
 
 ## 获取区域信息
 func get_area_info(area: int) -> Dictionary:
-	var data = AREA_DATA.get(area, {})
+	var data = _area_data.get(area, {})
 	var result = data.duplicate()
 	result["area_id"] = area
 	result["state"] = _area_states.get(area, PreyState.COOLDOWN)
 	result["available"] = _area_states.get(area, PreyState.COOLDOWN) == PreyState.AVAILABLE
 	return result
 
+# ============ 狩猎操作 API（公开设置技能等级，供测试/调试用）============
+
+## 设置狩猎技能等级（未来由 SkillSystem 驱动）
+func set_hunting_skill_level(level: int) -> void:
+	_hunting_skill_level = clampi(level, 0, 10)
+	print("[HuntingSystem] Skill level set to: %d" % _hunting_skill_level)
+
 # ============ 狩猎操作 ============
 
 ## 尝试狩猎指定区域
 ## 返回: {success, prey_id, drops, message}
 func hunt_in_area(area: int) -> Dictionary:
-	if not AREA_DATA.has(area):
+	if not _area_data.has(area):
 		return {"success": false, "message": "无效狩猎区域"}
 
 	if not is_area_available(area):
@@ -151,12 +218,12 @@ func hunt_in_area(area: int) -> Dictionary:
 		return {"success": false, "message": "需要先提升狩猎技能"}
 
 	# 选择猎物类型
-	var prey_types = AREA_DATA[area].get("prey_types", [])
+	var prey_types = _area_data[area].get("prey_types", [])
 	if prey_types.is_empty():
 		return {"success": false, "message": "该区域无猎物"}
 
 	var prey_id = prey_types[_rng.randi() % prey_types.size()]
-	var prey_info = PREY_DATA.get(prey_id, {})
+	var prey_info = _prey_data.get(prey_id, {})
 
 	# 计算掉落
 	var drops = _calculate_drops(prey_id, skill_level)
@@ -168,7 +235,7 @@ func hunt_in_area(area: int) -> Dictionary:
 
 	# 更新区域状态
 	_area_states[area] = PreyState.COOLDOWN
-	_last_spawn_time[area] = TimeManager.current_minute_of_day if TimeManager else 0
+	_last_spawn_time[area] = TimeManager.current_hour * 60 if TimeManager else 0
 
 	prey_hunted.emit(prey_id, drops)
 
@@ -194,7 +261,7 @@ func hunt_in_area(area: int) -> Dictionary:
 
 ## 检查指定区域当前是否有猎物
 func check_area_status(area: int) -> Dictionary:
-	if not AREA_DATA.has(area):
+	if not _area_data.has(area):
 		return {"available": false, "cooldown": 0, "reason": "无效区域"}
 
 	if is_area_available(area):
@@ -210,33 +277,34 @@ func check_area_status(area: int) -> Dictionary:
 # ============ 私有方法 ============
 
 func _get_hunting_skill_level() -> int:
-	if SkillSystem and SkillSystem.has_method("get_skill_level"):
-		return SkillSystem.get_skill_level("hunting")
-	return 0
+	# TODO: 当 SkillSystem 支持 HUNTING 技能后，替换为直接从 SkillSystem 获取
+	# return SkillSystem.get_skill_level(SkillSystem.SkillType.HUNTING)
+	return _hunting_skill_level
 
 func _get_cooldown_remaining(area: int) -> int:
 	var last_spawn = _last_spawn_time.get(area, -999)
-	var respawn_min = AREA_DATA[area].get("respawn_minutes", 10)
-	var current_time = TimeManager.current_minute_of_day if TimeManager else 0
+	var respawn_min = _area_data[area].get("respawn_minutes", 10)
+	var current_time = TimeManager.current_hour * 60 if TimeManager else 0
 	var elapsed = current_time - last_spawn
 	return maxi(0, respawn_min - elapsed)
 
 func _use_hunting_cooldown(area: int) -> bool:
-	# 使用狩猎技能（消耗体力或触发冷却）
-	if SkillSystem and SkillSystem.has_method("use_skill"):
-		return SkillSystem.use_skill("hunting", 1)
+	# 使用自管理的狩猎冷却（等待 SkillSystem 支持 HUNTING 后可替换）
+	if _hunt_cooldown_active:
+		return false
+	_hunt_cooldown_active = true
 	return true
 
 func _calculate_drops(prey_id: String, skill_level: int) -> Array:
-	var prey_info = PREY_DATA.get(prey_id, {})
+	var prey_info = _prey_data.get(prey_id, {})
 	var drop_list = prey_info.get("drops", [])
 	var drop_rate = prey_info.get("drop_rate", 0.5)
-	var base_value = prey_info.get("value", 10)
 
 	var drops: Array = []
 	for drop_item in drop_list:
-		# 技能加成：每级 +5% 掉落率
-		var effective_rate = drop_rate + (skill_level * 0.05)
+		# 技能加成：每级 +5% 掉落率（可由 JSON 配置）
+		var skill_bonus_per_level = _quality_data.get("skill_drop_rate_bonus_per_level", 0.05)
+		var effective_rate = drop_rate + (skill_level * skill_bonus_per_level)
 		if _rng.randf() < effective_rate:
 			var quality = _calculate_drop_quality(skill_level)
 			drops.append({
@@ -245,28 +313,30 @@ func _calculate_drops(prey_id: String, skill_level: int) -> Array:
 				"quality": quality
 			})
 			# Prospector 天赋: 双倍掉落
+			var prospector_chance = _quality_data.get("prospector_double_drop_chance", 0.15)
 			if SkillSystem and SkillSystem.has_method("has_talent") and SkillSystem.has_talent("prospector"):
-				if _rng.randf() < 0.15:
+				if _rng.randf() < prospector_chance:
 					drops.append({"item_id": drop_item, "quantity": 1, "quality": quality})
 	return drops
 
 func _calculate_drop_quality(skill_level: int) -> int:
-	# 技能加成高品质概率
-	var quality_chance = 0.05 + (skill_level * 0.02)
 	var roll = _rng.randf()
-	if roll < 0.01:
+	var supreme_th = _quality_data.get("supreme_threshold", 0.01)
+	var excellent_th = _quality_data.get("excellent_threshold", 0.10)
+	var fine_th = _quality_data.get("fine_threshold", 0.15)
+	if roll < supreme_th:
 		return Quality.SUPREME
-	elif roll < 0.01 + 0.09:
+	elif roll < excellent_th:
 		return Quality.EXCELLENT
-	elif roll < quality_chance:
+	elif roll < fine_th:
 		return Quality.FINE
 	return Quality.NORMAL
 
 func _daily_respawn() -> void:
-	for area in AREA_DATA.keys():
+	for area in _area_data.keys():
 		_area_states[area] = PreyState.AVAILABLE
 		_last_spawn_time[area] = -999  # 重置
-		var prey_types = AREA_DATA[area].get("prey_types", [])
+		var prey_types = _area_data[area].get("prey_types", [])
 		if not prey_types.is_empty():
 			prey_spawned.emit(area, prey_types[_rng.randi() % prey_types.size()])
 	area_respawned.emit(-1)  # -1 = 所有区域
@@ -276,16 +346,20 @@ func _daily_respawn() -> void:
 func serialize() -> Dictionary:
 	return {
 		"area_states": _area_states,
-		"last_spawn_time": _last_spawn_time
+		"last_spawn_time": _last_spawn_time,
+		"hunting_skill_level": _hunting_skill_level,
+		"hunt_cooldown_active": _hunt_cooldown_active
 	}
 
 func deserialize(data: Dictionary) -> void:
 	_area_states = data.get("area_states", {})
 	_last_spawn_time = data.get("last_spawn_time", {})
+	_hunting_skill_level = data.get("hunting_skill_level", 0)
+	_hunt_cooldown_active = data.get("hunt_cooldown_active", false)
 	# 确保所有区域初始化
-	for area in AREA_DATA.keys():
+	for area in _area_data.keys():
 		if not _area_states.has(area):
 			_area_states[area] = PreyState.AVAILABLE
 		if not _last_spawn_time.has(area):
 			_last_spawn_time[area] = -999
-	print("[HuntingSystem] Loaded: areas=%d" % _area_states.size())
+	print("[HuntingSystem] Loaded: areas=%d, skill_level=%d" % [_area_states.size(), _hunting_skill_level])

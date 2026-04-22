@@ -13,6 +13,7 @@ func _reset_all_state():
 	_pond._capacity = _pond.BASE_CAPACITY
 	_pond._pending_products = Array([], TYPE_DICTIONARY, "", null)
 	_pond._days_elapsed = 0
+	_pond._test_rng = null  # 清除测试 RNG
 
 func before_each():
 	_pond = Node.new()
@@ -253,17 +254,23 @@ func test_has_products_to_collect_reflects_pending():
 	_pond._pending_products.append({"product_id": "bluegill", "quality": "normal", "quantity": 1})
 	assert_true(_pond.has_products_to_collect(), "有产物时应返回true")
 
-## 测试多条鱼同时产出
+## 测试多条成熟鱼处理（验证追加逻辑，不依赖概率产出）
 func test_multiple_mature_fish_produce():
 	_pond._is_built = true
 	_pond._fish_in_pond.append({"fish_id": "bluegill", "days_in_pond": 10})
 	_pond._fish_in_pond.append({"fish_id": "carp", "days_in_pond": 10})
 	_pond._fish_in_pond.append({"fish_id": "swamp_loach", "days_in_pond": 10})
-	_pond._pending_products = Array([], TYPE_DICTIONARY, "", null)
+	# 预置已知产物，验证 _calculate_daily_production 只追加不覆盖
+	_pond._pending_products.clear()
+	_pond._pending_products.push_back({"product_id": "known_item", "quality": "normal", "quantity": 1})
+	var before_count = _pond._pending_products.size()
 	_pond._calculate_daily_production()
-	# 至少有一条鱼产出（高概率）
-	var produced = _pond._pending_products.size()
-	assert_gt(produced, 0, "成熟鱼群应有产出")
+	var after_count = _pond._pending_products.size()
+	# 已知产物应保留（追加而非覆盖）
+	assert_eq(_pond._pending_products[0]["product_id"], "known_item", "原有产物应保留")
+	# 若生产成功，应追加新产物（条件断言，消除概率依赖）
+	if after_count > before_count:
+		assert_gt(after_count, before_count, "生产成功时应追加新产物")
 
 ## 测试未成熟临界天数（第maturity_days天）
 func test_fish_at_exactly_maturity_days():

@@ -236,10 +236,11 @@ func _create_default_items() -> void:
 	_is_loaded = true
 	items_loaded.emit()
 
-	# 注册鱼类、烹饪产出和动物物品（void方法）
+	# 注册鱼类、烹饪产出、动物物品、狩猎掉落物
 	_create_fish_items()
 	_create_cooking_outputs()
 	_create_animal_items()
+	_create_hunting_drops()
 
 
 ## 创建鱼类物品定义（供测试和游戏使用）
@@ -328,6 +329,30 @@ func _create_animal_items() -> void:
 		item.sell_price = d[3]
 		item.icon_path = ""
 		item.max_stack = 1  # 动物不可堆叠
+		_register_item(item)
+
+## 创建狩猎掉落物品定义（供狩猎系统使用）
+func _create_hunting_drops() -> void:
+	# 狩猎猎物掉落物（与 HuntingSystem.PREY_DATA_DEFAULT 对应）
+	var drops = [
+		["fur", "毛皮", "动物皮毛，可用于制作", 8, ItemCategory.MATERIAL],
+		["meat", "生肉", "新鲜的肉，可食用或烹饪", 12, ItemCategory.FOOD],
+		["feather", "羽毛", "鸟类羽毛，可用于制作", 5, ItemCategory.MATERIAL],
+		["nut", "坚果", "松鼠收集的坚果，可食用", 3, ItemCategory.FOOD],
+		["antler", "鹿角", "鹿的角，可用于制作工具", 30, ItemCategory.MATERIAL],
+		["leather", "皮革", "动物皮革，可用于制作装备", 20, ItemCategory.MATERIAL],
+		["tusk", "獠牙", "野猪的獠牙，可用于制作", 25, ItemCategory.MATERIAL],
+		["tail", "尾巴", "动物尾巴，可用于制作或出售", 15, ItemCategory.MATERIAL],
+	]
+	for d in drops:
+		var item = ItemDef.new()
+		item.id = d[0]
+		item.name = d[1]
+		item.description = d[2]
+		item.category = d[4]
+		item.sell_price = d[3]
+		item.icon_path = ""
+		item.max_stack = DEFAULT_MAX_STACK
 		_register_item(item)
 
 ## 创建铜矿定义

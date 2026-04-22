@@ -130,6 +130,7 @@ func talk_to(npc_id: String) -> Dictionary:
 	var old = get_friendship(npc_id)
 	var new = _modify_friendship(npc_id, TALK_GAIN)
 	npc_talked.emit(npc_id, TALK_GAIN)
+	friendship_changed.emit(npc_id, old, new)
 
 	return {
 		"success": true,

@@ -1,0 +1,91 @@
+{
+  "_comment": "狩猎系统配置数据 - 由 HuntingSystem 加载",
+  "_version": "1.0",
+  "_last_updated": "2026-04-21",
+
+  "areas": {
+    "0": {
+      "name": "灌木丛",
+      "description": "小型猎物出没区域",
+      "respawn_minutes": 5,
+      "prey_types": ["rabbit", "bird", "squirrel"]
+    },
+    "1": {
+      "name": "森林",
+      "description": "中型猎物出没区域",
+      "respawn_minutes": 10,
+      "prey_types": ["deer", "boar", "fox"]
+    },
+    "2": {
+      "name": "湖泊",
+      "description": "水禽和大型猎物出没区域",
+      "respawn_minutes": 15,
+      "prey_types": ["duck_wild", "goose", "heron"]
+    }
+  },
+
+  "prey": {
+    "rabbit": {
+      "name": "野兔",
+      "drops": ["fur", "meat"],
+      "drop_rate": 0.8,
+      "value": 15
+    },
+    "bird": {
+      "name": "野鸟",
+      "drops": ["feather", "egg"],
+      "drop_rate": 0.7,
+      "value": 10
+    },
+    "squirrel": {
+      "name": "松鼠",
+      "drops": ["nut", "fur"],
+      "drop_rate": 0.6,
+      "value": 8
+    },
+    "deer": {
+      "name": "鹿",
+      "drops": ["antler", "meat", "leather"],
+      "drop_rate": 0.5,
+      "value": 50
+    },
+    "boar": {
+      "name": "野猪",
+      "drops": ["tusk", "meat", "leather"],
+      "drop_rate": 0.5,
+      "value": 40
+    },
+    "fox": {
+      "name": "狐狸",
+      "drops": ["fur", "tail"],
+      "drop_rate": 0.4,
+      "value": 30
+    },
+    "duck_wild": {
+      "name": "野鸭",
+      "drops": ["feather", "egg", "meat"],
+      "drop_rate": 0.7,
+      "value": 20
+    },
+    "goose": {
+      "name": "鹅",
+      "drops": ["feather", "egg"],
+      "drop_rate": 0.6,
+      "value": 25
+    },
+    "heron": {
+      "name": "苍鹭",
+      "drops": ["feather"],
+      "drop_rate": 0.3,
+      "value": 35
+    }
+  },
+
+  "quality": {
+    "supreme_threshold": 0.01,
+    "excellent_threshold": 0.10,
+    "fine_threshold": 0.15,
+    "skill_drop_rate_bonus_per_level": 0.05,
+    "prospector_double_drop_chance": 0.15
+  }
+}

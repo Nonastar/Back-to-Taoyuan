@@ -1,0 +1,92 @@
+{
+  "_comment": "NPC数据配置 - 由 NpcFriendshipSystem 加载",
+  "_version": "1.0",
+  "_last_updated": "2026-04-21",
+
+  "npcs": [
+    {
+      "id": "linxia",
+      "name": "林霞",
+      "gender": "female",
+      "location": "village_center",
+      "friendship": 0
+    },
+    {
+      "id": "zhangwei",
+      "name": "张伟",
+      "gender": "male",
+      "location": "farm",
+      "friendship": 0
+    },
+    {
+      "id": "wenhui",
+      "name": "文辉",
+      "gender": "male",
+      "location": "library",
+      "friendship": 0
+    },
+    {
+      "id": "fenghua",
+      "name": "冯华",
+      "gender": "female",
+      "location": "forest",
+      "friendship": 0
+    },
+    {
+      "id": "junior",
+      "name": "阿俊",
+      "gender": "male",
+      "location": "river",
+      "friendship": 0
+    },
+    {
+      "id": "xiaomei",
+      "name": "小梅",
+      "gender": "female",
+      "location": "mountain",
+      "friendship": 0
+    },
+    {
+      "id": "oldman_zhao",
+      "name": "老赵",
+      "gender": "male",
+      "location": "village_east",
+      "friendship": 0
+    },
+    {
+      "id": "aunt_wang",
+      "name": "王婶",
+      "gender": "female",
+      "location": "village_west",
+      "friendship": 0
+    },
+    {
+      "id": "teacher_lin",
+      "name": "林老师",
+      "gender": "female",
+      "location": "school",
+      "friendship": 0
+    },
+    {
+      "id": "traveler_yu",
+      "name": "旅人阿宇",
+      "gender": "male",
+      "location": "travel",
+      "friendship": 0
+    },
+    {
+      "id": "merchant_chen",
+      "name": "商人陈",
+      "gender": "male",
+      "location": "market",
+      "friendship": 0
+    },
+    {
+      "id": "healer_xu",
+      "name": "徐大夫",
+      "gender": "male",
+      "location": "clinic",
+      "friendship": 0
+    }
+  ]
+}
