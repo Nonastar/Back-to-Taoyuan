@@ -570,8 +570,9 @@ func _update_slot_style(index: int) -> void:
 const INTERRUPT_PRIORITY_THRESHOLD: int = 3
 
 func _show_notification(text: String) -> void:
-	# 旧的单条队列接口，兼容 NotificationManager 的 show_message 委托
-	_add_toast_queue({"text": text, "color": Color(1, 1, 1), "priority": 0, "duration": 2.5})
+	# 统一通过 NotificationManager 显示（与 show_message 路径一致）
+	if NotificationManager:
+		NotificationManager.show_info(text)
 
 func show_message(text: String, color: Color = Color(1, 1, 1)) -> void:
 	# NotificationManager 调用此方法显示飘窗
