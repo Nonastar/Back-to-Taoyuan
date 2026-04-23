@@ -30,8 +30,8 @@ var _queue: Array[Dictionary] = []
 ## 是否正在显示
 var _is_showing: bool = false
 
-## HUD引用
-var _hud: Control = null
+## HUD引用（可能是 CanvasLayer，不是 Control）
+var _hud: Node = null
 
 ## 调试模式
 var _debug_mode: bool = false
@@ -78,7 +78,7 @@ func _connect_signals() -> void:
 		EventBus.resume_requested.connect(_on_resume_requested)
 
 ## 查找HUD
-func _find_hud() -> Control:
+func _find_hud() -> Node:
 	if _hud != null:
 		return _hud
 	var tree = get_tree()
@@ -87,11 +87,13 @@ func _find_hud() -> Control:
 	# 优先从 group 查找（最可靠）
 	var hud_nodes = tree.get_nodes_in_group("hud")
 	if hud_nodes.size() > 0:
-		_hud = hud_nodes[0] as Control
-		return _hud
+		var raw = hud_nodes[0]
+		if raw != null and raw.has_method("show_message"):
+			_hud = raw
+			return _hud
 	# 兜底：递归查找
 	var root = tree.root
-	_hud = root.find_child("HUD", true, false) as Control
+	_hud = root.find_child("HUD", true, false)
 	return _hud
 
 # ============ 公共API ============

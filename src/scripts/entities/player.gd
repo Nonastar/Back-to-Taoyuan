@@ -271,6 +271,8 @@ func _cycle_tool(direction: int) -> void:
 	_switch_tool(new_tool as ToolType)
 
 func _show_message(msg: String) -> void:
+	if NotificationManager:
+		NotificationManager.show_info(msg)
 	print("[Player] " + str(msg))
 
 # ============ 公共方法 ============
