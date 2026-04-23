@@ -80,7 +80,7 @@ var _area_states: Dictionary = {}
 var _last_spawn_time: Dictionary = {}
 
 ## 狩猎技能等级（自管理，不依赖 SkillSystem）
-## 等待 SkillSystem 支持 HUNTING 技能后，可通过 EventBus.skill_level_up 信号同步
+## 现在使用 SkillSystem.SkillType.HUNTING，直接从 SkillSystem 获取
 var _hunting_skill_level: int = 0
 
 ## 共享随机数生成器
@@ -151,12 +151,11 @@ func _on_sleep_triggered(_bedtime: int, _forced: bool) -> void:
 	# 重置狩猎冷却
 	_hunt_cooldown_active = false
 
-## 监听技能升级信号，未来 SkillSystem 支持 HUNTING 后同步等级
+## 监听技能升级信号，同步狩猎技能等级
 func _on_skill_level_up(skill_type: int, _old_level: int, _new_level: int) -> void:
-	# TODO: 当 SkillSystem 添加 HUNTING 技能后，替换为检查 skill_type
-	# if skill_type == SkillSystem.HUNTING:
-	#     _hunting_skill_level = _new_level
-	pass
+	if SkillSystem and skill_type == SkillSystem.SkillType.HUNTING:
+		_hunting_skill_level = _new_level
+		print("[HuntingSystem] Hunting skill synced from SkillSystem: Lv.%d" % _new_level)
 
 # ============ 狩猎区域 API ============
 
@@ -277,8 +276,9 @@ func check_area_status(area: int) -> Dictionary:
 # ============ 私有方法 ============
 
 func _get_hunting_skill_level() -> int:
-	# TODO: 当 SkillSystem 支持 HUNTING 技能后，替换为直接从 SkillSystem 获取
-	# return SkillSystem.get_skill_level(SkillSystem.SkillType.HUNTING)
+	# 直接从 SkillSystem 获取狩猎技能等级
+	if SkillSystem and SkillSystem.has_method("get_level"):
+		return SkillSystem.get_level(SkillSystem.SkillType.HUNTING)
 	return _hunting_skill_level
 
 func _get_cooldown_remaining(area: int) -> int:

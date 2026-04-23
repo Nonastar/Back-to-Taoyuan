@@ -158,7 +158,7 @@ func test_perk_10():
 func test_get_all_skills_info():
 	_reset_all_state()
 	var info = _skill.get_all_skills_info()
-	assert_eq(info.size(), 5, "应有5个技能")
+	assert_eq(info.size(), 6, "应有6个技能（Sprint 8 狩猎技能）")
 
 ## 测试存档/加载
 func test_serialize_deserialize():

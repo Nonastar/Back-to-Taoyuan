@@ -281,6 +281,12 @@ func _harvest() -> bool:
 
 		# 发送收获信号
 		crop_harvested.emit(crop_id, quantity, final_quality)
+		# 同步到 EventBus（供 QuestSystem 等系统监听）
+		if EventBus:
+			EventBus.farm_crop_harvested.emit(
+				"plot_%d,%d" % [grid_position.x, grid_position.y],
+				crop_id, quantity, final_quality
+			)
 
 		# 重置为已耕地
 		state = PlotState.TILLED

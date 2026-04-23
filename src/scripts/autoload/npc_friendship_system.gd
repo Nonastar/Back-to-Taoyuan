@@ -131,6 +131,9 @@ func talk_to(npc_id: String) -> Dictionary:
 	var new = _modify_friendship(npc_id, TALK_GAIN)
 	npc_talked.emit(npc_id, TALK_GAIN)
 	friendship_changed.emit(npc_id, old, new)
+	if EventBus:
+		EventBus.npc_talked.emit(npc_id, TALK_GAIN)
+		EventBus.friendship_changed.emit(npc_id, old, new)
 
 	return {
 		"success": true,
@@ -160,6 +163,16 @@ func get_shop_discount(npc_id: String) -> float:
 			discount = 0.0
 	_discount_cache[npc_id] = discount
 	return discount
+
+## 增加好感度（任务奖励/成就奖励等，不受每日对话限制）
+func add_friendship(npc_id: String, gain: int) -> void:
+	if not _npcs.has(npc_id):
+		return
+	var old = get_friendship(npc_id)
+	var new = _modify_friendship(npc_id, gain)
+	friendship_changed.emit(npc_id, old, new)
+	if EventBus:
+		EventBus.friendship_changed.emit(npc_id, old, new)
 
 # ============ 私有方法 ============
 
@@ -202,6 +215,8 @@ func _modify_friendship(npc_id: String, delta: int) -> int:
 		if _discount_cache.has(npc_id):
 			_discount_cache.erase(npc_id)
 	friendship_changed.emit(npc_id, old, new_val)
+	if EventBus:
+		EventBus.friendship_changed.emit(npc_id, old, new_val)
 	return new_val
 
 # ============ 存档支持 ============

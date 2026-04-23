@@ -54,6 +54,12 @@ func _connect_signals() -> void:
 	# 连接日期变化信号，推进烹饪和Buff
 	if EventBus and EventBus.has_signal("time_day_changed"):
 		EventBus.time_day_changed.connect(_on_day_changed)
+	# 转发烹饪完成事件到 EventBus（供 QuestSystem 等系统监听）
+	cooking_finished.connect(_on_cooking_finished)
+
+func _on_cooking_finished(recipe_id: String) -> void:
+	if EventBus:
+		EventBus.cooking_completed.emit(recipe_id)
 
 # ============ 食谱初始化 ============
 

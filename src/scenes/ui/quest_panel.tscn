@@ -1,0 +1,46 @@
+[gd_scene format=3 uid="uid://k47m85pfb5"]
+
+[ext_resource type="Script" uid="uid://fi6k587ju1w" path="res://src/scripts/ui/quest_ui.gd" id="1_script"]
+
+[node name="QuestPanel" type="PanelContainer"]
+offset_right = 400.0
+offset_bottom = 500.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=3001]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="VBox" unique_id=3002]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox/Header" unique_id=3003]
+layout_mode = 2
+text = "📜 任务"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header" unique_id=3004]
+layout_mode = 2
+text = "X"
+
+[node name="Tabs" type="TabContainer" parent="VBox" unique_id=3005]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MainQuests" type="Tab" parent="VBox/Tabs" unique_id=3006]
+visible = true
+text = "主线"
+
+[node name="MainQuestList" type="VBoxContainer" parent="VBox/Tabs/MainQuests" unique_id=3007]
+layout_mode = 2
+
+[node name="DailyQuests" type="Tab" parent="VBox/Tabs" unique_id=3008]
+text = "委托"
+
+[node name="DailyQuestList" type="VBoxContainer" parent="VBox/Tabs/DailyQuests" unique_id=3009]
+layout_mode = 2
+
+[node name="EmptyLabel" type="Label" parent="VBox/Tabs/DailyQuests/DailyQuestList" unique_id=3010]
+layout_mode = 2
+text = "（暂无告示栏委托）"
+horizontal_alignment = 1

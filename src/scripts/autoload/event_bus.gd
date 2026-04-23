@@ -52,8 +52,16 @@ signal ui_notification(message: String, duration: float, priority: int)
 signal ui_achievement_unlocked(achievement_id: String)
 signal ui_tutorial_triggered(tutorial_id: String)
 signal panel_changed(panel_key: String)
-signal notification_show(message: String, duration: float)
 signal quick_button_pressed(button_id: String)
+
+## 飘窗通知事件（GDD标准信号）
+## notification_requested(text, type, priority, duration, id, icon_path)
+## type: 0=GAIN, 1=COST, 2=SUCCESS, 3=WARNING, 4=ERROR, 5=SYSTEM
+signal notification_requested(text: String, type: int, priority: int, duration: float, id: String, icon_path: String)
+
+## 场景/UI 暂停恢复事件
+signal pause_requested()    # 进入全屏UI/菜单时发送，飘窗队列暂停
+signal resume_requested()   # 退出全屏UI/菜单时发送，飘窗队列恢复
 
 ## 游戏状态事件
 signal game_state_changed(from: int, to: int)
@@ -68,6 +76,19 @@ signal load_completed(slot: int, success: bool)
 
 ## 天气事件
 signal weather_changed(weather_type: String)
+
+## NPC好感度事件
+signal npc_talked(npc_id: String, gain: int)
+signal npc_gifted(npc_id: String, item_id: String, gain: int, reaction: String)
+signal friendship_changed(npc_id: String, old_value: int, new_value: int)
+signal heart_event_triggered(npc_id: String, event_id: String)
+
+## 烹饪/加工事件
+signal cooking_completed(recipe_id: String)
+signal processing_completed(output_item_id: String)
+
+## 采矿/探索事件
+signal mine_floor_reached(floor: int)
 
 ## 钓鱼事件
 signal fishing_started()

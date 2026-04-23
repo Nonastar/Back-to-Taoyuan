@@ -100,8 +100,8 @@ func try_start_fishing() -> bool:
 
 ## 显示消息
 func _show_message(msg: String) -> void:
-	if EventBus:
-		EventBus.notification_show.emit(msg, 2.0)
+	if NotificationManager:
+		NotificationManager.show_info(msg)
 	print("[FishPond] " + str(msg))
 
 # ============ 鱼塘管理UI ============

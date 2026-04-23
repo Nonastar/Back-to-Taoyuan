@@ -1,0 +1,41 @@
+[gd_scene format=3 uid="uid://hunting_panel_001"]
+
+[ext_resource type="Script" uid="uid://3c17ec05faf4452f" path="res://src/scripts/ui/hunting_ui.gd" id="1_script"]
+
+[node name="HuntingPanel" type="PanelContainer"]
+offset_right = 350.0
+offset_bottom = 400.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=2001]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="VBox" unique_id=2002]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox/Header" unique_id=2003]
+layout_mode = 2
+text = "🏹 狩猎"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header" unique_id=2004]
+layout_mode = 2
+text = "X"
+
+[node name="SkillInfo" type="HBoxContainer" parent="VBox" unique_id=2005]
+layout_mode = 2
+
+[node name="SkillLabel" type="Label" parent="VBox/SkillInfo" unique_id=2006]
+layout_mode = 2
+text = "狩猎技能: Lv.0"
+
+[node name="AreaList" type="VBoxContainer" parent="VBox" unique_id=2007]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ResultLabel" type="Label" parent="VBox" unique_id=2008]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2

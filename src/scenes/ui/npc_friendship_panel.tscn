@@ -1,0 +1,42 @@
+[gd_scene format=3 uid="uid://npc_friendship_panel_001"]
+
+[ext_resource type="Script" uid="uid://8f180d5a88234b9f" path="res://src/scripts/ui/npc_friendship_ui.gd" id="1_script"]
+
+[node name="NpcFriendshipPanel" type="PanelContainer"]
+offset_right = 400.0
+offset_bottom = 500.0
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="." unique_id=1001]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="VBox" unique_id=1002]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBox/Header" unique_id=1003]
+layout_mode = 2
+text = "🧑‍🤝‍🧑 NPC好感度"
+horizontal_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header" unique_id=1004]
+layout_mode = 2
+text = "X"
+
+[node name="NPCScroll" type="ScrollContainer" parent="VBox" unique_id=1005]
+custom_minimum_size = Vector2(0, 400)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="NPCList" type="VBoxContainer" parent="VBox/NPCScroll" unique_id=1006]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Footer" type="HBoxContainer" parent="VBox" unique_id=1007]
+layout_mode = 2
+
+[node name="TipLabel" type="Label" parent="VBox/Footer" unique_id=1008]
+layout_mode = 2
+text = "点击NPC进行对话（每日一次）"
+horizontal_alignment = 1

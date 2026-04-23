@@ -507,12 +507,12 @@ func _get_panel_group(panel_key: String) -> String:
 # ============ 消息显示 ============
 
 func _show_travel_message(msg: String) -> void:
-	if EventBus and EventBus.has_signal("notification_show"):
-		EventBus.notification_show.emit(msg, 2.0)
+	if NotificationManager:
+		NotificationManager.show_info(msg)
 
 func _show_error_message(msg: String) -> void:
-	if EventBus and EventBus.has_signal("notification_show"):
-		EventBus.notification_show.emit(msg, 3.0)
+	if NotificationManager:
+		NotificationManager.show_warning(msg)
 
 ## 获取商店营业状态
 func _get_shop_status(panel_key: String) -> Dictionary:

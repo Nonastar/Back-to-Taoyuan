@@ -12,7 +12,8 @@ enum SkillType {
 	FORAGING = 1,   # 采集
 	FISHING = 2,    # 钓鱼
 	MINING = 3,     # 采矿
-	COMBAT = 4      # 战斗
+	COMBAT = 4,     # 战斗
+	HUNTING = 5     # 狩猎 (Sprint 8 补全)
 }
 
 ## 技能名称
@@ -21,7 +22,8 @@ const SKILL_NAMES: Dictionary = {
 	SkillType.FORAGING: "采集",
 	SkillType.FISHING: "钓鱼",
 	SkillType.MINING: "采矿",
-	SkillType.COMBAT: "战斗"
+	SkillType.COMBAT: "战斗",
+	SkillType.HUNTING: "狩猎"
 }
 
 ## 技能 Emoji
@@ -30,7 +32,8 @@ const SKILL_EMOJIS: Dictionary = {
 	SkillType.FORAGING: "🍄",
 	SkillType.FISHING: "🎣",
 	SkillType.MINING: "⛏️",
-	SkillType.COMBAT: "⚔️"
+	SkillType.COMBAT: "⚔️",
+	SkillType.HUNTING: "🏹"
 }
 
 # ============ 经验表 ============
@@ -71,7 +74,8 @@ var _skills: Dictionary = {
 	SkillType.FORAGING: SkillState.new(),
 	SkillType.FISHING: SkillState.new(),
 	SkillType.MINING: SkillState.new(),
-	SkillType.COMBAT: SkillState.new()
+	SkillType.COMBAT: SkillState.new(),
+	SkillType.HUNTING: SkillState.new()
 }
 
 ## 经验加成 (来自装备等)

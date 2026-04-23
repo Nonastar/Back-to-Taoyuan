@@ -95,8 +95,6 @@ var _close_btn: Button
 var _shop_btn: Button  ## 新增：商店快捷按钮
 var _feed_cost_label: Label  ## 新增：喂养成本提示
 var _dirty_label: Label  ## 新增：脏乱状态提示
-var _toast_label: Label  ## 飘窗通知Label
-var _toast_timer: float = 0.0
 
 # ============ 状态 ============
 
@@ -108,7 +106,6 @@ var _current_focus_index: int = -1
 
 func _ready() -> void:
 	_instance = self
-	set_process(true)
 	_setup_node_references()
 	_connect_signals()
 	_show_ui()
@@ -151,33 +148,7 @@ func _setup_node_references() -> void:
 				_close_btn = bottom_buttons.get_node_or_null("CloseBtn")
 				_shop_btn = bottom_buttons.get_node_or_null("ShopBtn")
 
-		# 创建飘窗通知Label（始终在最上层）
-	_toast_label = Label.new()
-	_toast_label.name = "ToastLabel"
-	_toast_label.anchors_preset = Control.PRESET_CENTER
-	_toast_label.offset_left = -200
-	_toast_label.offset_top = -150
-	_toast_label.offset_right = 200
-	_toast_label.offset_bottom = -110
-	_toast_label.size = Vector2(400, 40)
-	_toast_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_toast_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_toast_label.modulate.a = 0
-	_toast_label.z_index = 100  # 确保在最上层
-	var toast_bg = StyleBoxFlat.new()
-	toast_bg.bg_color = Color(0, 0, 0, 0.85)
-	toast_bg.corner_radius_top_left = 8
-	toast_bg.corner_radius_top_right = 8
-	toast_bg.corner_radius_bottom_right = 8
-	toast_bg.corner_radius_bottom_left = 8
-	toast_bg.content_margin_left = 16
-	toast_bg.content_margin_right = 16
-	toast_bg.content_margin_top = 8
-	toast_bg.content_margin_bottom = 8
-	_toast_label.add_theme_stylebox_override("normal", toast_bg)
-	add_child(_toast_label)
-
-	# 设置悬停效果
+		# 设置悬停效果
 	_setup_hover_effect(_coop_tab_btn)
 	_setup_hover_effect(_barn_tab_btn)
 	_setup_hover_effect(_feed_all_btn)
@@ -908,34 +879,11 @@ func _navigate_focus(direction: int) -> void:
 	if btn and is_instance_valid(btn):
 		btn.grab_focus()
 
-# ============ 飘窗通知 ============
+# ============ 飘窗通知（使用全局 NotificationManager） ============
 
-func _process(delta: float) -> void:
-	if _toast_timer > 0:
-		_toast_timer -= delta
-		if _toast_timer <= 0:
-			_hide_toast()
-
-## 显示飘窗通知（橙色警告，不被遮挡）
+## 显示飘窗通知（橙色警告，不被遮挡）— 迁移至全局 NotificationManager
 func _show_toast(text: String, is_error: bool = false) -> void:
-	if _toast_label == null:
-		push_error("[AnimalHusbandryUI] _toast_label is null!")
-		return
-	_toast_label.text = text
-	_toast_label.modulate.a = 0
-	_toast_label.modulate.r = 1.0
-	_toast_label.modulate.g = 0.6 if is_error else 0.9
-	_toast_label.modulate.b = 0.2 if is_error else 0.5
-	# 停止可能正在运行的动画，重新开始
-	var tw = create_tween()
-	tw.kill()
-	tw = create_tween()
-	tw.tween_property(_toast_label, "modulate:a", 1.0, 0.25)
-	_toast_timer = 3.0
-
-func _hide_toast() -> void:
-	if not _toast_label:
-		return
-	var tw = create_tween()
-	tw.tween_property(_toast_label, "modulate:a", 0.0, 0.3)
-	tw.tween_callback(func(): _toast_timer = 0)
+	if is_error:
+		NotificationManager.show_error(text)
+	else:
+		NotificationManager.show_warning(text)

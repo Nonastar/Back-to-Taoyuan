@@ -89,15 +89,24 @@ var button_cooking: PanelContainer
 ## 商店和烹饪面板引用
 var shop_panel: Control = null
 var cooking_panel: Control = null
+var npc_friendship_panel: Control = null
+var hunting_panel: Control = null
+var quest_panel: Control = null
 const SHOP_SCENE_PATH: String = "res://src/scenes/ui/shop_panel.tscn"
 const COOKING_SCENE_PATH: String = "res://src/scenes/ui/cooking_panel.tscn"
+const NPC_FRIENDSHIP_SCENE_PATH: String = "res://src/scenes/ui/npc_friendship_panel.tscn"
+const HUNTING_SCENE_PATH: String = "res://src/scenes/ui/hunting_panel.tscn"
+const QUEST_SCENE_PATH: String = "res://src/scenes/ui/quest_panel.tscn"
 
 ## 工具信息
 const TOOL_EMOJIS: Array = ["🔨", "💧", "🌰", "✋"]
 const TOOL_NAMES: Array = ["锄头", "浇水壶", "种子", "手"]
 
-## 通知标签
-var notification_label: Label
+## 通知区域（多飘窗容器）
+var notification_area: Control
+
+## 地图容器（全屏地图浮层）
+var _map_container: Control = null
 
 ## 库存面板引用 (动态加载)
 var inventory_panel: CanvasLayer = null
@@ -115,6 +124,19 @@ var _current_season: String = "春"
 var _current_weather: String = "sunny"
 var _notification_queue: Array = []
 var _notification_timer: float = 0.0
+
+## 多飘窗系统状态
+const MAX_VISIBLE_TOASTS: int = 3        # 最多同时显示条数
+const TOAST_HEIGHT: float = 40.0         # 单条飘窗高度(px)
+const TOAST_SPACING: float = 10.0         # 飘窗间距(px)
+const FADE_IN_DURATION: float = 0.2      # 淡入时长(s)
+const FLOAT_SPEED: float = 50.0           # 向上飘动速度(px/s)
+const FADE_OUT_DURATION: float = 0.3     # 淡出时长(s)
+const BASE_OFFSET_Y: float = 0.0         # 基准Y偏移
+
+## 活跃飘窗: Array[{label:Label, timer:float, duration:float, state:int, float_y:float}]
+## state: 0=showing, 1=fading
+var _active_toasts: Array = []
 
 # ============ 初始化 ============
 
@@ -188,8 +210,8 @@ func _setup_node_references() -> void:
 		button_cooking.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_cooking.gui_input.connect(_on_quick_button_input.bind("cooking"))
 
-	# 通知标签
-	notification_label = $Notification
+	# 通知区域
+	notification_area = $NotificationArea
 
 	# 初始化槽位样式
 	_update_hotbar_display()
@@ -542,37 +564,202 @@ func _update_slot_style(index: int) -> void:
 
 	slot.add_theme_stylebox_override("panel", style)
 
-# ============ 通知系统 ============
+# ============ 通知系统（多飘窗） ============
+
+## 优先级打断阈值：>=3 可打断低优先级
+const INTERRUPT_PRIORITY_THRESHOLD: int = 3
 
 func _show_notification(text: String) -> void:
-	_notification_queue.append(text)
-	if _notification_queue.size() == 1:
-		_display_next_notification()
+	# 旧的单条队列接口，兼容 NotificationManager 的 show_message 委托
+	_add_toast_queue({"text": text, "color": Color(1, 1, 1), "priority": 0, "duration": 2.5})
 
-func _display_next_notification() -> void:
+func show_message(text: String, color: Color = Color(1, 1, 1)) -> void:
+	# NotificationManager 调用此方法显示飘窗
+	_add_toast_queue({"text": text, "color": color, "priority": 0, "duration": 2.5})
+
+func show_toast(text: String, color: Color, priority: int, duration: float) -> void:
+	_add_toast_queue({"text": text, "color": color, "priority": priority, "duration": duration})
+
+func _add_toast_queue(notif: Dictionary) -> void:
+	_notification_queue.append(notif)
+	_process_toast_queue()
+
+func _process_toast_queue() -> void:
+	# 如果活跃飘窗已达上限，等待
+	if _active_toasts.size() >= MAX_VISIBLE_TOASTS:
+		return
 	if _notification_queue.is_empty():
-		notification_label.modulate.a = 0
 		return
 
-	var text = _notification_queue[0]
-	notification_label.text = text
-	_notification_timer = 2.0
+	var notif = _notification_queue.pop_front()
+	_spawn_toast(notif["text"], notif["color"], notif.get("priority", 0), notif.get("duration", 2.5))
 
+## 优先级打断：priority>=3 可打断当前显示中的低优先级
+func _try_interrupt_low_priority(incoming_priority: int) -> void:
+	if incoming_priority < INTERRUPT_PRIORITY_THRESHOLD:
+		return
+	# 找最低优先级的正在显示的飘窗
+	var min_idx = -1
+	var min_priority = 999
+	for i in range(_active_toasts.size()):
+		var t = _active_toasts[i]
+		if t["state"] == 0:  # 正在显示（非淡出）
+			if t["priority"] < min_priority:
+				min_priority = t["priority"]
+				min_idx = i
+	if min_idx >= 0 and min_priority < INTERRUPT_PRIORITY_THRESHOLD:
+		_force_fade_out(min_idx)
+
+func _spawn_toast(text: String, color: Color, priority: int, duration: float) -> void:
+	if not notification_area:
+		print("[HUD] notification_area is null, cannot show toast")
+		return
+
+	# 优先级打断检查
+	_try_interrupt_low_priority(priority)
+
+	# 创建飘窗 Label
+	var label = Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.z_index = 100
+
+	# 样式：背景根据类型决定
+	var bg = StyleBoxFlat.new()
+	bg.corner_radius_top_left = 8
+	bg.corner_radius_top_right = 8
+	bg.corner_radius_bottom_right = 8
+	bg.corner_radius_bottom_left = 8
+	bg.content_margin_left = 16
+	bg.content_margin_right = 16
+	bg.content_margin_top = 8
+	bg.content_margin_bottom = 8
+
+	if priority >= INTERRUPT_PRIORITY_THRESHOLD:
+		bg.bg_color = Color(0, 0, 0, 0.85)  # 高优先级带背景
+	else:
+		bg.bg_color = Color(0, 0, 0, 0)     # 普通无背景
+
+	label.add_theme_stylebox_override("normal", bg)
+	label.add_theme_color_override("font_color", color)
+
+	# 初始位置：容器内 Y=0（居中偏上）
+	label.anchor_left = 0.5
+	label.anchor_right = 0.5
+	label.anchor_top = 0.5
+	label.anchor_bottom = 0.5
+	label.offset_left = -250.0
+	label.offset_right = 250.0
+	label.offset_top = -20.0
+	label.offset_bottom = 20.0
+	label.grow_horizontal = 2
+	label.grow_vertical = 2
+	label.modulate.a = 0.0  # 初始透明
+
+	notification_area.add_child(label)
+
+	# 记录活跃飘窗
+	var toast = {
+		"label": label,
+		"priority": priority,
+		"duration": duration,
+		"state": 0,         # 0=showing, 1=fading
+		"elapsed": 0.0,
+		"float_y": 0.0
+	}
+	_active_toasts.append(toast)
+
+	# 立即执行淡入
+	_apply_fade_in(toast)
+
+	# 排列所有活跃飘窗位置（最新在下层）
+	_reorder_toasts()
+
+	# 启动显示计时
+	toast["state"] = 0
+
+func _apply_fade_in(toast: Dictionary) -> void:
 	var tween = create_tween()
-	tween.tween_property(notification_label, "modulate:a", 1.0, 0.2)
+	tween.tween_property(toast["label"], "modulate:a", 1.0, FADE_IN_DURATION)
+
+## 重新排列所有活跃飘窗位置（从上到下堆叠，最新的在最上）
+func _reorder_toasts() -> void:
+	# 按添加顺序（_active_toasts 顺序），最新在末尾
+	# Y 偏移：最新（最上）的 toast 在 BASE_OFFSET_Y，旧的向下排
+	var n = _active_toasts.size()
+	for i in range(n):
+		# i=0 最旧（底部），i=n-1 最新（顶部）
+		var toast = _active_toasts[i]
+		if toast["state"] == 2:  # 已移除，跳过
+			continue
+		var base_y = BASE_OFFSET_Y + i * (TOAST_HEIGHT + TOAST_SPACING)
+		# 设置 label 的 offset_top/bottom
+		toast["label"].offset_top = base_y
+		toast["label"].offset_bottom = base_y + TOAST_HEIGHT
+
+## 强制淡出（被高优先级打断）
+func _force_fade_out(idx: int) -> void:
+	if idx < 0 or idx >= _active_toasts.size():
+		return
+	var toast = _active_toasts[idx]
+	if toast["state"] == 2:
+		return
+	toast["state"] = 2  # 标记淡出中
+	var tween = create_tween()
+	tween.tween_property(toast["label"], "modulate:a", 0.0, FADE_OUT_DURATION)
+	tween.tween_callback(_on_toast_fade_complete.bind(idx))
+
+func _on_toast_fade_complete(idx: int) -> void:
+	# 移除飘窗 Label
+	if idx < _active_toasts.size():
+		var toast = _active_toasts[idx]
+		if toast["label"] and toast["label"].is_inside_tree():
+			toast["label"].queue_free()
+		_active_toasts.remove_at(idx)
+		# 重新排列剩余飘窗
+		_reorder_toasts()
+		# 处理队列中的下一条
+		_process_toast_queue()
 
 func _process(delta: float) -> void:
-	if _notification_timer > 0:
-		_notification_timer -= delta
-		if _notification_timer <= 0:
-			var tween = create_tween()
-			tween.tween_property(notification_label, "modulate:a", 0.0, 0.3)
-			tween.tween_callback(_on_notification_finished)
+	# 处理所有活跃飘窗的计时
+	var to_remove: Array[int] = []
 
-func _on_notification_finished() -> void:
-	if not _notification_queue.is_empty():
-		_notification_queue.pop_front()
-	_display_next_notification()
+	for i in range(_active_toasts.size()):
+		var toast = _active_toasts[i]
+		if toast["state"] == 2:  # 正在淡出，跳过
+			continue
+
+		toast["elapsed"] += delta
+
+		if toast["state"] == 0:  # 正在显示
+			# 向上飘动
+			toast["float_y"] += FLOAT_SPEED * delta
+			toast["label"].offset_top += FLOAT_SPEED * delta
+			toast["label"].offset_bottom += FLOAT_SPEED * delta
+
+			# 检查是否该开始淡出
+			var time_in_toast = toast["elapsed"]
+			var fade_out_start = toast["duration"] - FADE_OUT_DURATION
+			if time_in_toast >= fade_out_start and time_in_toast < toast["duration"]:
+				# 开始淡出
+				toast["state"] = 1
+				var tween = create_tween()
+				tween.tween_property(toast["label"], "modulate:a", 0.0, FADE_OUT_DURATION)
+
+		# 检查是否完全结束
+		if toast["elapsed"] >= toast["duration"]:
+			toast["state"] = 2  # 标记
+			if toast["label"].is_inside_tree():
+				toast["label"].queue_free()
+			to_remove.append(i)
+
+	# 移除已结束的飘窗
+	for i in range(to_remove.size() - 1, -1, -1):
+		_active_toasts.remove_at(to_remove[i])
+	_reorder_toasts()
+	_process_toast_queue()
 
 # ============ 输入处理 ============
 
@@ -588,10 +775,12 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_B: _on_quick_button_pressed("inventory")
 			KEY_M: _on_quick_button_pressed("map")
-			KEY_J: _on_quick_button_pressed("quest")
+			KEY_J: _on_quick_button_pressed("npc_friendship")
 			KEY_ESCAPE: _on_quick_button_pressed("menu")
-			KEY_S: _on_quick_button_pressed("shop")
+			KEY_V: _on_quick_button_pressed("shop")
 			KEY_C: _on_quick_button_pressed("cooking")
+			KEY_H: _on_quick_button_pressed("hunting")
+			KEY_Q: _on_quick_button_pressed("quest")
 
 func _on_hotbar_key(index: int) -> void:
 	if index < 0 or index >= HOTBAR_SLOTS or not tool_slots.has(index):
@@ -674,13 +863,17 @@ func _on_quick_button_pressed(button_id: String) -> void:
 		"map":
 			_show_notification("🗺️ 地图 (M)")
 		"quest":
-			_show_notification("📋 任务 (J)")
+			_show_notification("📜 任务 (Q)")
+		"npc_friendship":
+			_show_notification("💬 NPC好感度 (J)")
 		"menu":
 			_show_notification("⚙️ 菜单 (ESC)")
 		"shop":
-			_show_notification("🏪 商店 (S)")
+			_show_notification("🏪 商店 (V)")
 		"cooking":
 			_show_notification("🍳 烹饪 (C)")
+		"hunting":
+			_show_notification("🏹 狩猎 (H)")
 
 	# 实际打开对应的UI面板
 	match button_id:
@@ -690,12 +883,16 @@ func _on_quick_button_pressed(button_id: String) -> void:
 			_open_map()
 		"quest":
 			_open_quest()
+		"npc_friendship":
+			_open_npc_friendship()
 		"menu":
 			_open_menu()
 		"shop":
 			_open_shop()
 		"cooking":
 			_open_cooking()
+		"hunting":
+			_open_hunting()
 
 ## 打开背包UI (动态加载)
 func _open_inventory() -> void:
@@ -714,21 +911,276 @@ func _open_inventory() -> void:
 	if inventory_panel.has_method("open_panel"):
 		if inventory_panel.visible:
 			inventory_panel.close_panel()
+			if EventBus:
+				EventBus.resume_requested.emit()
 		else:
+			if EventBus:
+				EventBus.pause_requested.emit()
 			inventory_panel.open_panel()
 	else:
 		inventory_panel.visible = not inventory_panel.visible
 
-## 打开地图UI (占位，待实现)
+## 打开地图UI（全屏地图浮层）
 func _open_map() -> void:
-	print("[HUD] Open map - TODO: Implement map UI")
+	if _map_container == null:
+		_map_container = Control.new()
+		_map_container.name = "MapContainer"
+		_map_container.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_map_container.z_index = 50
+		_map_container.gui_input.connect(_on_map_container_input)
+		add_child(_map_container)
 
-## 打开任务UI (占位，待实现)
+		# 半透明背景（点击关闭地图）
+		var bg = ColorRect.new()
+		bg.name = "MapBG"
+		bg.color = Color(0, 0, 0, 0.75)
+		bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+		bg.gui_input.connect(_on_map_bg_input)
+		_map_container.add_child(bg)
+
+		# 地图面板
+		var map_panel = PanelContainer.new()
+		map_panel.name = "MapPanel"
+		map_panel.custom_minimum_size = Vector2(480, 560)
+		map_panel.set_anchors_preset(Control.PRESET_CENTER)
+		_map_container.add_child(map_panel)
+
+		var vbox = VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 8)
+		map_panel.add_child(vbox)
+
+		# 标题
+		var header = HBoxContainer.new()
+		var title = Label.new()
+		title.text = "🗺️ 地图"
+		title.add_theme_font_size_override("font_size", 20)
+		header.add_child(title)
+		var close_btn = Button.new()
+		close_btn.text = "X"
+		close_btn.pressed.connect(_close_map)
+		header.add_child(close_btn)
+		header.add_theme_constant_override("separation", 10)
+		vbox.add_child(header)
+
+		# 分隔线
+		var sep = HSeparator.new()
+		sep.add_theme_constant_override("separation", 4)
+		vbox.add_child(sep)
+
+		# 当前区域高亮
+		var current_row = HBoxContainer.new()
+		var current_label = Label.new()
+		current_label.text = "📍 当前位置: %s %s" % [
+			NavigationSystem.get_current_group_emoji() if NavigationSystem else "🏠",
+			NavigationSystem.get_current_panel_name() if NavigationSystem else "农场"
+		]
+		current_label.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+		current_row.add_child(current_label)
+		vbox.add_child(current_row)
+
+		# 体力信息
+		var stamina_row = HBoxContainer.new()
+		var stamina_label = Label.new()
+		var stamina = PlayerStats.stamina if PlayerStats else 0
+		stamina_label.text = "⚡ 体力: %d" % stamina
+		stamina_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5))
+		stamina_row.add_child(stamina_label)
+		vbox.add_child(stamina_row)
+
+		# 空标签
+		var spacer = Control.new()
+		spacer.custom_minimum_size.y = 4
+		vbox.add_child(spacer)
+
+		# 各区域列表
+		var groups = ["farm", "village", "nature", "mine", "hanhai"]
+		var emojis = {"farm": "🏠", "village": "🏘️", "nature": "🌲", "mine": "⛏️", "hanhai": "🏜️"}
+		var names = {"farm": "农场", "village": "桃源村", "nature": "野外", "mine": "矿洞", "hanhai": "瀚海"}
+
+		for grp in groups:
+			var grp_vbox = VBoxContainer.new()
+			# 组标题
+			var grp_header = HBoxContainer.new()
+			var grp_emoji = Label.new()
+			grp_emoji.text = emojis.get(grp, "📍")
+			grp_emoji.add_theme_font_size_override("font_size", 18)
+			grp_header.add_child(grp_emoji)
+			var grp_title = Label.new()
+			grp_title.text = names.get(grp, grp)
+			grp_title.add_theme_font_size_override("font_size", 16)
+			grp_title.add_theme_color_override("font_color", Color(1, 0.9, 0.6))
+			grp_header.add_child(grp_title)
+			grp_vbox.add_child(grp_header)
+
+			# 该组所有地点
+			for panel_key in (NavigationSystem.PANELS if NavigationSystem else {}):
+				var info = NavigationSystem.PANELS[panel_key] if NavigationSystem else {}
+				if info.get("group", -1) != _group_name_to_enum(grp):
+					continue
+				var loc_row = _create_map_location_row(panel_key, info)
+				grp_vbox.add_child(loc_row)
+
+			vbox.add_child(grp_vbox)
+
+	# 刷新显示
+	if NavigationSystem:
+		_refresh_map_current_location()
+	_map_container.visible = true
+	_map_container.z_index = 50
+	if EventBus:
+		EventBus.pause_requested.emit()
+
+func _close_map() -> void:
+	if _map_container:
+		_map_container.visible = false
+	if EventBus:
+		EventBus.resume_requested.emit()
+
+func _on_map_container_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed:
+		_close_map()
+
+func _on_map_bg_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_close_map()
+
+func _create_map_location_row(panel_key: String, info: Dictionary) -> Control:
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 6)
+
+	var emoji_lbl = Label.new()
+	emoji_lbl.text = info.get("emoji", "📍")
+	emoji_lbl.custom_minimum_size.x = 24
+	hbox.add_child(emoji_lbl)
+
+	var name_lbl = Label.new()
+	name_lbl.text = info.get("name", panel_key)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hbox.add_child(name_lbl)
+
+	var status_lbl = Label.new()
+	var is_current = NavigationSystem and NavigationSystem.current_panel == panel_key
+	var can_access = NavigationSystem and NavigationSystem.can_navigate_to(panel_key)
+
+	if is_current:
+		status_lbl.text = "← 当前位置"
+		status_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+	elif can_access:
+		var cost = NavigationSystem.get_travel_cost(panel_key)
+		var stamina = cost.get("stamina_cost", 0)
+		if stamina > 0:
+			status_lbl.text = "⚡%d" % stamina
+		else:
+			status_lbl.text = "✅"
+		status_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
+		# 添加可点击行为
+		hbox.gui_input.connect(_on_map_location_input.bind(panel_key))
+	else:
+		status_lbl.text = "❌"
+		status_lbl.add_theme_color_override("font_color", Color(0.5, 0.3, 0.3))
+
+	hbox.add_child(status_lbl)
+	return hbox
+
+func _on_map_location_input(event: InputEvent, panel_key: String) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		if NavigationSystem and NavigationSystem.can_navigate_to(panel_key):
+			var result = NavigationSystem.navigate_to_panel(panel_key)
+			if result.get("success", false):
+				var minutes = int(result.get("time_cost", 0.0) * 60)
+				var stamina = result.get("stamina_cost", 0)
+				var panel_name = NavigationSystem.PANELS.get(panel_key, {}).get("name", panel_key)
+				var msg = "前往%s" % panel_name
+				if minutes > 0:
+					msg += " (%d分钟" % minutes
+					if stamina > 0:
+						msg += ", %d体力)" % stamina
+					else:
+						msg += ")"
+				if NotificationManager:
+					NotificationManager.show_info(msg)
+			_close_map()
+		else:
+			if NotificationManager:
+				var cost = NavigationSystem.get_travel_cost(panel_key)
+				var stamina_needed = cost.get("stamina_cost", 0)
+				if stamina_needed > 0 and PlayerStats and PlayerStats.stamina < stamina_needed:
+					NotificationManager.show_warning("体力不足 (需要%d点)" % stamina_needed)
+				else:
+					NotificationManager.show_warning("当前无法前往此处")
+
+func _refresh_map_current_location() -> void:
+	if not _map_container:
+		return
+	var panel = _map_container.get_node_or_null("MapPanel/VBox")
+	if not panel:
+		return
+	# 刷新体力显示
+	for i in range(panel.get_child_count()):
+		var child = panel.get_child(i)
+		if child is HBoxContainer and child.get_child_count() >= 1:
+			var first_lbl = child.get_child(0)
+			if first_lbl is Label and first_lbl.text.begins_with("⚡"):
+				var stamina = PlayerStats.stamina if PlayerStats else 0
+				first_lbl.text = "⚡ 体力: %d" % stamina
+				break
+
+func _group_name_to_enum(name: String) -> int:
+	if NavigationSystem:
+		match name:
+			"farm": return NavigationSystem.LocationGroup.FARM
+			"village": return NavigationSystem.LocationGroup.VILLAGE
+			"nature": return NavigationSystem.LocationGroup.NATURE
+			"mine": return NavigationSystem.LocationGroup.MINE
+			"hanhai": return NavigationSystem.LocationGroup.HANHAI
+	return 0
+
+## 打开任务UI
 func _open_quest() -> void:
-	print("[HUD] Open quest - TODO: Implement quest UI")
+	if quest_panel == null:
+		var packed_scene = load(QUEST_SCENE_PATH)
+		if packed_scene:
+			quest_panel = packed_scene.instantiate()
+			add_child(quest_panel)
+			print("[HUD] Quest panel instantiated")
+		else:
+			push_error("[HUD] Failed to load quest panel: " + QUEST_SCENE_PATH)
+			return
+
+	if quest_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		quest_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		quest_panel.visible = not quest_panel.visible
+
+## 打开NPC好感度面板
+func _open_npc_friendship() -> void:
+	if npc_friendship_panel == null:
+		var packed_scene = load(NPC_FRIENDSHIP_SCENE_PATH)
+		if packed_scene:
+			npc_friendship_panel = packed_scene.instantiate()
+			add_child(npc_friendship_panel)
+			print("[HUD] NPC Friendship panel instantiated")
+		else:
+			push_error("[HUD] Failed to load NPC Friendship panel: " + NPC_FRIENDSHIP_SCENE_PATH)
+			return
+
+	if npc_friendship_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		npc_friendship_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		npc_friendship_panel.visible = not npc_friendship_panel.visible
 
 ## 打开菜单UI (占位，待实现)
 func _open_menu() -> void:
+	if EventBus:
+		EventBus.pause_requested.emit()
 	print("[HUD] Open menu - TODO: Implement menu UI")
 
 ## 打开商店UI
@@ -748,8 +1200,12 @@ func _open_shop() -> void:
 		if shop_panel.visible:
 			print("[HUD] Closing shop panel")
 			shop_panel.close_panel()
+			if EventBus:
+				EventBus.resume_requested.emit()
 		else:
 			print("[HUD] Opening shop panel")
+			if EventBus:
+				EventBus.pause_requested.emit()
 			shop_panel.open_panel(0, 0)  # BUY mode, GENERAL store
 	else:
 		shop_panel.visible = not shop_panel.visible
@@ -764,20 +1220,41 @@ func _open_cooking() -> void:
 		else:
 			push_error("[HUD] Failed to load cooking panel: " + COOKING_SCENE_PATH)
 			return
-	
+
 	if cooking_panel.has_method("open_panel"):
 		if cooking_panel.visible:
 			cooking_panel.close_panel()
+			if EventBus:
+				EventBus.resume_requested.emit()
 		else:
+			if EventBus:
+				EventBus.pause_requested.emit()
 			cooking_panel.open_panel()
 	else:
 		cooking_panel.visible = not cooking_panel.visible
 
-# ============ 公共方法 ============
+## 打开狩猎UI
+func _open_hunting() -> void:
+	if hunting_panel == null:
+		var packed_scene = load(HUNTING_SCENE_PATH)
+		if packed_scene:
+			hunting_panel = packed_scene.instantiate()
+			add_child(hunting_panel)
+			print("[HUD] Hunting panel instantiated")
+		else:
+			push_error("[HUD] Failed to load hunting panel: " + HUNTING_SCENE_PATH)
+			return
 
-func show_message(text: String, color: Color = Color(1, 1, 1, 1)) -> void:
-	notification_label.add_theme_color_override("font_color", color)
-	_show_notification(text)
+	if hunting_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		hunting_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		hunting_panel.visible = not hunting_panel.visible
+
+# ============ 公共方法 ============
 
 func get_selected_slot() -> int:
 	return selected_slot

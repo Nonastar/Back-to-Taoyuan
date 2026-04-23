@@ -149,7 +149,7 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		return {"success": false, "message": "Shop is closed"}
 
 	# ============ 动物商店：调用畜牧系统购买动物 ============
-	if shop_id == ShopId.ANIMAL_SHOP or shop_id_str == "animal_shop":
+	if shop_id_str == "animal_shop":
 		if quantity > 1:
 			return {"success": false, "message": "Animals can only be bought one at a time"}
 		if not (AnimalHusbandrySystem and AnimalHusbandrySystem.has_method("can_buy_animal")):
