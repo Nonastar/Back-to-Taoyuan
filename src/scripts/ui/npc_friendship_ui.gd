@@ -39,7 +39,7 @@ func _setup_node_references() -> void:
 
 func _connect_signals() -> void:
 	if EventBus:
-		EventBus.time_day_changed.connect(_refresh_npc_list)
+		EventBus.time_day_changed.connect(_on_time_day_changed)
 		EventBus.time_sleep_triggered.connect(_on_day_ended)
 
 # ============ 公共 API ============
@@ -111,6 +111,13 @@ func _create_npc_row(npc_id: String, npc_name: String, friendship: int, talked_t
 	hearts_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hbox.add_child(hearts_label)
 
+	# 好感度数值
+	var value_label = Label.new()
+	value_label.text = str(friendship)
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_label.custom_minimum_size.x = 60
+	hbox.add_child(value_label)
+
 	# 对话按钮
 	var talk_btn = Button.new()
 	talk_btn.text = "对话" if not talked_today else "已对话"
@@ -132,6 +139,11 @@ func _refresh_npc_list() -> void:
 
 func _on_day_ended(_bedtime: int, _forced: bool) -> void:
 	# 新的一天开始，刷新对话状态
+	if _visible:
+		_populate_npc_list()
+
+func _on_time_day_changed(_day: int, _season: String, _year: int) -> void:
+	# 日期变化时刷新（与 _on_day_ended 重复保险）
 	if _visible:
 		_populate_npc_list()
 
@@ -176,12 +188,15 @@ func _update_npc_row(npc_id: String) -> void:
 	# 刷新整行
 	var hbox = row as HBoxContainer
 	if hbox:
-		# 找到心形 Label（第二个子节点）和按钮（第三个）
-		if hbox.get_child_count() >= 3:
+		# 子节点顺序: name(0), hearts(1), value(2), button(3)
+		if hbox.get_child_count() >= 4:
 			var hearts_label = hbox.get_child(1) as Label
-			var talk_btn = hbox.get_child(2) as Button
+			var value_label = hbox.get_child(2) as Label
+			var talk_btn = hbox.get_child(3) as Button
 			if hearts_label:
 				hearts_label.text = _get_hearts_string(friendship)
+			if value_label:
+				value_label.text = str(friendship)
 			if talk_btn:
 				talk_btn.text = "已对话"
 				talk_btn.disabled = true
