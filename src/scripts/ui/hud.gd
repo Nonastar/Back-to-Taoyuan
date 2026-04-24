@@ -134,9 +134,15 @@ const FLOAT_SPEED: float = 50.0           # 向上飘动速度(px/s)
 const FADE_OUT_DURATION: float = 0.3     # 淡出时长(s)
 const BASE_OFFSET_Y: float = 0.0         # 基准Y偏移
 
-## 活跃飘窗: Array[{label:Label, timer:float, duration:float, state:int, float_y:float}]
-## state: 0=showing, 1=fading
+## 活跃飘窗: Array[{label:Label, timer:float, duration:float, state:int, float_y:float, id:String}]
+## state: 0=showing, 1=fading, 2=removing
 var _active_toasts: Array = []
+
+## 活跃飘窗 id 索引: id → toast（用于显示中 dedup）
+var _active_toast_ids: Dictionary = {}
+
+## 正在处理队列（NM await 期间）：阻止 _process 移除 toast，防止时序问题
+var _is_spawning: bool = false
 
 # ============ 初始化 ============
 
@@ -148,8 +154,6 @@ func _ready() -> void:
 	# 延迟初始化，等待 Autoload 系统就绪
 	await get_tree().process_frame
 	_update_from_systems()
-
-	print("[HUD] Initialized from scene")
 
 ## 设置节点引用
 func _setup_node_references() -> void:
@@ -335,7 +339,8 @@ func _on_skill_level_up(skill_type: int, old_level: int, new_level: int) -> void
 	_update_skill_display()
 	if SkillSystem:
 		var skill_name = SkillSystem.SKILL_NAMES.get(skill_type, "未知")
-		_show_notification("🌟 %s 升级！Lv.%d" % [skill_name, new_level])
+		if NotificationManager:
+			NotificationManager.show_gain("🌟 %s 升级！Lv.%d" % [skill_name, new_level])
 
 func _on_ui_notification(message: String, duration: float = 2.0, priority: int = 0) -> void:
 	_show_notification(message)
@@ -570,13 +575,46 @@ func _update_slot_style(index: int) -> void:
 const INTERRUPT_PRIORITY_THRESHOLD: int = 3
 
 func _show_notification(text: String) -> void:
-	# 统一通过 NotificationManager 显示（与 show_message 路径一致）
-	if NotificationManager:
+	if not NotificationManager:
+		return
+	# 根据消息内容分发到对应的颜色方法
+	if _is_gain_message(text):
+		NotificationManager.show_gain(text)
+	elif _is_cost_message(text):
+		NotificationManager.show_cost(text)
+	else:
 		NotificationManager.show_info(text)
 
-func show_message(text: String, color: Color = Color(1, 1, 1)) -> void:
-	# NotificationManager 调用此方法显示飘窗
-	_add_toast_queue({"text": text, "color": color, "priority": 0, "duration": 2.5})
+## 判断是否为获取类消息（金色）
+func _is_gain_message(text: String) -> bool:
+	return text.begins_with("耕地完成") \
+		or text.begins_with("浇水完成") \
+		or text.begins_with("可以收获了") \
+		or text.begins_with("播种成功") \
+		or text.begins_with("收获成功") \
+		or text.begins_with("施肥成功") \
+		or text.begins_with("保湿土") \
+		or text.begins_with("雨天自动浇水")
+
+## 判断是否为消耗/失败类消息（红色）
+func _is_cost_message(text: String) -> bool:
+	return "没有种子了" in text \
+		or "没有肥料了" in text \
+		or "作物枯萎了" in text
+
+func show_message(text: String, color: Color = Color(1, 1, 1), id: String = "", priority: int = 0) -> void:
+	# 文本超长截断
+	if text.length() > 100:
+		text = text.substr(0, 100) + "..."
+	# 检查正在显示的飘窗中是否有同 id：刷新计数 + 重置计时器
+	if id != "":
+		for t in _active_toasts:
+			if t.get("id", "") == id:
+				t["count"] = mini(t.get("count", 1) + 1, 999)
+				var display_text = text if t["count"] <= 1 else ("%s x%d+" % [text, t["count"]]) if t["count"] >= 999 else "%s x%d" % [text, t["count"]]
+				_refresh_active_toast(id, display_text, color)
+				return
+	_add_toast_queue({"text": text, "color": color, "priority": priority, "duration": 2.5, "id": id, "count": 1})
 
 func show_toast(text: String, color: Color, priority: int, duration: float) -> void:
 	_add_toast_queue({"text": text, "color": color, "priority": priority, "duration": duration})
@@ -593,7 +631,21 @@ func _process_toast_queue() -> void:
 		return
 
 	var notif = _notification_queue.pop_front()
-	_spawn_toast(notif["text"], notif["color"], notif.get("priority", 0), notif.get("duration", 2.5))
+	var notif_id = notif.get("id", "")
+
+	# 队列中已有相同 id，不重复弹出
+	if notif_id != "":
+		for q in _notification_queue:
+			if q.get("id", "") == notif_id:
+				return  # 丢弃
+
+	# 正在显示中有相同 id，跳过（刷新已在 show_message 中处理）
+	if notif_id != "":
+		for t in _active_toasts:
+			if t.get("id", "") == notif_id:
+				return
+
+	_spawn_toast(notif["text"], notif["color"], notif.get("priority", 0), notif.get("duration", 2.5), notif_id, notif.get("count", 1))
 
 ## 优先级打断：priority>=3 可打断当前显示中的低优先级
 func _try_interrupt_low_priority(incoming_priority: int) -> void:
@@ -611,17 +663,31 @@ func _try_interrupt_low_priority(incoming_priority: int) -> void:
 	if min_idx >= 0 and min_priority < INTERRUPT_PRIORITY_THRESHOLD:
 		_force_fade_out(min_idx)
 
-func _spawn_toast(text: String, color: Color, priority: int, duration: float) -> void:
+func _spawn_toast(text: String, color: Color, priority: int, duration: float, id: String = "", count: int = 1) -> void:
 	if not notification_area:
-		print("[HUD] notification_area is null, cannot show toast")
 		return
+	_is_spawning = true  # 阻止 _process 移除 toast
+	if id != "":
+		for t in _active_toasts:
+			if t.get("id", "") == id:
+				# 刷新已有 toast
+				t["count"] = mini(t.get("count", 1) + 1, 999)
+				var display_text = text if t["count"] <= 1 else ("%s x%d+" % [text, t["count"]]) if t["count"] >= 999 else "%s x%d" % [text, t["count"]]
+				_refresh_active_toast(id, display_text, color)
+				_is_spawning = false
+				return
+
+	# 文本超长截断
+	var display_text_new = text
+	if display_text_new.length() > 100:
+		display_text_new = display_text_new.substr(0, 100) + "..."
 
 	# 优先级打断检查
 	_try_interrupt_low_priority(priority)
 
 	# 创建飘窗 Label
 	var label = Label.new()
-	label.text = text
+	label.text = display_text_new
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.z_index = 100
@@ -665,11 +731,15 @@ func _spawn_toast(text: String, color: Color, priority: int, duration: float) ->
 		"label": label,
 		"priority": priority,
 		"duration": duration,
-		"state": 0,         # 0=showing, 1=fading
+		"state": 0,         # 0=showing, 1=fading, 2=removing
 		"elapsed": 0.0,
-		"float_y": 0.0
+		"float_y": 0.0,
+		"id": id,
+		"count": count
 	}
 	_active_toasts.append(toast)
+	if id != "":
+		_active_toast_ids[id] = toast
 
 	# 立即执行淡入
 	_apply_fade_in(toast)
@@ -679,10 +749,31 @@ func _spawn_toast(text: String, color: Color, priority: int, duration: float) ->
 
 	# 启动显示计时
 	toast["state"] = 0
+	_is_spawning = false  # 允许 _process 移除 toast
+
+## 刷新显示中飘窗的文本并重置计时器
+func _refresh_active_toast(id: String, display_text: String, color: Color) -> void:
+	if not _active_toast_ids.has(id):
+		return
+	var toast = _active_toast_ids[id]
+	toast["label"].text = display_text
+	# 重置字体颜色（以防颜色不同）
+	toast["label"].add_theme_color_override("font_color", color)
+	toast["elapsed"] = 0.0
+	toast["state"] = 0  # 重置为显示状态，重新开始计时
+	# 停止旧 tween，重置透明度并淡入
+	var old_tween = toast.get("tween")
+	if old_tween:
+		old_tween.kill()
+	toast.erase("tween")
+	var new_tween = create_tween()
+	new_tween.tween_property(toast["label"], "modulate:a", 1.0, FADE_IN_DURATION)
+	toast["tween"] = new_tween
 
 func _apply_fade_in(toast: Dictionary) -> void:
 	var tween = create_tween()
 	tween.tween_property(toast["label"], "modulate:a", 1.0, FADE_IN_DURATION)
+	toast["tween"] = tween
 
 ## 重新排列所有活跃飘窗位置（从上到下堆叠，最新的在最上）
 func _reorder_toasts() -> void:
@@ -709,6 +800,7 @@ func _force_fade_out(idx: int) -> void:
 	toast["state"] = 2  # 标记淡出中
 	var tween = create_tween()
 	tween.tween_property(toast["label"], "modulate:a", 0.0, FADE_OUT_DURATION)
+	toast["tween"] = tween
 	tween.tween_callback(_on_toast_fade_complete.bind(idx))
 
 func _on_toast_fade_complete(idx: int) -> void:
@@ -717,6 +809,9 @@ func _on_toast_fade_complete(idx: int) -> void:
 		var toast = _active_toasts[idx]
 		if toast["label"] and toast["label"].is_inside_tree():
 			toast["label"].queue_free()
+		var toast_id = toast.get("id", "")
+		if toast_id != "" and _active_toast_ids.has(toast_id):
+			_active_toast_ids.erase(toast_id)
 		_active_toasts.remove_at(idx)
 		# 重新排列剩余飘窗
 		_reorder_toasts()
@@ -748,12 +843,19 @@ func _process(delta: float) -> void:
 				toast["state"] = 1
 				var tween = create_tween()
 				tween.tween_property(toast["label"], "modulate:a", 0.0, FADE_OUT_DURATION)
+				toast["tween"] = tween
 
-		# 检查是否完全结束
-		if toast["elapsed"] >= toast["duration"]:
-			toast["state"] = 2  # 标记
+		# 检查是否完全结束（_is_spawning 期间跳过，防止 NM await 窗口内 toast 被提前移除）
+		if not _is_spawning and toast["elapsed"] >= toast["duration"]:
+			toast["state"] = 2  # 标记移除
+			var t = toast.get("tween")
+			if t:
+				t.kill()
 			if toast["label"].is_inside_tree():
 				toast["label"].queue_free()
+			var toast_id = toast.get("id", "")
+			if toast_id != "" and _active_toast_ids.has(toast_id):
+				_active_toast_ids.erase(toast_id)
 			to_remove.append(i)
 
 	# 移除已结束的飘窗

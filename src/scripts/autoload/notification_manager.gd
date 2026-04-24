@@ -9,7 +9,6 @@ extends Node
 ## 通知配置
 const DEFAULT_DURATION: float = 2.5
 const MAX_QUEUE_SIZE: int = 20
-const DEDUP_WINDOW: float = 2.0  # 去重窗口（秒）
 
 ## 通知颜色
 class NotificationColor:
@@ -35,13 +34,6 @@ var _hud: Node = null
 
 ## 调试模式
 var _debug_mode: bool = false
-
-## 去重映射: id → {time: float, count: int}
-var _dedup_map: Dictionary = {}
-
-## 正在显示的通知计数（多飘窗支持，最多同时3条）
-var _visible_count: int = 0
-const MAX_VISIBLE: int = 3
 
 ## 暂停/恢复状态
 var _is_paused: bool = false
@@ -76,6 +68,9 @@ func _connect_signals() -> void:
 		EventBus.pause_requested.connect(_on_pause_requested)
 	if EventBus.has_signal("resume_requested"):
 		EventBus.resume_requested.connect(_on_resume_requested)
+	# 背包满信号
+	if EventBus.has_signal("inventory_full"):
+		EventBus.inventory_full.connect(_on_inventory_full)
 
 ## 查找HUD
 func _find_hud() -> Node:
@@ -99,8 +94,11 @@ func _find_hud() -> Node:
 # ============ 公共API ============
 
 ## 显示通知 (基础方法)
-## id: 唯一标识符，用于去重合并。2秒内相同id的消息合并显示 count
+## id: 唯一标识符，用于去重合并。未传时默认用文本生成，保证相同内容自动合并
 func show_message(text: String, duration: float = DEFAULT_DURATION, color: Color = NotificationColor.NORMAL, id: String = "") -> void:
+	# 未传 id 时默认用文本生成，保持去重兼容
+	if id == "":
+		id = "text:" + text
 	var notification = {
 		"text": text,
 		"duration": duration,
@@ -108,6 +106,12 @@ func show_message(text: String, duration: float = DEFAULT_DURATION, color: Color
 		"priority": 0,
 		"id": id
 	}
+	# 正在显示时，直接发给 HUD 做合并刷新（不走队列，不重置计时器起点）
+	if _is_showing:
+		var hud = _find_hud()
+		if hud and hud.has_method("show_message"):
+			hud.show_message(text, color, id, 0)
+		return
 	_add_to_queue(notification)
 
 ## 显示获取类通知 (金色)
@@ -126,13 +130,13 @@ func show_consume(text: String, duration: float = DEFAULT_DURATION, id: String =
 func show_success(text: String, duration: float = DEFAULT_DURATION, id: String = "") -> void:
 	show_message(text, duration, NotificationColor.SUCCESS, id)
 
-## 显示警告类通知 (橙色)
+## 显示警告类通知 (橙色) — priority=3，带背景色
 func show_warning(text: String, duration: float = DEFAULT_DURATION, id: String = "") -> void:
-	show_message(text, duration, NotificationColor.WARNING, id)
+	show_with_priority(text, duration, NotificationColor.WARNING, 3, id)
 
-## 显示错误类通知 (深红色) — GDD: ERROR
+## 显示错误类通知 (深红色) — priority=3，带背景色
 func show_error(text: String, duration: float = 3.5, id: String = "") -> void:
-	show_message(text, duration, NotificationColor.ERROR, id)
+	show_with_priority(text, duration, NotificationColor.ERROR, 3, id)
 
 ## 显示系统类通知 (白色)
 func show_system(text: String, duration: float = 2.0, id: String = "") -> void:
@@ -144,6 +148,14 @@ func show_info(text: String, duration: float = 2.5, id: String = "") -> void:
 
 ## 显示带优先级的通知
 func show_with_priority(text: String, duration: float = DEFAULT_DURATION, color: Color = NotificationColor.NORMAL, priority: int = 0, id: String = "") -> void:
+	if id == "":
+		id = "text:" + text
+	# _is_showing 时直接刷新 HUD（与 show_message 行为一致）
+	if _is_showing:
+		var hud = _find_hud()
+		if hud and hud.has_method("show_message"):
+			hud.show_message(text, color, id, priority)
+		return
 	var notification = {
 		"text": text,
 		"duration": duration,
@@ -170,64 +182,26 @@ func is_showing() -> bool:
 
 # ============ 内部方法 ============
 
-## 清理过期去重记录（从 _dedup_map 中移除超过 DEDUP_WINDOW 的条目）
-func _cleanup_expired_dedup() -> void:
-	var now = Time.get_ticks_msec() / 1000.0
-	var expired_keys: Array = []
-	for id_key in _dedup_map:
-		var entry = _dedup_map[id_key]
-		if now - entry["time"] > DEDUP_WINDOW:
-			expired_keys.append(id_key)
-	for k in expired_keys:
-		_dedup_map.erase(k)
-
 ## 添加到队列
 func _add_to_queue(notification: Dictionary) -> void:
-	var notif_id: String = notification.get("id", "")
-	var current_time = Time.get_ticks_msec() / 1000.0
+	# 强制优先级边界
+	var priority: int = notification["priority"]
+	if priority <= 0:
+		priority = 1
+	elif priority > 4:
+		priority = 4
+	notification["priority"] = priority
 
-	# 去重逻辑：2秒内相同 id 合并
-	if notif_id != "":
-		_cleanup_expired_dedup()
-		if _dedup_map.has(notif_id):
-			var entry = _dedup_map[notif_id]
-			entry["count"] = mini(entry["count"] + 1, 999)
-			entry["time"] = current_time
-			# 更新队列中已有同id通知的文本（显示合并计数）
-			var merged_text = notification["text"]
-			if entry["count"] > 1:
-				merged_text = "%s x%d" % [notification["text"], entry["count"]]
-			# 在队列中查找并更新文本
-			for q in _queue:
-				if q.get("id", "") == notif_id:
-					q["text"] = merged_text
-					break
-			if _debug_mode:
-				print("[NotificationManager] Dedup merged: id=%s, count=%d" % [notif_id, entry["count"]])
-			queue_changed.emit(_queue.size())
-			return  # 不重复入队
-
-	# 如果队列已满，移除最旧的通知（优先移除低优先级）
+	# 队列满时，丢弃最低优先级的消息
 	if _queue.size() >= MAX_QUEUE_SIZE:
-		var removed = false
-		# 先尝试移除最低优先级的
-		var min_priority = 999
-		var min_idx = -1
+		var lowest_idx = -1
+		var lowest_priority = 999
 		for i in range(_queue.size()):
-			if _queue[i]["priority"] < min_priority:
-				min_priority = _queue[i]["priority"]
-				min_idx = i
-		if min_idx >= 0:
-			_queue.remove_at(min_idx)
-			removed = true
-		if not removed:
-			_queue.pop_front()
-		if _debug_mode:
-			print("[NotificationManager] Queue full, removing oldest/lowest priority")
-
-	# 记录去重信息
-	if notif_id != "":
-		_dedup_map[notif_id] = {"time": current_time, "count": 1}
+			if _queue[i]["priority"] < lowest_priority:
+				lowest_priority = _queue[i]["priority"]
+				lowest_idx = i
+		if lowest_idx >= 0:
+			_queue.remove_at(lowest_idx)
 
 	# 按优先级插入 (高优先级在前)
 	var inserted = false
@@ -242,8 +216,9 @@ func _add_to_queue(notification: Dictionary) -> void:
 
 	queue_changed.emit(_queue.size())
 
-	# 如果没有正在显示且未暂停，开始显示
-	if not _is_showing and not _is_paused:
+	# 如果没有正在显示，立即开始显示下一条（无论是否暂停）
+	# 暂停期间新消息入队后同样触发显示，toast 叠加在 UI 上层
+	if not _is_showing:
 		_show_next()
 
 ## 显示下一条通知
@@ -252,44 +227,52 @@ func _show_next() -> void:
 		_is_showing = false
 		return
 
-	_is_showing = true
 	var notification = _queue.pop_front()
 
 	queue_changed.emit(_queue.size())
 	_show_notification(
 		notification["text"],
 		notification["duration"],
-		notification["color"]
+		notification["color"],
+		notification.get("id", ""),
+		notification.get("priority", 0)
 	)
 
 ## 执行通知显示 - 委托给HUD
-func _show_notification(text: String, duration: float, color: Color) -> void:
+func _show_notification(text: String, duration: float, color: Color, id: String = "", priority: int = 0) -> void:
+	_is_showing = true
 	notification_started.emit(text)
 
-	# 查找HUD并使用其通知系统
+	# 查找HUD并使用其通知系统（HUD 内部做去重，不会重复创建）
 	var hud = _find_hud()
 	if hud and hud.has_method("show_message"):
-		hud.show_message(text, color)
+		hud.show_message(text, color, id, priority)
 		# 等待duration后显示下一条
 		await get_tree().create_timer(duration).timeout
 		notification_finished.emit(text)
-		_show_next()
 	else:
-		# 没有HUD，使用内置显示
 		_show_fallback_notification(text, duration, color)
+	_is_showing = false
+	_show_next()
 
 ## 备用通知显示 (无HUD时)
 func _show_fallback_notification(text: String, duration: float, color: Color) -> void:
 	# 直接打印到控制台作为后备
 	print("[Notification] " + text)
-	notification_finished.emit(text)
-	_show_next()
 
 # ============ EventBus回调 ============
 
 ## EventBus通知信号处理
-func _on_ui_notification(message: String, duration: float = DEFAULT_DURATION, priority: int = 0, id: String = "") -> void:
-	show_with_priority(message, duration, NotificationColor.NORMAL, priority, id)
+func _on_ui_notification(message: String, duration: float = DEFAULT_DURATION, priority: int = 0, notif_type: int = 0, id: String = "") -> void:
+	var color = NotificationColor.NORMAL
+	match notif_type:
+		0: color = NotificationColor.GAIN
+		1: color = NotificationColor.COST
+		2: color = NotificationColor.SUCCESS
+		3: color = NotificationColor.WARNING
+		4: color = NotificationColor.ERROR
+		5: color = NotificationColor.SYSTEM
+	show_with_priority(message, duration, color, priority, id)
 
 ## EventBus notification_requested 信号处理（GDD 标准信号）
 func _on_notification_requested(text: String, notif_type: int = 0, priority: int = 2, duration: float = DEFAULT_DURATION, id: String = "", icon_path: String = "") -> void:
@@ -317,6 +300,10 @@ func _on_resume_requested() -> void:
 		print("[NotificationManager] Draining")
 	# 立即尝试显示下一条（跳过淡入）
 	_show_next()
+
+## 背包满信号处理
+func _on_inventory_full(_item_id: String) -> void:
+	show_warning("背包已满")
 
 # ============ 调试 ============
 

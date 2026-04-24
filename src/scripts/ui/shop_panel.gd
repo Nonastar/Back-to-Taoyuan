@@ -93,7 +93,6 @@ var quantity_plus: Button
 var quantity_label: Label
 var selected_item_label: Label
 var price_display: Label
-var status_label: Label
 
 # ============ 生命周期 ============
 
@@ -121,7 +120,6 @@ func _init_node_references() -> void:
 	quantity_label = get_node_or_null("VBox/QBox/QtyLabel")
 	selected_item_label = get_node_or_null("VBox/InfoBar/SelectedItem")
 	price_display = get_node_or_null("VBox/InfoBar/PriceDisplay")
-	status_label = get_node_or_null("VBox/StatusBar")
 
 func _connect_signals() -> void:
 	if close_button:
@@ -530,12 +528,14 @@ func _update_ui() -> void:
 		tab_animal.disabled = current_shop_type == ShopType.ANIMAL
 
 func _set_status(msg: String, is_error: bool = false) -> void:
-	if status_label:
-		status_label.text = msg
-		if is_error:
-			status_label.add_theme_color_override("font_color", UITokens.ACCENT_RED)
-		else:
-			status_label.add_theme_color_override("font_color", UITokens.ACCENT_GREEN)
+	if not NotificationManager:
+		return
+	if is_error:
+		NotificationManager.show_error(msg)
+	elif "success" in msg or "成功" in msg:
+		NotificationManager.show_success(msg)
+	else:
+		NotificationManager.show_info(msg)
 
 # ============ 商品卡片类 ============
 # 独立类处理点击事件，避免 gui_input 信号兼容性问题

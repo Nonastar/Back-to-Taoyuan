@@ -161,8 +161,3 @@ layout_mode = 2
 text = "价格: 0g"
 horizontal_alignment = 2
 vertical_alignment = 1
-
-[node name="StatusBar" type="Label" parent="VBox" unique_id=1304154856]
-layout_mode = 2
-text = "选择商品后进行购买或出售"
-horizontal_alignment = 1

@@ -48,7 +48,8 @@ signal skill_level_up(skill_type: int, old_level: int, new_level: int)
 signal skill_unlocked(skill_type: int)
 
 ## UI通知事件
-signal ui_notification(message: String, duration: float, priority: int)
+## type: 0=GAIN, 1=COST, 2=SUCCESS, 3=WARNING, 4=ERROR, 5=SYSTEM
+signal ui_notification(message: String, duration: float, priority: int, type: int, id: String)
 signal ui_achievement_unlocked(achievement_id: String)
 signal ui_tutorial_triggered(tutorial_id: String)
 signal panel_changed(panel_key: String)
