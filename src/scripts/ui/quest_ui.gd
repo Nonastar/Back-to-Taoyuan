@@ -49,10 +49,13 @@ func _setup_node_references() -> void:
 	if _tabs:
 		var main_tab = _tabs.get_node_or_null("MainQuests")
 		if main_tab:
-			_main_quest_list = main_tab.get_node_or_null("MainQuestList")
+			_main_quest_list = main_tab.get_node_or_null("ScrollContainer/QuestItems")
 		var daily_tab = _tabs.get_node_or_null("DailyQuests")
 		if daily_tab:
-			_daily_quest_list = daily_tab.get_node_or_null("DailyQuestList")
+			_daily_quest_list = daily_tab.get_node_or_null("ScrollContainer/QuestItems")
+		# 设置 tab 标题（Control 节点没有 text 属性，需要手动设置）
+		_tabs.set_tab_title(0, "主线")
+		_tabs.set_tab_title(1, "委托")
 
 func _connect_signals() -> void:
 	if EventBus:
@@ -114,8 +117,7 @@ func _refresh_daily_quests() -> void:
 		return
 
 	for child in _daily_quest_list.get_children():
-		if child.name != "EmptyLabel":
-			child.queue_free()
+		child.queue_free()
 
 	if not QuestSystem:
 		return
@@ -129,9 +131,11 @@ func _refresh_daily_quests() -> void:
 			_daily_quest_list.add_child(row)
 
 	if has_daily:
-		var empty = _daily_quest_list.get_node_or_null("EmptyLabel")
-		if empty:
-			empty.visible = false
+		var daily_tab = _tabs.get_node_or_null("DailyQuests")
+		if daily_tab:
+			var empty = daily_tab.get_node_or_null("EmptyLabel")
+			if empty:
+				empty.visible = false
 
 func _create_quest_row(quest: Dictionary) -> Control:
 	var hbox = HBoxContainer.new()
@@ -158,18 +162,32 @@ func _create_quest_row(quest: Dictionary) -> Control:
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	info_vbox.add_child(title_label)
 
+	# 进度显示（ACTIVE 和 COMPLETED 状态显示）
+	if state == QuestSystem.QuestState.ACTIVE or state == QuestSystem.QuestState.COMPLETED:
+		var progress_label = Label.new()
+		if state == QuestSystem.QuestState.COMPLETED:
+			progress_label.text = "✅ %d/%d" % [progress, target]
+			progress_label.modulate = Color(0.3, 0.9, 0.3, 1)
+		else:
+			if progress >= target:
+				progress_label.text = "🎯 %d/%d" % [progress, target]
+				progress_label.modulate = Color(0.3, 0.9, 0.3, 1)
+			else:
+				progress_label.text = "📋 %d/%d" % [progress, target]
+				progress_label.modulate = Color(0.8, 0.8, 0.4, 1)
+		info_vbox.add_child(progress_label)
+	elif state == QuestSystem.QuestState.PENDING or state == QuestSystem.QuestState.AVAILABLE:
+		# 未接取/可接取状态显示目标
+		var target_label = Label.new()
+		target_label.text = "🎯 目标: %d" % target
+		target_label.modulate = Color(0.5, 0.5, 0.5, 1)
+		info_vbox.add_child(target_label)
+
 	var desc_label = Label.new()
 	desc_label.text = quest.get("description", "")
 	desc_label.modulate = Color(0.7, 0.7, 0.7, 1)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_vbox.add_child(desc_label)
-
-	# 进度条（进行中显示）
-	if state == QuestSystem.QuestState.ACTIVE:
-		var progress_label = Label.new()
-		progress_label.text = "进度: %d/%d" % [progress, target]
-		progress_label.modulate = Color(0.8, 0.8, 0.4, 1)
-		info_vbox.add_child(progress_label)
 
 	# 奖励信息
 	var reward_label = Label.new()
@@ -191,7 +209,11 @@ func _create_quest_row(quest: Dictionary) -> Control:
 		QuestSystem.QuestState.AVAILABLE:
 			action_btn.text = "接取"
 		QuestSystem.QuestState.ACTIVE:
-			action_btn.text = "查看"
+			if progress >= target:
+				action_btn.text = "完成"
+				action_btn.add_theme_color_override("font_color", Color(0.3, 0.9, 0.3, 1))
+			else:
+				action_btn.text = "查看"
 		QuestSystem.QuestState.COMPLETED:
 			action_btn.text = "已完成"
 			action_btn.disabled = true
@@ -219,11 +241,19 @@ func _on_action_pressed(quest_id: String, state: int, btn: Button) -> void:
 
 	match state:
 		QuestSystem.QuestState.PENDING:
-			# 主线任务只能查看
+			# 主线任务点击后接取
 			var quest = QuestSystem.get_quest(quest_id)
-			var desc = quest.get("description", "")
-			if NotificationManager:
-				NotificationManager.show_info("「%s」: %s" % [quest.get("title", ""), desc])
+			if quest.get("type") == QuestSystem.QuestType.MAIN:
+				var result = QuestSystem.accept_quest(quest_id)
+				if result.get("success", false):
+					_refresh_all_quests()
+				else:
+					if NotificationManager:
+						NotificationManager.show_info(result.get("message", "无法接取任务"))
+			else:
+				var desc = quest.get("description", "")
+				if NotificationManager:
+					NotificationManager.show_info("「%s」: %s" % [quest.get("title", ""), desc])
 		QuestSystem.QuestState.AVAILABLE:
 			# 接取任务
 			var result = QuestSystem.accept_quest(quest_id)
@@ -242,17 +272,14 @@ func _on_action_pressed(quest_id: String, state: int, btn: Button) -> void:
 					NotificationManager.show_info("「%s」: %s" % [quest.get("title", ""), desc])
 
 func _on_quest_accepted(_quest_id: String, quest_title: String) -> void:
-	if _visible:
-		_refresh_all_quests()
+	_refresh_all_quests()
 	if NotificationManager:
 		NotificationManager.show_success("任务接取: 「%s」" % quest_title)
 
-func _on_quest_progress_updated(quest_id: String, progress: int, target: int) -> void:
-	if _visible:
-		_refresh_all_quests()
+func _on_quest_progress_updated(_quest_id: String, _progress: int, _target: int) -> void:
+	_refresh_all_quests()
 
 func _on_quest_completed(_quest_id: String, quest_title: String) -> void:
-	if _visible:
-		_refresh_all_quests()
+	_refresh_all_quests()
 	if NotificationManager:
 		NotificationManager.show_success("🎉 任务完成: 「%s」" % quest_title)

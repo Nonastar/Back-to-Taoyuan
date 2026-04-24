@@ -358,71 +358,14 @@ layout_mode = 2
 text = "[5]肥料"
 horizontal_alignment = 1
 
-[node name="Slot_9" type="PanelContainer" parent="Hotbar" unique_id=1125662688]
-custom_minimum_size = Vector2(56, 56)
-layout_mode = 2
-
-[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_9" unique_id=2138605000]
-layout_mode = 2
-alignment = 1
-
-[node name="Emoji" type="Label" parent="Hotbar/Slot_9/SlotContent" unique_id=210133846]
-layout_mode = 2
-text = "🏪"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Name" type="Label" parent="Hotbar/Slot_9/SlotContent" unique_id=1634321218]
-layout_mode = 2
-text = "[S]商店"
-horizontal_alignment = 1
-
-[node name="Slot_10" type="PanelContainer" parent="Hotbar" unique_id=1125662689]
-custom_minimum_size = Vector2(56, 56)
-layout_mode = 2
-
-[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_10" unique_id=2138605001]
-layout_mode = 2
-alignment = 1
-
-[node name="Emoji" type="Label" parent="Hotbar/Slot_10/SlotContent" unique_id=210133847]
-layout_mode = 2
-text = "🍳"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Name" type="Label" parent="Hotbar/Slot_10/SlotContent" unique_id=1634321219]
-layout_mode = 2
-text = "[C]烹饪"
-horizontal_alignment = 1
-
-[node name="Slot_11" type="PanelContainer" parent="Hotbar" unique_id=1125662690]
-custom_minimum_size = Vector2(56, 56)
-layout_mode = 2
-
-[node name="SlotContent" type="VBoxContainer" parent="Hotbar/Slot_11" unique_id=2138605002]
-layout_mode = 2
-alignment = 1
-
-[node name="Emoji" type="Label" parent="Hotbar/Slot_11/SlotContent" unique_id=210133848]
-layout_mode = 2
-text = "📦"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="Name" type="Label" parent="Hotbar/Slot_11/SlotContent" unique_id=1634321220]
-layout_mode = 2
-text = "[B]背包"
-horizontal_alignment = 1
-
 [node name="QuickButtons" type="VBoxContainer" parent="." unique_id=1234567801]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = 1648.0
-offset_top = -40.0
-offset_right = 1708.0
-offset_bottom = 172.0
+offset_left = -80.0
+offset_top = 80.0
+offset_right = -8.0
+offset_bottom = 440.0
 grow_horizontal = 0
 alignment = 1
 
@@ -480,7 +423,7 @@ vertical_alignment = 1
 
 [node name="KeyHint" type="Label" parent="QuickButtons/BtnQuest/VBox" unique_id=1234567813]
 layout_mode = 2
-text = "J"
+text = "Q"
 horizontal_alignment = 1
 
 [node name="BtnMenu" type="PanelContainer" parent="QuickButtons" unique_id=1234567814]
@@ -538,6 +481,25 @@ vertical_alignment = 1
 [node name="KeyHint" type="Label" parent="QuickButtons/BtnCooking/VBox" unique_id=1234567825]
 layout_mode = 2
 text = "C"
+horizontal_alignment = 1
+
+[node name="BtnFriendship" type="PanelContainer" parent="QuickButtons" unique_id=1234567830]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="QuickButtons/BtnFriendship" unique_id=1234567831]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="QuickButtons/BtnFriendship/VBox" unique_id=1234567832]
+layout_mode = 2
+text = "💬"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyHint" type="Label" parent="QuickButtons/BtnFriendship/VBox" unique_id=1234567833]
+layout_mode = 2
+text = "J"
 horizontal_alignment = 1
 
 [node name="NotificationArea" type="Control" parent="." unique_id=23264448]

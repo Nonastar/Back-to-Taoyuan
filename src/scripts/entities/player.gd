@@ -142,14 +142,13 @@ func _try_interact_at(world_pos: Vector2) -> bool:
 			# 确定动作类型
 			var action = _get_action_name(current_tool)
 			# 发出全局信号
-			if EventBus.has_signal("farm_interaction_result"):
-				EventBus.farm_interaction_result.emit(
-					plot.name,
-					current_tool,
-					action,
-					success,
-					original_state
-				)
+			EventBus.farm_interaction_result.emit(
+				plot.name,
+				current_tool,
+				action,
+				success,
+				original_state
+			)
 			if success:
 				return true
 	return false

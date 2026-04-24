@@ -85,6 +85,7 @@ var button_quest: PanelContainer
 var button_menu: PanelContainer
 var button_shop: PanelContainer
 var button_cooking: PanelContainer
+var button_npc_friendship: PanelContainer
 
 ## 商店和烹饪面板引用
 var shop_panel: Control = null
@@ -194,6 +195,7 @@ func _setup_node_references() -> void:
 	button_menu = quick_buttons.get_node_or_null("BtnMenu") if quick_buttons else null
 	button_shop = quick_buttons.get_node_or_null("BtnShop") if quick_buttons else null
 	button_cooking = quick_buttons.get_node_or_null("BtnCooking") if quick_buttons else null
+	button_npc_friendship = quick_buttons.get_node_or_null("BtnFriendship") if quick_buttons else null
 
 	# 连接按钮点击信号
 	if button_inventory:
@@ -213,6 +215,9 @@ func _setup_node_references() -> void:
 	if button_cooking:
 		button_cooking.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_cooking.gui_input.connect(_on_quick_button_input.bind("cooking"))
+	if button_npc_friendship:
+		button_npc_friendship.mouse_filter = Control.MOUSE_FILTER_STOP
+		button_npc_friendship.gui_input.connect(_on_quick_button_input.bind("npc_friendship"))
 
 	# 通知区域
 	notification_area = $NotificationArea
@@ -319,6 +324,9 @@ func _on_weather_changed(new_weather: String, old_weather: String) -> void:
 
 func _on_location_changed(new_group: int, old_group: int) -> void:
 	_update_location_display()
+	# Hotbar 仅在农场场景显示
+	if hotbar:
+		hotbar.visible = (new_group == NavigationSystem.LocationGroup.FARM) if NavigationSystem else false
 
 func _on_panel_changed(panel_key: String) -> void:
 	_update_location_display()
@@ -891,18 +899,6 @@ func _on_hotbar_key(index: int) -> void:
 
 	_select_slot(index)
 
-	# 快捷入口槽位
-	match index:
-		9:
-			_open_shop()
-			return
-		10:
-			_open_cooking()
-			return
-		11:
-			_open_inventory()
-			return
-
 	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
 	var player = _get_player()
 	if index < 5 and player and player.has_method("switch_tool"):
@@ -921,18 +917,6 @@ func _on_slot_clicked(slot_index: int) -> void:
 
 	# 选中槽位
 	_select_slot(slot_index)
-
-	# 快捷入口槽位
-	match slot_index:
-		9:
-			_open_shop()
-			return
-		10:
-			_open_cooking()
-			return
-		11:
-			_open_inventory()
-			return
 
 	# 只切换有效的工具槽位 (0-4 对应工具, 5+ 是物品栏)
 	var player = _get_player()

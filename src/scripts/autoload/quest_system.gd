@@ -23,10 +23,46 @@ enum QuestState {
 	EXPIRED = 4     # 超时失败
 }
 
-## 主线任务数据（第一章前5个）
+## 主线任务数据（第一章前8个）
 const MAIN_QUESTS_DATA: Array = [
 	{
 		"id": "main_1_1",
+		"type": QuestType.MAIN,
+		"title": "开垦荒地",
+		"description": "开垦3块土地",
+		"target_type": "tillPlots",
+		"target_count": 3,
+		"reward_money": 100,
+		"reward_npc_id": "",
+		"reward_friendship": 0,
+		"reward_items": []
+	},
+	{
+		"id": "main_1_2",
+		"type": QuestType.MAIN,
+		"title": "播种希望",
+		"description": "种植5次作物",
+		"target_type": "plantCrops",
+		"target_count": 5,
+		"reward_money": 150,
+		"reward_npc_id": "",
+		"reward_friendship": 0,
+		"reward_items": []
+	},
+	{
+		"id": "main_1_3",
+		"type": QuestType.MAIN,
+		"title": "细心照料",
+		"description": "浇水5次",
+		"target_type": "waterPlots",
+		"target_count": 5,
+		"reward_money": 150,
+		"reward_npc_id": "",
+		"reward_friendship": 0,
+		"reward_items": []
+	},
+	{
+		"id": "main_1_4",
 		"type": QuestType.MAIN,
 		"title": "新的开始",
 		"description": "收获5次作物",
@@ -38,7 +74,7 @@ const MAIN_QUESTS_DATA: Array = [
 		"reward_items": []
 	},
 	{
-		"id": "main_1_2",
+		"id": "main_1_5",
 		"type": QuestType.MAIN,
 		"title": "远亲不如近邻",
 		"description": "与陈伯成为相识",
@@ -52,7 +88,7 @@ const MAIN_QUESTS_DATA: Array = [
 		"reward_items": []
 	},
 	{
-		"id": "main_1_3",
+		"id": "main_1_6",
 		"type": QuestType.MAIN,
 		"title": "溪边垂钓",
 		"description": "累计钓到5条鱼",
@@ -64,7 +100,7 @@ const MAIN_QUESTS_DATA: Array = [
 		"reward_items": []
 	},
 	{
-		"id": "main_1_4",
+		"id": "main_1_7",
 		"type": QuestType.MAIN,
 		"title": "初探矿洞",
 		"description": "到达第5层",
@@ -76,7 +112,7 @@ const MAIN_QUESTS_DATA: Array = [
 		"reward_items": []
 	},
 	{
-		"id": "main_1_5",
+		"id": "main_1_8",
 		"type": QuestType.MAIN,
 		"title": "乡间美味",
 		"description": "烹饪3道菜",
@@ -128,7 +164,7 @@ func _connect_signals() -> void:
 	# 监听 NPC 对话触发任务进度
 	if EventBus:
 		EventBus.npc_talked.connect(_on_npc_talked)
-		EventBus.farm_crop_harvested.connect(_on_farm_crop_harvested)
+		EventBus.farm_interaction_result.connect(_on_farm_interaction_result)
 		EventBus.fish_caught.connect(_on_fish_caught)
 		EventBus.cooking_completed.connect(_on_cooking_completed)
 		EventBus.mine_floor_reached.connect(_on_mine_floor_reached)
@@ -161,13 +197,13 @@ func accept_quest(quest_id: String) -> Dictionary:
 	# 接取任务
 	var quest: Dictionary = validated["quest"]
 	quest["state"] = QuestState.ACTIVE
+	quest["progress"] = 0
 	_active_quests[quest_id] = {
 		"state": QuestState.ACTIVE,
 		"progress": 0,
 		"accepted_at": TimeManager.current_day if TimeManager else 0
 	}
 	quest_accepted.emit(quest_id, quest.get("title", quest_id))
-	print("[QuestSystem] Quest accepted: %s" % quest_id)
 	return {"success": true, "message": "任务接取成功"}
 
 ## 提交任务（完成目标后调用）
@@ -222,7 +258,6 @@ func add_progress(quest_id: String, amount: int = 1) -> void:
 	var target = quest.get("target_count", 1)
 
 	quest_progress_updated.emit(quest_id, new_progress, target)
-	print("[QuestSystem] Quest %s progress: %d/%d" % [quest_id, new_progress, target])
 
 	# 如果达到目标，显示提示
 	if new_progress >= target:
@@ -312,13 +347,16 @@ func _activate_next_main_quest(completed_quest_id: String) -> void:
 			idx = i
 			break
 
-	# 激活下一个任务
+	# 激活下一个任务（仅当任务处于初始状态时才激活）
 	if idx >= 0 and idx + 1 < MAIN_QUESTS_DATA.size():
 		var next_quest_data = MAIN_QUESTS_DATA[idx + 1]
 		var next_id = next_quest_data.get("id", "")
 		if _quests.has(next_id):
-			_quests[next_id]["state"] = QuestState.PENDING
-			print("[QuestSystem] Next main quest unlocked: %s" % next_id)
+			var current_state = _quests[next_id].get("state", QuestState.PENDING)
+			# 只有 PENDING 状态才激活（不覆盖已进行中的任务）
+			if current_state == QuestState.PENDING:
+				_quests[next_id]["state"] = QuestState.PENDING
+				print("[QuestSystem] Next main quest unlocked: %s" % next_id)
 
 # ============ 事件回调 ============
 
@@ -362,6 +400,32 @@ func _on_mine_floor_reached(floor: int) -> void:
 			var current_progress = quest.get("progress", 0)
 			if floor > current_progress:
 				add_progress(quest_id, floor - current_progress)
+
+func _on_farm_interaction_result(_plot_id: String, tool: int, action: String, success: bool, _original_state: int) -> void:
+	# 根据动作类型更新对应任务进度
+	if not success:
+		return
+	match action:
+		"till":
+			for quest_id in _active_quests.keys():
+				var quest = _quests.get(quest_id, {})
+				if quest.get("target_type") == "tillPlots":
+					add_progress(quest_id, 1)
+		"water":
+			for quest_id in _active_quests.keys():
+				var quest = _quests.get(quest_id, {})
+				if quest.get("target_type") == "waterPlots":
+					add_progress(quest_id, 1)
+		"plant":
+			for quest_id in _active_quests.keys():
+				var quest = _quests.get(quest_id, {})
+				if quest.get("target_type") == "plantCrops":
+					add_progress(quest_id, 1)
+		"harvest":
+			for quest_id in _active_quests.keys():
+				var quest = _quests.get(quest_id, {})
+				if quest.get("target_type") == "harvestCrops":
+					add_progress(quest_id, 1)
 
 func _on_day_changed(_day: int, _season: String, _year: int) -> void:
 	# 每日检查告示栏委托超时

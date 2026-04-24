@@ -27,20 +27,71 @@ text = "X"
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MainQuests" type="Tab" parent="VBox/Tabs" unique_id=3006]
+[node name="MainQuests" type="Control" parent="VBox/Tabs" unique_id=3006]
 visible = true
-text = "主线"
-
-[node name="MainQuestList" type="VBoxContainer" parent="VBox/Tabs/MainQuests" unique_id=3007]
 layout_mode = 2
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
 
-[node name="DailyQuests" type="Tab" parent="VBox/Tabs" unique_id=3008]
-text = "委托"
-
-[node name="DailyQuestList" type="VBoxContainer" parent="VBox/Tabs/DailyQuests" unique_id=3009]
+[node name="ScrollContainer" type="ScrollContainer" parent="VBox/Tabs/MainQuests" unique_id=3011]
 layout_mode = 2
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="EmptyLabel" type="Label" parent="VBox/Tabs/DailyQuests/DailyQuestList" unique_id=3010]
+[node name="QuestItems" type="VBoxContainer" parent="VBox/Tabs/MainQuests/ScrollContainer" unique_id=3012]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="DailyQuests" type="Control" parent="VBox/Tabs" unique_id=3008]
+layout_mode = 2
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBox/Tabs/DailyQuests" unique_id=3013]
+layout_mode = 2
+anchors_preset = 15
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="QuestItems" type="VBoxContainer" parent="VBox/Tabs/DailyQuests/ScrollContainer" unique_id=3014]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="EmptyLabel" type="Label" parent="VBox/Tabs/DailyQuests" unique_id=3010]
+layout_mode = 2
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -80.0
+offset_top = -20.0
+offset_right = 80.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
 text = "（暂无告示栏委托）"
 horizontal_alignment = 1

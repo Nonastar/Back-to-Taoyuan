@@ -450,9 +450,9 @@ func _on_heart_event_triggered(npc_id: String, event_id: String) -> void:
 		"dialogue": "你来了！我……我有件事想跟你说。"
 	})
 
-func _on_quest_completed(quest_id: String) -> void:
+func _on_quest_completed(_quest_id: String, _quest_title: String) -> void:
 	# 任务完成时检查特殊对话
-	print("[DialogueSystem] Quest completed: %s" % quest_id)
+	print("[DialogueSystem] Quest completed: %s" % _quest_id)
 
 func _on_weather_changed(_weather: String) -> void:
 	# 天气变化时记录
