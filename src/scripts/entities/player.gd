@@ -296,8 +296,7 @@ func _is_ui_open() -> bool:
 			if child is Control and child.visible and child.mouse_filter != Control.MOUSE_FILTER_IGNORE:
 				var name = child.name
 				# 排除常驻 HUD 元素（位置信息、技能面板、装饰背景等）
-				if name == "TopBarBG" or name == "HotbarBG" or name == "TopBar" or name == "Hotbar" or name == "QuickButtons" or name == "LocationInfo" or name == "SkillPanel" or name == "Notification":
+				if name == "TopBarBG" or name == "HotbarBG" or name == "TopBar" or name == "Hotbar" or name == "QuickButtons" or name == "LocationInfo" or name == "SkillPanel" or name == "NotificationArea" or name == "MapContainer":
 					continue
-				print("[Player] _is_ui_open=true blocked by child=%s" % name)
 				return true
 	return false

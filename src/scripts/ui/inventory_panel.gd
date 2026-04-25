@@ -27,7 +27,7 @@ const SLOT_SIZE: int = 64
 const SLOT_SPACING: int = 4
 const COLUMNS: int = 10
 const INITIAL_CAPACITY: int = 24
-const TEMP_CAPACITY: int = 10
+const TEMP_CAPACITY: int = 5
 
 const COLORS: Dictionary = {
 	"bg_panel": Color(0.02, 0.04, 0.08, 0.92),

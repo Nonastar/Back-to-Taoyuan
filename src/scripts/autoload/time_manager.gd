@@ -19,7 +19,7 @@ const DAY_START_HOUR: int = 6       # 游戏日开始时间
 const DAY_END_HOUR: int = 26        # 游戏日结束时间 (次日2:00)
 const MIDNIGHT_HOUR: int = 24      # 午夜时间点
 const LATE_NIGHT_HOUR: int = 25    # 深夜时间点
-const HOUR_DURATION_MS: float = 1000.0  # 每游戏小时 = 1000ms 实时
+const HOUR_DURATION_MS: float = 5000.0  # 每游戏小时 = 2000ms 实时
 
 ## 季节天数
 const DAYS_PER_SEASON: int = 28

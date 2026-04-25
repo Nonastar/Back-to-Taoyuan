@@ -55,6 +55,9 @@ See `docs/COLLABORATIVE-DESIGN-PRINCIPLE.md` for full protocol and examples.
 
 ## Development Checklist
 
+**每次回复语言：**
+用户母语是中文，每次回答时务必使用中文回复，这样会更友好！
+
 **每次编写代码前必须完成：**
 
 1. 📋 阅读 `docs/FIXES.md` 的检查清单，确保避免所有已知错误模式

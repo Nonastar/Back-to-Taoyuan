@@ -28,7 +28,7 @@ const WARRIOR_HP_BONUS: int = 40
 const LOW_HP_THRESHOLD: float = 0.25
 
 ## 开局金钱
-const STARTING_MONEY: int = 500
+const STARTING_MONEY: int = 1000
 
 ## 晚睡就寝最大恢复率 (24时)
 const LATE_NIGHT_RECOVERY_MAX: float = 0.9

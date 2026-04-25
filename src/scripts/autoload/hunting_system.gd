@@ -165,28 +165,38 @@ func get_all_areas() -> Array:
 	for area_id in _area_data.keys():
 		var data = _area_data[area_id].duplicate()
 		data["area_id"] = area_id
-		data["state"] = _area_states.get(area_id, PreyState.COOLDOWN)
-		data["available"] = _area_states.get(area_id, PreyState.COOLDOWN) == PreyState.AVAILABLE
-		# 计算剩余冷却时间
-		var last_spawn = _last_spawn_time.get(area_id, -999)
+		data["state"] = _area_states.get(area_id, PreyState.AVAILABLE)
+		data["available"] = is_area_available(area_id)
+		# 计算剩余冷却时间（使用绝对游戏分钟）
+		var last_spawn = _last_spawn_time.get(area_id, -999999)
 		var respawn_min = _area_data[area_id].get("respawn_minutes", 10)
-		var current_time = TimeManager.current_hour * 60 if TimeManager else 0
-		var elapsed = current_time - last_spawn
+		var elapsed = _get_current_game_minutes() - last_spawn
 		data["cooldown_remaining"] = maxf(0.0, respawn_min - elapsed)
 		result.append(data)
 	return result
 
-## 检查区域是否可狩猎
+## 检查区域是否可狩猎（经过足够时间则自动恢复可用）
 func is_area_available(area: int) -> bool:
-	return _area_states.get(area, PreyState.COOLDOWN) == PreyState.AVAILABLE
+	var state = _area_states.get(area, PreyState.AVAILABLE)
+	if state == PreyState.AVAILABLE:
+		return true
+	# 处于刷新中：检查是否已经过了足够时间，自动恢复可用
+	var last_spawn = _last_spawn_time.get(area, -999999)
+	var respawn_min = _area_data[area].get("respawn_minutes", 10)
+	var elapsed = _get_current_game_minutes() - last_spawn
+	if elapsed >= respawn_min:
+		_area_states[area] = PreyState.AVAILABLE
+		area_respawned.emit(area)
+		return true
+	return false
 
 ## 获取区域信息
 func get_area_info(area: int) -> Dictionary:
 	var data = _area_data.get(area, {})
 	var result = data.duplicate()
 	result["area_id"] = area
-	result["state"] = _area_states.get(area, PreyState.COOLDOWN)
-	result["available"] = _area_states.get(area, PreyState.COOLDOWN) == PreyState.AVAILABLE
+	result["state"] = _area_states.get(area, PreyState.AVAILABLE)
+	result["available"] = is_area_available(area)
 	return result
 
 # ============ 狩猎操作 API（公开设置技能等级，供测试/调试用）============
@@ -211,10 +221,8 @@ func hunt_in_area(area: int) -> Dictionary:
 			"message": "该区域猎物尚未刷新 (还需 %d 分钟)" % cooldown
 		}
 
-	# 检查狩猎技能
+	# 任意等级均可狩猎（技能等级影响掉落率和品质，不限制参与）
 	var skill_level = _get_hunting_skill_level()
-	if skill_level < 1:
-		return {"success": false, "message": "需要先提升狩猎技能"}
 
 	# 选择猎物类型
 	var prey_types = _area_data[area].get("prey_types", [])
@@ -227,14 +235,12 @@ func hunt_in_area(area: int) -> Dictionary:
 	# 计算掉落
 	var drops = _calculate_drops(prey_id, skill_level)
 
-	# 消耗狩猎技能计时（每次狩猎消耗体力/冷却）
-	var cooldown_result = _use_hunting_cooldown(area)
-	if not cooldown_result:
-		return {"success": false, "message": "狩猎失败，请稍后再试"}
+	# 消耗狩猎技能计时（已由 is_area_available 预检查，这里仅记录狩猎时间戳）
+	_use_hunting_cooldown(area)
 
 	# 更新区域状态
 	_area_states[area] = PreyState.COOLDOWN
-	_last_spawn_time[area] = TimeManager.current_hour * 60 if TimeManager else 0
+	_last_spawn_time[area] = _get_current_game_minutes()
 
 	prey_hunted.emit(prey_id, drops)
 
@@ -247,6 +253,11 @@ func hunt_in_area(area: int) -> Dictionary:
 		if not drop_id.is_empty() and InventorySystem:
 			InventorySystem.add_item(drop_id, drop_qty, drop_quality)
 			item_count += drop_qty
+
+	# 给予狩猎经验
+	var exp_amount = prey_info.get("exp", 0)
+	if exp_amount > 0 and SkillSystem:
+		SkillSystem.add_exp(SkillSystem.SkillType.HUNTING, exp_amount)
 
 	var prey_name = prey_info.get("name", prey_id)
 	return {
@@ -282,17 +293,24 @@ func _get_hunting_skill_level() -> int:
 	return _hunting_skill_level
 
 func _get_cooldown_remaining(area: int) -> int:
-	var last_spawn = _last_spawn_time.get(area, -999)
+	if _area_states.get(area, PreyState.AVAILABLE) == PreyState.AVAILABLE:
+		return 0
+	var last_spawn = _last_spawn_time.get(area, -999999)
 	var respawn_min = _area_data[area].get("respawn_minutes", 10)
-	var current_time = TimeManager.current_hour * 60 if TimeManager else 0
-	var elapsed = current_time - last_spawn
+	var elapsed = _get_current_game_minutes() - last_spawn
 	return maxi(0, respawn_min - elapsed)
 
+## 计算当前绝对游戏分钟数（天*1440 + 小时*60），用于精确计算经过时间
+func _get_current_game_minutes() -> int:
+	if TimeManager:
+		var days = TimeManager.get_total_days()
+		var hour = TimeManager.current_hour
+		return days * 1440 + hour * 60
+	return 0
+
 func _use_hunting_cooldown(area: int) -> bool:
-	# 使用自管理的狩猎冷却（等待 SkillSystem 支持 HUNTING 后可替换）
-	if _hunt_cooldown_active:
-		return false
-	_hunt_cooldown_active = true
+	# 狩猎冷却通过每区域的 _area_states[area] + respawn_minutes 独立管理
+	# 此函数仅用于标记该次狩猎已完成（已被 hunt_in_area 调用前检查覆盖）
 	return true
 
 func _calculate_drops(prey_id: String, skill_level: int) -> Array:

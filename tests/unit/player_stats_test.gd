@@ -12,7 +12,7 @@ func before_each():
 	_stats.bonus_max_stamina = 0
 	_stats.current_hp = 100
 	_stats.stamina = 120
-	_stats.money = 500
+	_stats.money = 1000
 	# 初始化
 	_stats._initialized = false
 	_stats._initialize()
@@ -26,7 +26,7 @@ func test_initial_values():
 	assert_eq(_stats.get_max_stamina(), 120, "初始体力上限应为120")
 	assert_eq(_stats.get_current_hp(), 100, "初始HP应为100")
 	assert_eq(_stats.get_max_hp(), 100, "基础最大HP应为100")
-	assert_eq(_stats.get_money(), 500, "初始金钱应为500")
+	assert_eq(_stats.get_money(), 1000, "初始金钱应为1000")
 
 func test_stamina_consume():
 	# 测试体力消耗

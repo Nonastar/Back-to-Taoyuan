@@ -18,8 +18,8 @@ const EXPANSION_AMOUNT: int = 4
 ## 最大堆叠数量 (GDD: 999)
 const MAX_STACK_SIZE: int = 999
 
-## 临时背包容量 (GDD: 10)
-const TEMP_CAPACITY: int = 10
+## 临时背包容量 (GDD: 5)
+const TEMP_CAPACITY: int = 5
 
 ## 背包快满提醒阈值 (GDD: 3)
 const FULL_WARNING_THRESHOLD: int = 3

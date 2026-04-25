@@ -217,7 +217,7 @@ func _collect_save_data() -> Dictionary:
 			"day": TimeManager.current_day,
 			"season": TimeManager.current_season,
 			"year": TimeManager.current_year,
-			"money": 500,
+			"money": 1000,
 			"stamina": 156.0,
 			"max_stamina": 156.0,
 			"health": 100.0,

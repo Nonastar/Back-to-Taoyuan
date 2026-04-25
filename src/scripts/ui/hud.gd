@@ -86,6 +86,7 @@ var button_menu: PanelContainer
 var button_shop: PanelContainer
 var button_cooking: PanelContainer
 var button_npc_friendship: PanelContainer
+var button_hunting: PanelContainer
 
 ## 商店和烹饪面板引用
 var shop_panel: Control = null
@@ -196,6 +197,7 @@ func _setup_node_references() -> void:
 	button_shop = quick_buttons.get_node_or_null("BtnShop") if quick_buttons else null
 	button_cooking = quick_buttons.get_node_or_null("BtnCooking") if quick_buttons else null
 	button_npc_friendship = quick_buttons.get_node_or_null("BtnFriendship") if quick_buttons else null
+	button_hunting = quick_buttons.get_node_or_null("BtnHunting") if quick_buttons else null
 
 	# 连接按钮点击信号
 	if button_inventory:
@@ -218,6 +220,9 @@ func _setup_node_references() -> void:
 	if button_npc_friendship:
 		button_npc_friendship.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_npc_friendship.gui_input.connect(_on_quick_button_input.bind("npc_friendship"))
+	if button_hunting:
+		button_hunting.mouse_filter = Control.MOUSE_FILTER_STOP
+		button_hunting.gui_input.connect(_on_quick_button_input.bind("hunting"))
 
 	# 通知区域
 	notification_area = $NotificationArea
@@ -330,6 +335,76 @@ func _on_location_changed(new_group: int, old_group: int) -> void:
 
 func _on_panel_changed(panel_key: String) -> void:
 	_update_location_display()
+	_refresh_map_location_markers()
+	_update_map_current_location_row()
+
+## 刷新地图界面的"当前位置"标记
+func _refresh_map_location_markers() -> void:
+	if not _map_container:
+		return
+	var panel = _map_container.get_node_or_null("MapPanel/VBox")
+	if not panel:
+		return
+	# 遍历所有 HBoxContainer（位置行），更新状态标签
+	for i in range(panel.get_child_count()):
+		var child = panel.get_child(i)
+		if not (child is VBoxContainer):
+			continue
+		for j in range(child.get_child_count()):
+			var row = child.get_child(j)
+			if not (row is HBoxContainer) or row.get_child_count() < 3:
+				continue
+			# 取 emoji、name、status 三列
+			var name_lbl = row.get_child(1) if row.get_child_count() >= 2 else null
+			var status_lbl = row.get_child(2) if row.get_child_count() >= 3 else null
+			if not (name_lbl is Label) or not (status_lbl is Label):
+				continue
+			# 从 name_lbl.text 匹配 panel_key
+			var panel_key_candidate = name_lbl.text
+			var matched_key = ""
+			if NavigationSystem:
+				for pk in NavigationSystem.PANELS:
+					var info = NavigationSystem.PANELS[pk]
+					if info.get("name", "") == panel_key_candidate:
+						matched_key = pk
+						break
+			if matched_key.is_empty():
+				continue
+			var is_current = NavigationSystem.current_panel == matched_key
+			if is_current:
+				status_lbl.text = "← 当前位置"
+				status_lbl.add_theme_color_override("font_color", Color(0.4, 0.9, 0.4))
+			else:
+				var can_access = NavigationSystem.can_navigate_to(matched_key)
+				if can_access:
+					var cost = NavigationSystem.get_travel_cost(matched_key)
+					var stamina = cost.get("stamina_cost", 0)
+					if stamina > 0:
+						status_lbl.text = "⚡%d" % stamina
+					else:
+						status_lbl.text = "✅"
+					status_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
+				else:
+					status_lbl.text = "❌"
+					status_lbl.add_theme_color_override("font_color", Color(0.5, 0.3, 0.3))
+
+## 刷新地图界面顶部的"当前位置: xxx"文字
+func _update_map_current_location_row() -> void:
+	if not _map_container:
+		return
+	var vbox = _map_container.get_node_or_null("MapPanel/VBox")
+	if not vbox:
+		return
+	var current_row = vbox.get_node_or_null("CurrentLocationRow")
+	if not current_row:
+		return
+	var lbl = current_row.get_node_or_null("CurrentLocationLabel")
+	if not lbl:
+		return
+	lbl.text = "📍 当前位置: %s %s" % [
+		NavigationSystem.get_current_group_emoji() if NavigationSystem else "🏠",
+		NavigationSystem.get_current_panel_name() if NavigationSystem else "农场"
+	]
 
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
@@ -1033,6 +1108,7 @@ func _open_map() -> void:
 		_map_container.add_child(map_panel)
 
 		var vbox = VBoxContainer.new()
+		vbox.name = "VBox"
 		vbox.add_theme_constant_override("separation", 8)
 		map_panel.add_child(vbox)
 
@@ -1056,7 +1132,9 @@ func _open_map() -> void:
 
 		# 当前区域高亮
 		var current_row = HBoxContainer.new()
+		current_row.name = "CurrentLocationRow"
 		var current_label = Label.new()
+		current_label.name = "CurrentLocationLabel"
 		current_label.text = "📍 当前位置: %s %s" % [
 			NavigationSystem.get_current_group_emoji() if NavigationSystem else "🏠",
 			NavigationSystem.get_current_panel_name() if NavigationSystem else "农场"
@@ -1160,20 +1238,45 @@ func _create_map_location_row(panel_key: String, info: Dictionary) -> Control:
 		else:
 			status_lbl.text = "✅"
 		status_lbl.add_theme_color_override("font_color", Color(0.5, 0.7, 0.5))
-		# 添加可点击行为
-		hbox.gui_input.connect(_on_map_location_input.bind(panel_key))
 	else:
 		status_lbl.text = "❌"
 		status_lbl.add_theme_color_override("font_color", Color(0.5, 0.3, 0.3))
+
+	# 始终连接点击信号（无论是否可访问），在回调中统一判断
+	hbox.gui_input.connect(_on_map_location_input.bind(panel_key))
 
 	hbox.add_child(status_lbl)
 	return hbox
 
 func _on_map_location_input(event: InputEvent, panel_key: String) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		# 室内场景直接加载
+		if NavigationSystem:
+			var panel_data = NavigationSystem.get_panel_info(panel_key)
+			if panel_data.has("scene") and not panel_data["scene"].is_empty():
+				# 是室内场景，走 SceneManager 加载
+				if SceneManager:
+					var success = SceneManager.load_interior(panel_key)
+					if success:
+						_close_map()
+						if NotificationManager:
+							NotificationManager.show_info("进入%s" % panel_data.get("name", panel_key))
+					else:
+						if NotificationManager:
+							NotificationManager.show_warning("无法进入该地点")
+				return
+
+		# 关闭地图，再处理世界区域/旅行场景
+		_close_map()
+
+		# 世界区域（farm、village 等）
 		if NavigationSystem and NavigationSystem.can_navigate_to(panel_key):
 			var result = NavigationSystem.navigate_to_panel(panel_key)
 			if result.get("success", false):
+				# 如果当前在室内或已有世界，需要退出室内并加载对应的世界场景
+				if SceneManager:
+					if not SceneManager.current_interior.is_empty() or not SceneManager.current_world.is_empty():
+						SceneManager.switch_world(panel_key)
 				var minutes = int(result.get("time_cost", 0.0) * 60)
 				var stamina = result.get("stamina_cost", 0)
 				var panel_name = NavigationSystem.PANELS.get(panel_key, {}).get("name", panel_key)
@@ -1186,11 +1289,10 @@ func _on_map_location_input(event: InputEvent, panel_key: String) -> void:
 						msg += ")"
 				if NotificationManager:
 					NotificationManager.show_info(msg)
-			_close_map()
 		else:
 			if NotificationManager:
-				var cost = NavigationSystem.get_travel_cost(panel_key)
-				var stamina_needed = cost.get("stamina_cost", 0)
+				var cost = NavigationSystem.get_travel_cost(panel_key) if NavigationSystem else {}
+				var stamina_needed = cost.get("stamina_cost", 0) if cost else 0
 				if stamina_needed > 0 and PlayerStats and PlayerStats.stamina < stamina_needed:
 					NotificationManager.show_warning("体力不足 (需要%d点)" % stamina_needed)
 				else:

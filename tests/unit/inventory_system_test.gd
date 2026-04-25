@@ -41,7 +41,7 @@ func test_max_stack_size():
 	assert_eq(_inv.MAX_STACK_SIZE, 999, "最大堆叠应为 999")
 
 func test_temp_capacity():
-	assert_eq(_inv.TEMP_CAPACITY, 10, "临时背包容量应为 10")
+	assert_eq(_inv.TEMP_CAPACITY, 5, "临时背包容量应为 5")
 
 # ============ 背包容量测试 ============
 

@@ -1,8 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://do6jmyurqyqh4"]
 
-[ext_resource type="Script" path="res://tests/TestRunnerScene.gd" id="1"]
+[ext_resource type="Script" uid="uid://c0b4mpei855ch" path="res://tests/TestRunnerScene.gd" id="1"]
 
-[node name="TestRunner" type="Control"]
+[node name="TestRunner" type="Control" unique_id=1071425927]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,9 +11,9 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Main" type="Node2D" parent="."]
+[node name="Main" type="Node2D" parent="." unique_id=1761608350]
 
-[node name="Panel" type="Panel" parent="."]
+[node name="Panel" type="Panel" parent="." unique_id=605633635]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -21,7 +21,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Title" type="Label" parent="Panel"]
+[node name="Title" type="Label" parent="Panel" unique_id=1186821441]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -32,7 +32,7 @@ theme_override_font_sizes/font_size = 28
 text = "归园田居 - 测试运行器"
 horizontal_alignment = 1
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Panel"]
+[node name="ScrollContainer" type="ScrollContainer" parent="Panel" unique_id=1045521345]
 layout_mode = 1
 anchors_preset = -1
 anchor_right = 1.0
@@ -43,7 +43,7 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Output" type="RichTextLabel" parent="Panel/ScrollContainer"]
+[node name="Output" type="RichTextLabel" parent="Panel/ScrollContainer" unique_id=1057718147]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3

@@ -40,8 +40,7 @@ func _setup_node_references() -> void:
 func _connect_signals() -> void:
 	if EventBus:
 		EventBus.time_day_changed.connect(_refresh_areas)
-	if TimeManager:
-		TimeManager.time_changed.connect(_on_time_changed)
+		EventBus.time_changed.connect(_on_time_changed)
 	if SkillSystem:
 		SkillSystem.skill_level_up.connect(_on_skill_level_up)
 
@@ -134,7 +133,7 @@ func _update_area_status_label(label: Label, area: int) -> void:
 	else:
 		label.text = "系统未就绪"
 
-func _refresh_areas() -> void:
+func _refresh_areas(_day: int, _season: String, _year: int) -> void:
 	if _visible:
 		_populate_areas()
 

@@ -5,7 +5,7 @@ extends Node
 ## 翻译表位于 assets/data/translations/strings.csv
 ## 当前默认语言: zh (中文)
 
-const DEFAULT_LOCALE := "zh"
+const DEFAULT_LOCALE := "zh" 
 const SUPPORTED_LOCALES := ["zh", "en"]
 
 const TRANSLATIONS_PATH := "res://assets/data/translations/strings.csv"

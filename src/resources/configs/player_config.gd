@@ -14,7 +14,7 @@ class_name PlayerConfig
 @export var max_stamina: float = 120.0
 
 ## 初始金钱
-@export var initial_money: int = 500
+@export var initial_money: int = 1000
 
 ## 玩家默认名称
 @export var default_player_name: String = "农夫"
@@ -89,11 +89,11 @@ class_name PlayerConfig
 
 @export_group("背包")
 ## 默认背包容量
-@export var default_backpack_size: int = 30
+@export var default_backpack_size: int = 20
 ## 最大堆叠数量
 @export var max_stack_size: int = 9999
 ## 仓库初始容量
-@export var initial_warehouse_size: int = 100
+@export var initial_warehouse_size: int = 50
 
 # ============ 工具方法 ============
 

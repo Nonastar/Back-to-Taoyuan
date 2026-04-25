@@ -29,55 +29,64 @@
       "name": "野兔",
       "drops": ["fur", "meat"],
       "drop_rate": 0.8,
-      "value": 15
+      "value": 15,
+      "exp": 10
     },
     "bird": {
       "name": "野鸟",
       "drops": ["feather", "egg"],
       "drop_rate": 0.7,
-      "value": 10
+      "value": 10,
+      "exp": 8
     },
     "squirrel": {
       "name": "松鼠",
       "drops": ["nut", "fur"],
       "drop_rate": 0.6,
-      "value": 8
+      "value": 8,
+      "exp": 8
     },
     "deer": {
       "name": "鹿",
       "drops": ["antler", "meat", "leather"],
       "drop_rate": 0.5,
-      "value": 50
+      "value": 50,
+      "exp": 30
     },
     "boar": {
       "name": "野猪",
       "drops": ["tusk", "meat", "leather"],
       "drop_rate": 0.5,
-      "value": 40
+      "value": 40,
+      "exp": 25
     },
     "fox": {
       "name": "狐狸",
       "drops": ["fur", "tail"],
       "drop_rate": 0.4,
-      "value": 30
+      "value": 30,
+      "exp": 20
     },
     "duck_wild": {
       "name": "野鸭",
       "drops": ["feather", "egg", "meat"],
       "drop_rate": 0.7,
-      "value": 20
+      "value": 20,
+      "exp": 12
     },
     "goose": {
       "name": "鹅",
       "drops": ["feather", "egg"],
       "drop_rate": 0.6,
-      "value": 25
+      "value": 25,
+      "exp": 15
     },
     "heron": {
       "name": "苍鹭",
       "drops": ["feather"],
       "drop_rate": 0.3,
-      "value": 35
+      "value": 35,
+      "exp": 18
     }
   },
 
