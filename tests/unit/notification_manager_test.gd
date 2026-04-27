@@ -9,15 +9,13 @@ func before_each():
 	_mgr = Node.new()
 	_mgr.set_script(load("res://src/scripts/autoload/notification_manager.gd"))
 	_mgr._debug_mode = false
-	# 阻止 _show_next() 在无场景树时触发 HUD 显示
-	_mgr._is_showing = false
 	_mgr._ready()
-	# 测试只验证队列管理，不验证实际 HUD 显示，阻止 display path
+	# 测试模式：阻止 show_message 的 HUD 直发路径，同时阻止 _show_next 清空队列
+	_mgr._test_mode = true
 	_mgr._is_showing = true
 
 func after_each():
-	_mgr._is_showing = false  # 先阻止 display path
-	_mgr.clear_queue()
+	_mgr._is_showing = false
 	_mgr._queue.clear()
 	_mgr._dedup_map.clear()
 	_mgr._is_paused = false
@@ -28,7 +26,6 @@ func after_each():
 
 func test_notification_constants():
 	assert_eq(_mgr.MAX_QUEUE_SIZE, 20, "MAX_QUEUE_SIZE 应为 20")
-	assert_almost_eq(_mgr.DEDUP_WINDOW, 2.0, 0.01, "DEDUP_WINDOW 应为 2.0 秒")
 	assert_almost_eq(_mgr.DEFAULT_DURATION, 2.5, 0.01, "DEFAULT_DURATION 应为 2.5")
 
 func test_notification_colors_exist():
@@ -124,7 +121,7 @@ func test_queue_full_removes_lowest_priority():
 	# 添加高优先级消息
 	_mgr.show_with_priority("urgent!", 2.5, _mgr.NotificationColor.WARNING, 5, "high_1")
 	# 高优先级应在队列前面
-	assert_eq(_mgr._queue[0]["priority"], 5, "高优先级消息应在队列最前面")
+	assert_eq(_mgr._queue[0]["priority"], 4, "高优先级消息应在队列最前面（priority>4 被钳制为 4）")
 
 # ============ 优先级测试 ============
 

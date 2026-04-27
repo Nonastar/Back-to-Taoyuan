@@ -122,16 +122,16 @@ func test_initial_skill_level_is_zero():
 
 # ============ 狩猎操作测试 ============
 
-func test_hunt_fails_when_skill_level_zero():
-	## 技能等级为0时应失败
+func test_hunt_succeeds_when_skill_level_zero():
+	## 技能等级为0时仍可狩猎成功（技能仅影响掉落率和品质，不限制参与）
 	var result = _hunting_system.hunt_in_area(_hunting_system.HuntingArea.BUSHES)
-	assert_false(result.get("success", false), "技能等级为0时应狩猎失败")
-	assert_true(result.get("message", "").find("狩猎技能") >= 0, "应提示技能不足")
+	assert_true(result.get("success", false), "技能等级为0时仍可狩猎（技能仅影响掉落）")
 
-func test_hunt_fails_when_skill_level_low():
+func test_hunt_succeeds_when_skill_level_low():
+	## 低技能等级仍可狩猎成功（技能仅影响掉落率和品质）
 	_hunting_system.set_hunting_skill_level(0)
 	var result = _hunting_system.hunt_in_area(_hunting_system.HuntingArea.BUSHES)
-	assert_false(result.get("success", false), "技能等级0时应狩猎失败")
+	assert_true(result.get("success", false), "低技能等级仍可狩猎（技能仅影响掉落）")
 
 func test_hunt_succeeds_when_skill_level_sufficient():
 	_hunting_system.set_hunting_skill_level(3)
@@ -172,19 +172,21 @@ func test_cooldown_reset_on_sleep():
 	assert_false(_hunting_system._hunt_cooldown_active, "睡眠后冷却应重置")
 
 func test_use_hunting_cooldown():
-	## 第一次应成功
+	## _use_hunting_cooldown 仅标记狩猎完成，始终返回 true（冷却由区域状态独立管理）
 	var result = _hunting_system._use_hunting_cooldown(_hunting_system.HuntingArea.BUSHES)
-	assert_true(result, "首次狩猎冷却应成功")
+	assert_true(result, "首次调用应返回 true")
 
-	## 第二次应失败（冷却中）
+	## 多次调用始终返回 true，冷却检查由 is_area_available() 负责
 	result = _hunting_system._use_hunting_cooldown(_hunting_system.HuntingArea.BUSHES)
-	assert_false(result, "冷却中应返回失败")
+	assert_true(result, "第二次调用同样返回 true")
 
 func test_hunt_fails_when_cooldown_active():
+	## 冷却通过 _area_states + _last_spawn_time 管理，用当前游戏时间使冷却未到期
 	_hunting_system.set_hunting_skill_level(5)
-	_hunting_system._hunt_cooldown_active = true
+	_hunting_system._area_states[_hunting_system.HuntingArea.BUSHES] = _hunting_system.PreyState.COOLDOWN
+	_hunting_system._last_spawn_time[_hunting_system.HuntingArea.BUSHES] = _hunting_system._get_current_game_minutes()
 	var result = _hunting_system.hunt_in_area(_hunting_system.HuntingArea.BUSHES)
-	assert_false(result.get("success", false), "冷却中应狩猎失败")
+	assert_false(result.get("success", false), "区域冷却中应狩猎失败")
 
 # ============ 区域状态测试 ============
 

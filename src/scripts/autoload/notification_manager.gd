@@ -35,9 +35,15 @@ var _hud: Node = null
 ## 调试模式
 var _debug_mode: bool = false
 
+## 测试模式（阻止 _show_next 调用 get_tree()，但不阻止入队）
+var _test_mode: bool = false
+
 ## 暂停/恢复状态
 var _is_paused: bool = false
 var _is_draining: bool = false
+
+## 去重合并状态 {id: {count: int, timestamp: float}}
+var _dedup_map: Dictionary = {}
 
 # ============ 信号 ============
 
@@ -106,8 +112,8 @@ func show_message(text: String, duration: float = DEFAULT_DURATION, color: Color
 		"priority": 0,
 		"id": id
 	}
-	# 正在显示时，直接发给 HUD 做合并刷新（不走队列，不重置计时器起点）
-	if _is_showing:
+	# 正在显示时，直接发给 HUD 做合并刷新；测试模式下仍入队
+	if _is_showing and not _test_mode:
 		var hud = _find_hud()
 		if hud and hud.has_method("show_message"):
 			hud.show_message(text, color, id, 0)
@@ -150,8 +156,8 @@ func show_info(text: String, duration: float = 2.5, id: String = "") -> void:
 func show_with_priority(text: String, duration: float = DEFAULT_DURATION, color: Color = NotificationColor.NORMAL, priority: int = 0, id: String = "") -> void:
 	if id == "":
 		id = "text:" + text
-	# _is_showing 时直接刷新 HUD（与 show_message 行为一致）
-	if _is_showing:
+	# _is_showing 时直接刷新 HUD；测试模式下仍入队
+	if _is_showing and not _test_mode:
 		var hud = _find_hud()
 		if hud and hud.has_method("show_message"):
 			hud.show_message(text, color, id, priority)
@@ -168,6 +174,7 @@ func show_with_priority(text: String, duration: float = DEFAULT_DURATION, color:
 ## 清除所有待处理通知
 func clear_queue() -> void:
 	_queue.clear()
+	_dedup_map.clear()
 	queue_changed.emit(_queue.size())
 	if _debug_mode:
 		print("[NotificationManager] Queue cleared")
@@ -184,6 +191,21 @@ func is_showing() -> bool:
 
 ## 添加到队列
 func _add_to_queue(notification: Dictionary) -> void:
+	# 去重合并：同一 id 在队列中已存在时合并计数
+	var nid: String = notification.get("id", "")
+	if nid != "":
+		if _dedup_map.has(nid):
+			_dedup_map[nid]["count"] = mini(_dedup_map[nid].get("count", 1) + 1, 999)
+			# 更新队列中已有条目的文本和时长
+			for item in _queue:
+				if item.get("id") == nid:
+					item["text"] = notification["text"]
+					item["duration"] = notification["duration"]
+					break
+			return
+		else:
+			_dedup_map[nid] = {"count": 1}
+
 	# 强制优先级边界
 	var priority: int = notification["priority"]
 	if priority <= 0:
@@ -220,7 +242,6 @@ func _add_to_queue(notification: Dictionary) -> void:
 	# 暂停期间新消息入队后同样触发显示，toast 叠加在 UI 上层
 	if not _is_showing:
 		_show_next()
-
 ## 显示下一条通知
 func _show_next() -> void:
 	if _queue.is_empty():

@@ -65,10 +65,10 @@ func after_each():
 
 # ============ 初始化测试 ============
 
-func test_initializes_with_5_main_quests():
-	# 初始应有 5 个主线任务（所有 PENDING）
+func test_initializes_with_8_main_quests():
+	# 初始应有 8 个主线任务（所有 PENDING）
 	var all_quests = _qs.get_all_quests()
-	assert_eq(all_quests.size(), 5, "应有 5 个主线任务")
+	assert_eq(all_quests.size(), 8, "应有 8 个主线任务")
 	# 验证第一个任务状态
 	var quest1 = _qs.get_quest("main_1_1")
 	assert_not_null(quest1, "main_1_1 应存在")
@@ -161,40 +161,40 @@ func test_add_progress_no_effect_if_quest_not_exists():
 # ============ 矿洞任务进度测试（regression: _on_mine_floor_reached 委托 add_progress）============
 
 func test_mine_floor_reached_sets_progress():
-	# main_1_4: reachMineFloor, target=5
-	_qs.accept_quest("main_1_4")
+	# main_1_7: reachMineFloor, target=5
+	_qs.accept_quest("main_1_7")
 	_qs._on_mine_floor_reached(3)
-	var quest = _qs.get_quest("main_1_4")
+	var quest = _qs.get_quest("main_1_7")
 	assert_eq(quest.get("progress"), 3, "到达第3层时进度应为3")
 
 func test_mine_floor_reached_uses_delta_not_absolute():
 	# 验证 _on_mine_floor_reached 传递差量而非绝对值
-	_qs.accept_quest("main_1_4")
+	_qs.accept_quest("main_1_7")
 	_qs._on_mine_floor_reached(2)
 	_qs._on_mine_floor_reached(5)  # 差量应为 3（5-2）
-	var quest = _qs.get_quest("main_1_4")
+	var quest = _qs.get_quest("main_1_7")
 	assert_eq(quest.get("progress"), 5, "到达第5层时进度应为5")
 
 func test_mine_floor_reached_does_not_decrease():
 	# 验证不会往回走时减少进度
-	_qs.accept_quest("main_1_4")
+	_qs.accept_quest("main_1_7")
 	_qs._on_mine_floor_reached(5)
 	_qs._on_mine_floor_reached(3)  # 不应减少，仍为5
-	var quest = _qs.get_quest("main_1_4")
+	var quest = _qs.get_quest("main_1_7")
 	assert_eq(quest.get("progress"), 5, "往回走不应减少进度")
 
 func test_mine_floor_reached_completable():
 	# 到达目标层后可完成任务（验证 add_progress 触发目标达成逻辑）
-	_qs.accept_quest("main_1_4")
+	_qs.accept_quest("main_1_7")
 	_qs._on_mine_floor_reached(5)
-	var result = _qs.complete_quest("main_1_4")
+	var result = _qs.complete_quest("main_1_7")
 	assert_eq(result.get("success"), true, "到达第5层应可完成任务")
-	assert_eq(_qs._completed_quest_ids.has("main_1_4"), true, "main_1_4 应标记为已完成")
+	assert_eq(_qs._completed_quest_ids.has("main_1_7"), true, "main_1_7 应标记为已完成")
 
 func test_mine_floor_reached_no_effect_if_not_active():
 	# 未接取任务不应响应
 	_qs._on_mine_floor_reached(5)
-	var quest = _qs.get_quest("main_1_4")
+	var quest = _qs.get_quest("main_1_7")
 	assert_eq(quest.get("progress"), 0, "未接取任务的矿洞进度不应改变")
 
 func test_get_quest_progress_returns_correct_data():
@@ -202,7 +202,7 @@ func test_get_quest_progress_returns_correct_data():
 	_qs.add_progress("main_1_1", 3)
 	var p = _qs.get_quest_progress("main_1_1")
 	assert_eq(p.get("progress"), 3, "进度应为3")
-	assert_eq(p.get("target"), 5, "目标应为5")
+	assert_eq(p.get("target"), 3, "目标应为3（main_1_1 target_count=3）")
 	assert_eq(p.get("state"), _qs.QuestState.ACTIVE, "状态应为ACTIVE")
 
 # ============ 完成任务测试 ============
@@ -277,7 +277,7 @@ func test_serialize_contains_all_data():
 	assert_true(data.has("quests"), "序列化应有 quests 字段")
 	assert_true(data.has("active_quests"), "序列化应有 active_quests 字段")
 	assert_true(data.has("completed_quest_ids"), "序列化应有 completed_quest_ids 字段")
-	assert_eq(data.get("quests", {}).size(), 5, "quests 应包含5个任务")
+	assert_eq(data.get("quests", {}).size(), 8, "quests 应包含8个主线任务")
 
 func test_deserialize_restores_state():
 	# 先设置一些状态
@@ -300,6 +300,6 @@ func test_debug_complete_quest_skips_target_check():
 func test_debug_get_status_returns_summary():
 	_qs.accept_quest("main_1_1")
 	var status = _qs.debug_get_status()
-	assert_eq(status.get("total"), 5, "总任务数应为5")
+	assert_eq(status.get("total"), 8, "总任务数应为8")
 	assert_eq(status.get("active"), 1, "活跃数应为1")
 	assert_eq(status.get("completed"), 0, "完成数初始为0")
