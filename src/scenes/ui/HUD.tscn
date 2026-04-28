@@ -521,6 +521,63 @@ layout_mode = 2
 text = "H"
 horizontal_alignment = 1
 
+[node name="BtnMuseum" type="PanelContainer" parent="QuickButtons" unique_id=1234567840]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="QuickButtons/BtnMuseum" unique_id=1234567841]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="QuickButtons/BtnMuseum/VBox" unique_id=1234567842]
+layout_mode = 2
+text = "🏛️"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyHint" type="Label" parent="QuickButtons/BtnMuseum/VBox" unique_id=1234567843]
+layout_mode = 2
+text = "I"
+horizontal_alignment = 1
+
+[node name="BtnAchievement" type="PanelContainer" parent="QuickButtons" unique_id=1234567844]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="QuickButtons/BtnAchievement" unique_id=1234567845]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="QuickButtons/BtnAchievement/VBox" unique_id=1234567846]
+layout_mode = 2
+text = "⭐"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyHint" type="Label" parent="QuickButtons/BtnAchievement/VBox" unique_id=1234567847]
+layout_mode = 2
+text = "L"
+horizontal_alignment = 1
+
+[node name="BtnHiddenNpc" type="PanelContainer" parent="QuickButtons" unique_id=1234567848]
+custom_minimum_size = Vector2(48, 48)
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="QuickButtons/BtnHiddenNpc" unique_id=1234567849]
+layout_mode = 2
+alignment = 1
+
+[node name="Emoji" type="Label" parent="QuickButtons/BtnHiddenNpc/VBox" unique_id=1234567850]
+layout_mode = 2
+text = "✨"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyHint" type="Label" parent="QuickButtons/BtnHiddenNpc/VBox" unique_id=1234567851]
+layout_mode = 2
+text = "K"
+horizontal_alignment = 1
+
 [node name="NotificationArea" type="Control" parent="." unique_id=23264448]
 anchors_preset = 8
 anchor_left = 0.5

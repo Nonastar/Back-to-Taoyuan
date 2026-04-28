@@ -1,7 +1,6 @@
 extends Panel
 
 # UITokens-based theming for consistent visuals
-const UITokens = preload("res://src/design/ui_tokens.gd")
 
 ## CookingPanel - 烹饪UI面板
 ## 负责显示菜谱、开始烹饪、查看Buff

@@ -37,9 +37,9 @@ const SPACE_32: int = 32 # 特大间距
 
 # ============ 圆角 Token ============
 
-const RADIUS_SM: float = 4.0  # 小圆角
-const RADIUS_MD: float = 8.0  # 中等圆角
-const RADIUS_LG: float = 12.0 # 大圆角
+const RADIUS_SM: int = 4  # 小圆角
+const RADIUS_MD: int = 8  # 中等圆角
+const RADIUS_LG: int = 12 # 大圆角
 
 # ============ 字体大小 Token ============
 

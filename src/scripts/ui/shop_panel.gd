@@ -1,7 +1,6 @@
 extends PanelContainer
 
 # UITokens-based theming for consistent visuals
-const UITokens = preload("res://src/design/ui_tokens.gd")
 
 ## ShopPanel - 商店UI面板
 ## 负责显示商店界面和处理购买/出售交互

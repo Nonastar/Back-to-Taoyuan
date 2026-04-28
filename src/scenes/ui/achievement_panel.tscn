@@ -1,0 +1,99 @@
+[gd_scene format=3 uid="uid://achievement_panel_001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/achievement_panel.gd" id="1_script"]
+
+[node name="AchievementPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -450.0
+offset_top = -350.0
+offset_right = 450.0
+offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="VBox/Header"]
+layout_mode = 2
+text = "⭐ 成就"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header"]
+layout_mode = 2
+text = "X"
+
+[node name="PerfectionSection" type="VBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PerfectionInfo" type="HBoxContainer" parent="VBox/PerfectionSection"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Label" type="Label" parent="VBox/PerfectionSection/PerfectionInfo"]
+layout_mode = 2
+text = "完美度:"
+vertical_alignment = 1
+
+[node name="PercentLabel" type="Label" parent="VBox/PerfectionSection/PerfectionInfo"]
+layout_mode = 2
+text = "0.0%"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="VBox/PerfectionSection"]
+layout_mode = 2
+max_value = 1.0
+step = 0.01
+show_percentage = false
+
+[node name="StatsBar" type="HBoxContainer" parent="VBox/PerfectionSection"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="StatsLabel" type="Label" parent="VBox/PerfectionSection/StatsBar"]
+layout_mode = 2
+text = "成就 0/120"
+vertical_alignment = 1
+
+[node name="TabScrollX" type="ScrollContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_vertical = 0
+horizontal_scroll_mode = 2
+vertical_scroll_mode = 0
+
+[node name="TabContainer" type="HBoxContainer" parent="VBox/TabScrollX"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="ContentScroll" type="ScrollContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 480)
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="ContentContainer" type="VBoxContainer" parent="VBox/ContentScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Placeholder" type="Label" parent="VBox/ContentScroll/ContentContainer"]
+layout_mode = 2
+text = "系统开发中..."
+horizontal_alignment = 1
+vertical_alignment = 1

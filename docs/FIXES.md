@@ -1510,6 +1510,77 @@ static func get_instance() -> MyClass:
 
 ---
 
+### 问题54: 误解 Autoload 注册名与文件名的关系
+
+**错误理解:** 以为 Autoload 引用名必须与 .gd 文件名一致（snake_case）
+
+**实际情况:** Autoload 的全局引用名是 `project.godot` 中注册的 **key 名**，与文件名无关
+
+**project.godot 实际配置:**
+```gdscript
+[autoload]
+
+# 注册名(PascalCase) = 文件路径(snake_case)
+AchievementSystem="*res://src/scripts/autoload/achievement_system.gd"
+HiddenNpcSystem="*res://src/scripts/autoload/hidden_npc_system.gd"
+MuseumSystem="*res://src/scripts/autoload/museum_system.gd"
+PlayerStats="*res://src/scripts/autoload/player_stats_system.gd"
+```
+
+**错误修复（导致更多报错）:**
+```gdscript
+# 把 UI 脚本改为 snake_case → 更糟
+achievement_system.get_completed_count()  # Parse Error: not declared
+```
+
+**正确写法（始终遵循 project.godot 中的 key 名）:**
+```gdscript
+# UI脚本使用与project.godot key名一致的PascalCase
+AchievementSystem.get_completed_count()     # 正确
+HiddenNpcSystem.get_hidden_npc_state(id)    # 正确
+MuseumSystem.donate_item(item_id)           # 正确
+```
+
+**教训:**
+1. Autoload 引用名 = `project.godot` 中 `[autoload]` 段落 key 名（不是文件名）
+2. 本项目约定：key 名用 PascalCase，文件名用 snake_case
+3. 两个名称独立，不要混淆
+4. 修复任何代码前，必须先查 `project.godot` 确认实际注册名
+
+---
+
+### 问题55: Autoload 脚本自身编译失败导致关联 UI 报错
+
+**错误现象:** UI 脚本报 `Identifier "XxxSystem" not declared`，但引用名与 `project.godot` 一致
+
+**真实原因:** Autoload 脚本自身有解析错误，导致整个 Autoload 注册失败
+
+**错误日志模式:**
+```
+# 先出现 Autoload 脚本错误（根因）
+ERROR: res://src/scripts/autoload/hidden_npc_system.gd:546 - Parse Error: ...
+ERROR: Failed to create an autoload, script 'res://...hidden_npc_system.gd' is not compiling.
+
+# 然后所有引用该 Autoload 的 UI 脚本都报 "not declared"
+ERROR: res://src/scripts/ui/hidden_npc_panel.gd:227 - Identifier "HiddenNpcSystem" not declared.
+```
+
+**正确排查顺序:**
+1. 先看 ERROR 日志第一条 — 通常是 Autoload 脚本自身错误
+2. 修复 Autoload 脚本后，所有关联 UI 的 "not declared" 错误会自动消失
+3. 不要被 UI 脚本的大量报错误导 — 那些只是连锁反应
+
+**Sprint 9 中的实际根因:**
+- `hidden_npc_system.gd`: tab/空格缩进混用，match 结构缩进错误
+- 修复这些缩进问题后，`HiddenNpcSystem` 变为可用，UI 脚本就不再报错
+
+**教训:**
+1. 当多个 UI 脚本同时报 "not declared" 时，检查对应的 Autoload 脚本是否编译通过
+2. 编译错误的连锁反应是常见误导模式 — 先修根因，其他自愈
+3. 不要对"健康"的 UI 代码做不必要的修改
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -1561,6 +1632,9 @@ static func get_instance() -> MyClass:
 - [ ] 非 Autoload UI 类通过节点组或路径获取实例
 - [ ] 静态方法只能访问静态变量，单例实例变量也要用 static 声明
 - [ ] TSCN `parent` 属性：根节点一级子节点用 `"."`，其他用实际父节点路径
+- [ ] Autoload引用名与project.godot中[autoload]段落key名完全一致（不是.gd文件名）
+- [ ] Engine.has_singleton()参数与Autoload注册的key名一致
+- [ ] UI报"not declared"时先检查Autoload脚本自身是否编译通过（连锁反应）
 
 ---
 

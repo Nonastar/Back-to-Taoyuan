@@ -87,6 +87,9 @@ var button_shop: PanelContainer
 var button_cooking: PanelContainer
 var button_npc_friendship: PanelContainer
 var button_hunting: PanelContainer
+var button_museum: PanelContainer
+var button_achievement: PanelContainer
+var button_hidden_npc: PanelContainer
 
 ## 商店和烹饪面板引用
 var shop_panel: Control = null
@@ -94,11 +97,17 @@ var cooking_panel: Control = null
 var npc_friendship_panel: Control = null
 var hunting_panel: Control = null
 var quest_panel: Control = null
+var museum_panel: Control = null
+var achievement_panel: Control = null
+var hidden_npc_panel: Control = null
 const SHOP_SCENE_PATH: String = "res://src/scenes/ui/shop_panel.tscn"
 const COOKING_SCENE_PATH: String = "res://src/scenes/ui/cooking_panel.tscn"
 const NPC_FRIENDSHIP_SCENE_PATH: String = "res://src/scenes/ui/npc_friendship_panel.tscn"
 const HUNTING_SCENE_PATH: String = "res://src/scenes/ui/hunting_panel.tscn"
 const QUEST_SCENE_PATH: String = "res://src/scenes/ui/quest_panel.tscn"
+const MUSEUM_SCENE_PATH: String = "res://src/scenes/ui/museum_panel.tscn"
+const ACHIEVEMENT_SCENE_PATH: String = "res://src/scenes/ui/achievement_panel.tscn"
+const HIDDEN_NPC_SCENE_PATH: String = "res://src/scenes/ui/hidden_npc_panel.tscn"
 
 ## 工具信息
 const TOOL_EMOJIS: Array = ["🔨", "💧", "🌰", "✋"]
@@ -198,6 +207,9 @@ func _setup_node_references() -> void:
 	button_cooking = quick_buttons.get_node_or_null("BtnCooking") if quick_buttons else null
 	button_npc_friendship = quick_buttons.get_node_or_null("BtnFriendship") if quick_buttons else null
 	button_hunting = quick_buttons.get_node_or_null("BtnHunting") if quick_buttons else null
+	button_museum = quick_buttons.get_node_or_null("BtnMuseum") if quick_buttons else null
+	button_achievement = quick_buttons.get_node_or_null("BtnAchievement") if quick_buttons else null
+	button_hidden_npc = quick_buttons.get_node_or_null("BtnHiddenNpc") if quick_buttons else null
 
 	# 连接按钮点击信号
 	if button_inventory:
@@ -223,6 +235,15 @@ func _setup_node_references() -> void:
 	if button_hunting:
 		button_hunting.mouse_filter = Control.MOUSE_FILTER_STOP
 		button_hunting.gui_input.connect(_on_quick_button_input.bind("hunting"))
+	if button_museum:
+		button_museum.mouse_filter = Control.MOUSE_FILTER_STOP
+		button_museum.gui_input.connect(_on_quick_button_input.bind("museum"))
+	if button_achievement:
+		button_achievement.mouse_filter = Control.MOUSE_FILTER_STOP
+		button_achievement.gui_input.connect(_on_quick_button_input.bind("achievement"))
+	if button_hidden_npc:
+		button_hidden_npc.mouse_filter = Control.MOUSE_FILTER_STOP
+		button_hidden_npc.gui_input.connect(_on_quick_button_input.bind("hidden_npc"))
 
 	# 通知区域
 	notification_area = $NotificationArea
@@ -967,6 +988,9 @@ func _input(event: InputEvent) -> void:
 			KEY_C: _on_quick_button_pressed("cooking")
 			KEY_H: _on_quick_button_pressed("hunting")
 			KEY_Q: _on_quick_button_pressed("quest")
+			KEY_I: _on_quick_button_pressed("museum")
+			KEY_L: _on_quick_button_pressed("achievement")
+			KEY_K: _on_quick_button_pressed("hidden_npc")
 
 func _on_hotbar_key(index: int) -> void:
 	if index < 0 or index >= HOTBAR_SLOTS or not tool_slots.has(index):
@@ -1036,6 +1060,12 @@ func _on_quick_button_pressed(button_id: String) -> void:
 			_show_notification("🍳 烹饪 (C)")
 		"hunting":
 			_show_notification("🏹 狩猎 (H)")
+		"museum":
+			_show_notification("🏛️ 博物馆 (I)")
+		"achievement":
+			_show_notification("⭐ 成就 (L)")
+		"hidden_npc":
+			_show_notification("✨ 仙灵 (K)")
 
 	# 实际打开对应的UI面板
 	match button_id:
@@ -1055,6 +1085,12 @@ func _on_quick_button_pressed(button_id: String) -> void:
 			_open_cooking()
 		"hunting":
 			_open_hunting()
+		"museum":
+			_open_museum()
+		"achievement":
+			_open_achievement()
+		"hidden_npc":
+			_open_hidden_npc()
 
 ## 打开背包UI (动态加载)
 func _open_inventory() -> void:
@@ -1442,6 +1478,69 @@ func _open_hunting() -> void:
 			EventBus.resume_requested.emit()
 	else:
 		hunting_panel.visible = not hunting_panel.visible
+
+## 打开博物馆UI
+func _open_museum() -> void:
+	if museum_panel == null:
+		var packed_scene = load(MUSEUM_SCENE_PATH)
+		if packed_scene:
+			museum_panel = packed_scene.instantiate()
+			add_child(museum_panel)
+			print("[HUD] Museum panel instantiated")
+		else:
+			push_error("[HUD] Failed to load museum panel: " + MUSEUM_SCENE_PATH)
+			return
+
+	if museum_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		museum_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		museum_panel.visible = not museum_panel.visible
+
+## 打开成就UI
+func _open_achievement() -> void:
+	if achievement_panel == null:
+		var packed_scene = load(ACHIEVEMENT_SCENE_PATH)
+		if packed_scene:
+			achievement_panel = packed_scene.instantiate()
+			add_child(achievement_panel)
+			print("[HUD] Achievement panel instantiated")
+		else:
+			push_error("[HUD] Failed to load achievement panel: " + ACHIEVEMENT_SCENE_PATH)
+			return
+
+	if achievement_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		achievement_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		achievement_panel.visible = not achievement_panel.visible
+
+## 打开仙灵UI
+func _open_hidden_npc() -> void:
+	if hidden_npc_panel == null:
+		var packed_scene = load(HIDDEN_NPC_SCENE_PATH)
+		if packed_scene:
+			hidden_npc_panel = packed_scene.instantiate()
+			add_child(hidden_npc_panel)
+			print("[HUD] Hidden NPC panel instantiated")
+		else:
+			push_error("[HUD] Failed to load hidden npc panel: " + HIDDEN_NPC_SCENE_PATH)
+			return
+
+	if hidden_npc_panel.has_method("toggle_panel"):
+		if EventBus:
+			EventBus.pause_requested.emit()
+		hidden_npc_panel.toggle_panel()
+		if EventBus:
+			EventBus.resume_requested.emit()
+	else:
+		hidden_npc_panel.visible = not hidden_npc_panel.visible
 
 # ============ 公共方法 ============
 

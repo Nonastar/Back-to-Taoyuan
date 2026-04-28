@@ -1,0 +1,61 @@
+[gd_scene format=3 uid="uid://hidden_npc_panel_001"]
+
+[ext_resource type="Script" path="res://src/scripts/ui/hidden_npc_panel.gd" id="1_script"]
+
+[node name="HiddenNPCPanel" type="PanelContainer"]
+anchors_preset = 15
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -450.0
+offset_top = -350.0
+offset_right = 450.0
+offset_bottom = 350.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="Header" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="VBox/Header"]
+layout_mode = 2
+text = "◈ 仙灵"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="CloseBtn" type="Button" parent="VBox/Header"]
+layout_mode = 2
+text = "X"
+
+[node name="TabNav" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TabAll" type="Button" parent="VBox/TabNav"]
+layout_mode = 2
+text = "全部"
+toggle_mode = true
+button_pressed = true
+
+[node name="TabRevealed" type="Button" parent="VBox/TabNav"]
+layout_mode = 2
+text = "已发现"
+toggle_mode = true
+
+[node name="TabHidden" type="Button" parent="VBox/TabNav"]
+layout_mode = 2
+text = "未发现"
+toggle_mode = true
+
+[node name="ContentContainer" type="VBoxContainer" parent="VBox"]
+custom_minimum_size = Vector2(0, 600)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 16
