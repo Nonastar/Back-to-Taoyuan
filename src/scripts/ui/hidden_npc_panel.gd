@@ -51,6 +51,7 @@ var _content_container: VBoxContainer
 
 var _visible: bool = false
 var _system_ready: bool = false
+var _closing: bool = false
 var _current_tab: int = 0  # 0=全部 1=已发现 2=未发现
 var _current_view: String = "list"  # list / detail / offering
 var _selected_npc_id: String = ""
@@ -85,8 +86,8 @@ func _setup_node_references() -> void:
 
 func _apply_styles() -> void:
 	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.12, 0.12, 0.16, 0.95)
-	panel_style.border_color = Color(0.25, 0.25, 0.32, 1.0)
+	panel_style.bg_color = UITokens.PANEL_BG
+	panel_style.border_color = UITokens.PANEL_BORDER
 	panel_style.set_border_width_all(1)
 	panel_style.set_corner_radius_all(8.0)
 	panel_style.set_content_margin_all(16.0)
@@ -130,10 +131,12 @@ func _connect_signals() -> void:
 # ============ 公共 API ============
 
 func open_panel() -> void:
+	_closing = false
 	_show_panel()
 	_refresh_data()
 
 func close_panel() -> void:
+	_closing = true
 	_hide_panel()
 
 func toggle_panel() -> void:
@@ -209,7 +212,7 @@ func _show_list_view() -> void:
 		var empty_label = Label.new()
 		empty_label.text = "该分类暂无仙灵"
 		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55, 1.0))
+		empty_label.add_theme_color_override("font_color", UITokens.TEXT_MUTED)
 		empty_label.add_theme_font_size_override("font_size", 14)
 		empty_label.custom_minimum_size.y = 200
 		_content_container.add_child(empty_label)
@@ -345,6 +348,8 @@ func _create_npc_card(npc_id: String) -> Control:
 		level_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55, 1.0))
 	vbox.add_child(level_label)
 
+	if phase >= HiddenNpcSystem.PHASE_ENCOUNTER:
+		_play_discovery_effect(panel)
 	panel.gui_input.connect(_on_npc_card_input.bind(npc_id))
 	return panel
 
@@ -492,7 +497,7 @@ func _show_detail_view(npc_id: String) -> void:
 	info_vbox.add_child(progress_bar)
 
 	var affinity_num_label = Label.new()
-	affinity_num_label.text = "%d/3000" % affinity
+	affinity_num_label.text = "%d / —" % affinity
 	affinity_num_label.add_theme_font_size_override("font_size", 12)
 	affinity_num_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1.0))
 	info_vbox.add_child(affinity_num_label)
@@ -980,6 +985,7 @@ func _on_insight_pressed(npc_id: String) -> void:
 	var result = HiddenNpcSystem.perform_special_interaction(npc_id)
 	if result.get("success", false):
 		var gain = result.get("affinity_change", 0)
+		_play_bond_effect()
 		if NotificationManager:
 			NotificationManager.show_success("参悟: 缘分 +%d" % gain)
 		_show_detail_view(npc_id)
@@ -1000,6 +1006,7 @@ func _on_confirm_offering(npc_id: String, item_id: String, item_name: String, af
 		var actual_gain = result.get("affinity_change", affinity_gain)
 		if NotificationManager:
 			NotificationManager.show_success("供奉: 缘分 +%d" % actual_gain)
+		_play_bond_effect()
 		_show_detail_view(npc_id)
 	else:
 		var message = result.get("message", "供奉失败")
@@ -1033,3 +1040,55 @@ func _input(event: InputEvent) -> void:
 			_show_detail_view(_selected_npc_id)
 		else:
 			close_panel()
+
+# ============ 动画效果 ============
+
+## 发现仙灵时的光效动画
+func _play_discovery_effect(card: Control) -> void:
+	# 卡片缩放弹跳
+	var tween = create_tween()
+	tween.tween_property(card, "scale", Vector2(1.2, 1.2), 0.15)
+	tween.tween_property(card, "scale", Vector2(0.95, 0.95), 0.1)
+	tween.tween_property(card, "scale", Vector2(1.0, 1.0), 0.15)
+	# 金色光晕
+	tween.parallel().tween_property(card, "modulate", Color(1.0, 0.9, 0.4, 0.6), 0.1)
+	tween.tween_property(card, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.3)
+	# 漂浮星星粒子
+	_spawn_sparkles(card, "✨", 4)
+
+## 供奉成功反馈
+func _play_offering_effect(card: Control) -> void:
+	if not card:
+		return
+	var tween = create_tween()
+	tween.tween_property(card, "modulate", Color(0.7, 1.0, 0.7, 1.0), 0.1)
+	tween.tween_property(card, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.3)
+	tween.parallel().tween_property(card, "scale", Vector2(1.08, 1.08), 0.1)
+	tween.tween_property(card, "scale", Vector2(1.0, 1.0), 0.2)
+	_spawn_sparkles(card, "💫", 2)
+
+## 结缘成功庆祝
+func _play_bond_effect() -> void:
+	var tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.04, 1.04), 0.1)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.25)
+	tween.parallel().tween_property(self, "modulate", Color(1.0, 0.9, 0.6, 1.0), 0.1)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.3)
+	# 在面板中心产生爱心粒子
+	if _content_container:
+		_spawn_sparkles(_content_container, "❤️", 3)
+
+## 生成漂浮粒子
+func _spawn_sparkles(parent: Control, emoji: String, count: int) -> void:
+	for i in range(count):
+		var label = Label.new()
+		label.text = emoji
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("font_size", 18 + randi() % 10)
+		label.position = Vector2(randi() % 60 - 30, randi() % 20 - 10)
+		parent.add_child(label)
+
+		var tween = create_tween()
+		tween.tween_property(label, "position:y", label.position.y - 40.0 - randi() % 30, 0.6)
+		tween.parallel().tween_property(label, "modulate:a", 0.0, 0.5)
+		tween.tween_callback(label.queue_free)

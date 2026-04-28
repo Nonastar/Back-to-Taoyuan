@@ -54,7 +54,12 @@ layout_mode = 2
 text = "未发现"
 toggle_mode = true
 
-[node name="ContentContainer" type="VBoxContainer" parent="VBox"]
+[node name="ContentScroll" type="ScrollContainer" parent="VBox"]
+tcustom_minimum_size = Vector2(0, 600)
+	layout_mode = 2
+	size_flags_vertical = 3
+
+[node name="ContentContainer" type="VBoxContainer" parent="VBox/ContentScroll"]
 custom_minimum_size = Vector2(0, 600)
 layout_mode = 2
 size_flags_vertical = 3

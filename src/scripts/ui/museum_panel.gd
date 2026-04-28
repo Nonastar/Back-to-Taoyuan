@@ -553,7 +553,7 @@ func _create_donation_card(item_id: String, item_name: String, icon: String, cou
 	donate_btn.text = "捐赠"
 	donate_btn.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_SM)
 	donate_btn.custom_minimum_size.y = 28
-	donate_btn.focus_mode = Control.FOCUS_NONE
+	donate_btn.focus_mode = Control.FOCUS_ALL
 	donate_btn.pressed.connect(_on_donate_item_pressed.bind(item_id, item_name))
 	vbox.add_child(donate_btn)
 
@@ -613,7 +613,7 @@ func _create_milestone_row(milestone: Dictionary, current: int) -> Control:
 			btn_disabled = true
 			btn_text = "已领取"
 		_:  # 未解锁
-			var remaining = count - current
+			var remaining = maxi(count - current, 0)
 			btn_text = "%d件后解锁" % remaining if remaining > 0 else "完成解锁"
 			btn_disabled = true
 
@@ -664,7 +664,7 @@ func _create_milestone_row(milestone: Dictionary, current: int) -> Control:
 	action_btn.custom_minimum_size.x = 80
 	action_btn.custom_minimum_size.y = 32
 	action_btn.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_SM)
-	action_btn.focus_mode = Control.FOCUS_NONE
+	action_btn.focus_mode = Control.FOCUS_ALL
 
 	if state == 1:
 		action_btn.pressed.connect(_on_claim_milestone_pressed.bind(count, name))
@@ -712,6 +712,7 @@ func _on_donate_item_pressed(item_id: String, item_name: String) -> void:
 	if result:
 		if NotificationManager:
 			NotificationManager.show_success("博物馆: 成功捐赠 [%s]" % item_name)
+		_play_donation_feedback()
 		_update_progress()
 		_switch_tab(_current_tab)
 	else:
@@ -731,6 +732,7 @@ func _on_claim_milestone_pressed(count: int, name: String) -> void:
 	if result:
 		if NotificationManager:
 			NotificationManager.show_success("博物馆: 里程碑 [%s] 奖励已领取！" % name)
+		_play_milestone_celebration()
 		_update_progress()
 		_switch_tab(_current_tab)
 	else:
@@ -739,8 +741,45 @@ func _on_claim_milestone_pressed(count: int, name: String) -> void:
 
 func _on_day_changed(_day: int, _season: String, _year: int) -> void:
 	# 每日重置时刷新数据
-	pass
+	_refresh_data()
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and _visible:
 		close_panel()
+
+# ============ 动画效果 ============
+
+func _play_donation_feedback() -> void:
+	var tween = create_tween()
+	tween.tween_property(self, "modulate", Color(0.7, 1.0, 0.7, 1.0), 0.12)
+	tween.tween_property(self, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.35)
+	tween.parallel().tween_property(self, "scale", Vector2(1.02, 1.02), 0.1)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.2)
+	# 绿色加号粒子
+	if _content_container:
+		_spawn_particles(_content_container, "✦", 3)
+
+func _play_milestone_celebration() -> void:
+	var tween = create_tween()
+	tween.tween_property(self, "scale", Vector2(1.06, 1.06), 0.15)
+	tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.3)
+	if _title_label:
+		var title_tween = create_tween()
+		title_tween.tween_property(_title_label, "modulate", Color(1.0, 0.84, 0.0, 1.0), 0.15)
+		title_tween.tween_property(_title_label, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.4)
+	if _content_container:
+		_spawn_particles(_content_container, "⭐", 5)
+
+func _spawn_particles(parent: Control, emoji: String, count: int) -> void:
+	for i in range(count):
+		var label = Label.new()
+		label.text = emoji
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.add_theme_font_size_override("font_size", 16 + randi() % 12)
+		label.position = Vector2(randi() % 100 - 50, randi() % 30 - 15)
+		parent.add_child(label)
+
+		var tween = create_tween()
+		tween.tween_property(label, "position:y", label.position.y - 50.0 - randi() % 30, 0.7)
+		tween.parallel().tween_property(label, "modulate:a", 0.0, 0.6)
+		tween.tween_callback(label.queue_free)

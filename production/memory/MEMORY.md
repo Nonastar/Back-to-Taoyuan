@@ -1,0 +1,1 @@
+- [严格遵循 CLAUDE.md 开发检查清单](feedback_read_fixes_before_coding.md) — 每次写代码前必须先阅读 docs/FIXES.md 检查清单，上轮会话因跳过此步骤导致大量文件损坏

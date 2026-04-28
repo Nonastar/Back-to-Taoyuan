@@ -1581,6 +1581,149 @@ ERROR: res://src/scripts/ui/hidden_npc_panel.gd:227 - Identifier "HiddenNpcSyste
 
 ---
 
+### 问题56: Windows/Git Bash 下使用 `sed` 编辑 GDScript 导致文件损坏
+
+**问题:** 在 Windows Git Bash 环境下用 `sed` 命令修改 `.gd` 文件，导致多种内容损坏
+
+**错误类型A — `sed 'Na\...'` 插入行产生字面 `t` 前缀:**
+
+```bash
+# 错误命令
+sed -i '987a\t\t_play_bond_effect()' file.gd
+```
+
+**损坏结果:**
+```gdscript
+var gain = result.get("affinity_change", 0)  # line 987
+t	_play_bond_effect()  # 实际插入: 字面 't' + tab + 代码
+```
+
+**错误日志:**
+```
+Parse Error: Unexpected identifier "t" in class body.
+```
+
+**错误类型B — `sed 's/Color(...)/UITokens.XXX/'` 产生字符串拼接损坏:**
+
+```bash
+# 错误命令: 想替换 Color(0.25, 0.25, 0.32, 1.0) → UITokens.PANEL_BORDER
+sed -i 's/Color(0.25, 0.25, 0.32, 1.0)/UITokens.PANEL_BORDER/' file.gd
+```
+
+**损坏结果（部分替换 + 残留前缀）:**
+```gdscript
+panel_style.border_color = ColorUITokens.PANEL_BORDER  # "Color" 前缀残留
+```
+
+**根因:** Git Bash 的 `sed` 对 `\t` 转义处理不一致，且 `s` 命令在高选择性替换时可能部分匹配
+
+**正确做法 — 使用 Python + repr() 验证:**
+
+```bash
+# 第1步: 用 repr() 查看文件确切内容
+python3 -c "
+with open('file.gd', 'r', encoding='utf-8') as f:
+    lines = f.readlines()
+for i in range(350, 355):
+    print(f'{i+1}: {repr(lines[i])}')"
+
+# 第2步: 基于 repr() 确切内容编写精确替换
+python3 -c "
+with open('file.gd', 'r', encoding='utf-8') as f:
+    content = f.read()
+content = content.replace('exact_old_string_from_repr', 'exact_new_string')
+with open('file.gd', 'w', encoding='utf-8') as f:
+    f.write(content)"
+
+# 第3步: 再次用 repr() 验证修改结果
+```
+
+**教训:**
+1. Windows 环境下**禁止使用 `sed`** 编辑 GDScript 文件 — 转义行为不可预测
+2. 始终使用 Python 脚本 + `utf-8` 编码读写文件
+3. 修改前先用 `repr()` 查看文件确切内容（包括 tab 字符 `\t`）
+4. 修改后立即用 `repr()` 验证结果
+5. 批量替换后全局搜索关键词确认无残留损坏（如 `_tabfix_`、`ColorUITokens`）
+
+---
+
+### 问题57: 修复缩进时未检查 if/else 块结构导致解析错误
+
+**错误现象:**
+```
+Parse Error: Expected indented block after "if" block.
+```
+
+**错误代码结构:**
+```gdscript
+if result.get("success", false):         # 1 tab
+    var actual_gain = ...                # 2 tabs
+    if NotificationManager:              # 2 tabs
+    _play_bond_effect()                  # 2 tabs ← 与 if 同级，if 没有 body！
+        NotificationManager.show_success # 3 tabs
+    _show_detail_view(npc_id)            # 2 tabs
+```
+
+**根因:** `_play_bond_effect()` 在 `if NotificationManager:` 和它的 body 之间，且与 `if` 同级缩进。GDScript 要求 `if` 语句后必须有至少一行更大缩进的代码作为 body。
+
+**正确结构:**
+```gdscript
+if result.get("success", false):         # 1 tab
+    var actual_gain = ...                # 2 tabs
+    if NotificationManager:              # 2 tabs
+        NotificationManager.show_success # 3 tabs ← if 的 body
+    _play_bond_effect()                  # 2 tabs ← 在 if 块之后，缩进正常减少
+    _show_detail_view(npc_id)            # 2 tabs
+```
+
+**修复流程:**
+1. 用 `repr()` 查看目标行及上下文（前后各 3-5 行）的精确缩进
+2. 画出 if/else 层级树，标注每层 body 的缩进级别
+3. 确保每个 `if`/`else`/`elif` 后面都有至少一行更大缩进的代码
+4. 确保缩进减少的位置对应正确的块结束
+
+**教训:**
+1. 修复缩进错误时，必须先理解完整的块结构，不能只看单行
+2. 用 `repr()` 是唯一可靠的方式查看实际 tab 数量
+3. `if` 块必须有 body — 至少一行缩进更大的代码或 `pass`
+
+---
+
+### 问题58: Edit 工具无法匹配含 tab 字符的 .gd 文件内容
+
+**问题:** `.gd` 文件使用 tab 缩进，Edit 工具的 `old_string` 在 UI 输入框中无法精确匹配 tab 字符，导致替换失败
+
+**错误现象:**
+```
+Edit tool: "String to replace not found in file."
+```
+
+**根因:** Edit 工具的字符串匹配对 tab/空格混合文本敏感，且从 Read 工具复制的内容中 tab 显示为可见缩进而非字面 `\t`，导致匹配失败
+
+**正确做法:**
+```bash
+# 使用 Python 进行含 tab 的精确替换（基于 repr() 输出）
+python3 -c "
+with open('file.gd', 'r', encoding='utf-8') as f:
+    content = f.read()
+# old/new 中的 \t 是真正的 tab 字符
+content = content.replace('\t\told_line_content', '\t\t\tnew_line_content')
+with open('file.gd', 'w', encoding='utf-8') as f:
+    f.write(content)"
+```
+
+**适用场景:**
+- 任何涉及 tab 缩进的 GDScript 文件修改
+- 需要精确匹配多行内容时
+- 需要 `replace_all` 但 Edit 工具无法匹配时
+
+**教训:**
+1. Edit 工具适合修改不含 tab 或只有少量缩进的文本
+2. GDScript 文件（广泛使用 tab）的大段修改优先用 Python 脚本
+3. 始终配合 `repr()` 确认 old/new 字符串内容正确
+
+---
+
 ## 检查清单
 
 编写代码前确认：
@@ -1635,6 +1778,10 @@ ERROR: res://src/scripts/ui/hidden_npc_panel.gd:227 - Identifier "HiddenNpcSyste
 - [ ] Autoload引用名与project.godot中[autoload]段落key名完全一致（不是.gd文件名）
 - [ ] Engine.has_singleton()参数与Autoload注册的key名一致
 - [ ] UI报"not declared"时先检查Autoload脚本自身是否编译通过（连锁反应）
+- [ ] Windows环境禁止用sed编辑GDScript — 用Python + repr()代替
+- [ ] 修复缩进前用repr()查看上下文块结构（if/else嵌套层级）
+- [ ] Edit工具无法匹配tab字符时改用Python脚本
+- [ ] 批量修改后全局搜索关键词确认无残留损坏
 
 ---
 

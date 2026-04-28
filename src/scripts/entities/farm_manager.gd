@@ -115,7 +115,7 @@ func _on_plot_message(msg: String) -> void:
 	# 转发地块消息
 	plot_message_received.emit(msg)
 
-func _on_sleep_triggered() -> void:
+func _on_sleep_triggered(_bedtime: int, _forced: bool) -> void:
 	_process_day()
 
 # ============ 公共方法 ============

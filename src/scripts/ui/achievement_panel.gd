@@ -133,7 +133,7 @@ func _build_category_tabs() -> void:
 		btn.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_MD)
 		btn.custom_minimum_size.y = 36
 		btn.pressed.connect(_on_category_tab_pressed.bind(i))
-		btn.focus_mode = Control.FOCUS_NONE
+		btn.focus_mode = Control.FOCUS_ALL
 		_tab_container.add_child(btn)
 		_tab_buttons.append(btn)
 
@@ -353,9 +353,12 @@ func _create_achievement_card(achievement: Dictionary) -> Control:
 		status_label.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_MD)
 	else:
 		if target > 1:
-			status_label.text = "%d/%d" % [progress, target]
-			status_label.add_theme_color_override("font_color", UITokens.ACCENT_GOLD)
-			status_label.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_SM)
+				if progress >= 0:
+					status_label.text = "%d/%d" % [progress, target]
+				else:
+					status_label.text = "0/%d" % target
+					status_label.add_theme_color_override("font_color", UITokens.ACCENT_GOLD)
+				status_label.add_theme_font_size_override("font_size", UITokens.FONT_SIZE_SM)
 		else:
 			status_label.text = ""
 
