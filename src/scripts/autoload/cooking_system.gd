@@ -289,7 +289,7 @@ func _get_dish_buff(item_id: String) -> Dictionary:
 		return recipes[recipe_id].get("buff_on_eat", {})
 	return {}
 
-func _on_day_changed(day: int, season_name: String, year: int) -> void:
+func _on_day_changed(_day: int, _season_name: String, _year: int) -> void:
 	advance_day(1)
 	save_state()
 

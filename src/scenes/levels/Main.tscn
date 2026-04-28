@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://g160ja0thg31"]
 
-[ext_resource type="Script" uid="uid://jsjkyh2r8tk8" path="res://src/scripts/main.gd" id="2_main"]
+[ext_resource type="Script" uid="uid://o70p84e1jeaw" path="res://src/scripts/main.gd" id="2_main"]
 [ext_resource type="PackedScene" uid="uid://0phiucwn7q5u" path="res://src/scenes/ui/FishingMiniGame.tscn" id="3_fishing"]
 [ext_resource type="PackedScene" path="res://src/scenes/ui/fish_compendium_ui.tscn" id="4_compendium"]
 [ext_resource type="Script" path="res://src/scripts/entities/fishing_spot.gd" id="4_fishing_spot"]

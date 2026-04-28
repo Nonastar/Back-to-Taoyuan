@@ -25,9 +25,6 @@ signal slot_clicked(slot_index: int, button: int)
 ## 槽位拖拽开始
 signal drag_started(slot_index: int)
 
-## 槽位拖拽结束
-signal drag_ended(slot_index: int)
-
 ## 槽位右键信号
 signal slot_right_clicked(slot_index: int)
 

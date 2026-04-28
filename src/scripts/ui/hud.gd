@@ -134,7 +134,6 @@ var _current_day: int = 1
 var _current_season: String = "春"
 var _current_weather: String = "sunny"
 var _notification_queue: Array = []
-var _notification_timer: float = 0.0
 
 ## 多飘窗系统状态
 const MAX_VISIBLE_TOASTS: int = 3        # 最多同时显示条数
@@ -270,8 +269,6 @@ func _connect_signals() -> void:
 			EventBus.time_changed.connect(_on_time_changed)
 		if EventBus.has_signal("time_day_changed"):
 			EventBus.time_day_changed.connect(_on_day_changed)
-		if EventBus.has_signal("ui_notification"):
-			EventBus.ui_notification.connect(_on_ui_notification)
 		if EventBus.has_signal("farm_message"):
 			EventBus.farm_message.connect(_on_farm_message)
 		if EventBus.has_signal("farming_exp_changed"):
@@ -331,7 +328,7 @@ func _on_money_changed(amount: int) -> void:
 	_money = amount
 	_update_money_display()
 
-func _on_day_changed(day: int, season: String, year: int) -> void:
+func _on_day_changed(day: int, season: String, _year: int) -> void:
 	_current_day = day
 	_current_season = season
 	_update_date_display()
@@ -340,21 +337,21 @@ func _on_hour_changed(hour: int) -> void:
 	_current_time = hour
 	_update_time_display()
 
-func _on_time_changed(day: int, hour: int, minute: int) -> void:
+func _on_time_changed(_day: int, hour: int, _minute: int) -> void:
 	_current_time = hour
 	_update_time_display()
 
-func _on_weather_changed(new_weather: String, old_weather: String) -> void:
+func _on_weather_changed(new_weather: String, _old_weather: String) -> void:
 	_current_weather = new_weather
 	_update_weather_display()
 
-func _on_location_changed(new_group: int, old_group: int) -> void:
+func _on_location_changed(new_group: int, _old_group: int) -> void:
 	_update_location_display()
 	# Hotbar 仅在农场场景显示
 	if hotbar:
 		hotbar.visible = (new_group == NavigationSystem.LocationGroup.FARM) if NavigationSystem else false
 
-func _on_panel_changed(panel_key: String) -> void:
+func _on_panel_changed() -> void:
 	_update_location_display()
 	_refresh_map_location_markers()
 	_update_map_current_location_row()
@@ -430,24 +427,21 @@ func _update_map_current_location_row() -> void:
 func _on_tool_changed(tool_type: int) -> void:
 	_select_slot(tool_type)
 
-func _on_skill_exp_changed(skill_type: int, current_exp: int, exp_gained: int) -> void:
+func _on_skill_exp_changed(_skill_type: int, _current_exp: int, _exp_gained: int) -> void:
 	_update_skill_display()
 
 func _on_farm_message(msg: String) -> void:
 	_show_notification(msg)
 
-func _on_farming_exp_changed(skill_type: int, exp: int, leveled_up: bool) -> void:
+func _on_farming_exp_changed(_skill_type: int, _exp: int, _leveled_up: bool) -> void:
 	_update_skill_display()
 
-func _on_skill_level_up(skill_type: int, old_level: int, new_level: int) -> void:
+func _on_skill_level_up(skill_type: int, _old_level: int, new_level: int) -> void:
 	_update_skill_display()
 	if SkillSystem:
 		var skill_name = SkillSystem.SKILL_NAMES.get(skill_type, "未知")
 		if NotificationManager:
 			NotificationManager.show_gain("🌟 %s 升级！Lv.%d" % [skill_name, new_level])
-
-func _on_ui_notification(message: String, duration: float = 2.0, priority: int = 0) -> void:
-	_show_notification(message)
 
 # ============ 显示更新 ============
 
@@ -561,7 +555,6 @@ func _update_location_display() -> void:
 
 	# 更新位置名称（当前面板）
 	var panel_name = NavigationSystem.get_current_panel_name()
-	var panel_emoji = NavigationSystem.get_current_panel_emoji()
 
 	if location_label:
 		location_label.text = panel_name
@@ -1181,11 +1174,11 @@ func _open_map() -> void:
 
 		# 体力信息
 		var stamina_row = HBoxContainer.new()
-		var stamina_label = Label.new()
+		var stm_label = Label.new()
 		var stamina = PlayerStats.stamina if PlayerStats else 0
-		stamina_label.text = "⚡ 体力: %d" % stamina
-		stamina_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5))
-		stamina_row.add_child(stamina_label)
+		stm_label.text = "⚡ 体力: %d" % stamina
+		stm_label.add_theme_color_override("font_color", Color(0.6, 0.8, 0.5))
+		stamina_row.add_child(stm_label)
 		vbox.add_child(stamina_row)
 
 		# 空标签
@@ -1350,9 +1343,9 @@ func _refresh_map_current_location() -> void:
 				first_lbl.text = "⚡ 体力: %d" % stamina
 				break
 
-func _group_name_to_enum(name: String) -> int:
+func _group_name_to_enum(group_name: String) -> int:
 	if NavigationSystem:
-		match name:
+		match group_name:
 			"farm": return NavigationSystem.LocationGroup.FARM
 			"village": return NavigationSystem.LocationGroup.VILLAGE
 			"nature": return NavigationSystem.LocationGroup.NATURE

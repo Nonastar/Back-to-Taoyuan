@@ -8,8 +8,6 @@ extends Node
 # Signals
 signal purchase_completed(item_id: String, quantity: int, total_cost: int)
 signal sale_completed(item_id: String, quantity: int, money_earned: int)
-signal shop_opened(shop_id: String)
-signal shop_closed(shop_id: String)
 
 # Shop ID enum for code safety
 enum ShopId {
@@ -169,12 +167,12 @@ func buy_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 		var bought = AnimalHusbandrySystem.buy_animal(item_id)
 		if not bought:
 			return {"success": false, "message": "Purchase failed"}
-		var total_cost = 0
+		var _total_cost = 0
 		if AnimalHusbandrySystem.has_method("get_animal_data"):
 			var ad = AnimalHusbandrySystem.get_animal_data(item_id)
-			total_cost = ad.get("buy_price", 0)
-		purchase_completed.emit(item_id, 1, total_cost)
-		return {"success": true, "message": "Purchased", "total_cost": total_cost}
+			_total_cost = ad.get("buy_price", 0)
+		purchase_completed.emit(item_id, 1, _total_cost)
+		return {"success": true, "message": "Purchased", "total_cost": _total_cost}
 
 	# ============ 普通商店：购买物品加入背包 ============
 	var item_def = ItemDataSystem.get_item_def(item_id)
@@ -252,9 +250,6 @@ func sell_item(shop_id, item_id: String, quantity: int) -> Dictionary:
 # Save/load integration (minimal)
 func get_save_data() -> Dictionary:
 	return {"shops": {}}
-
-func load_save_data(data: Dictionary) -> void:
-	pass
 
 ## 获取出售价格倍率（供UI调用）
 func get_sell_price_multiplier() -> float:

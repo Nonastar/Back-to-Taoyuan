@@ -65,8 +65,6 @@ func _ready() -> void:
 
 ## 连接EventBus信号
 func _connect_signals() -> void:
-	if EventBus.has_signal("ui_notification"):
-		EventBus.ui_notification.connect(_on_ui_notification)
 	if EventBus.has_signal("notification_requested"):
 		EventBus.notification_requested.connect(_on_notification_requested)
 	# 暂停/恢复信号（场景管理器发送，进入/退出全屏UI时）
@@ -105,7 +103,7 @@ func show_message(text: String, duration: float = DEFAULT_DURATION, color: Color
 	# 未传 id 时默认用文本生成，保持去重兼容
 	if id == "":
 		id = "text:" + text
-	var notification = {
+	var notif = {
 		"text": text,
 		"duration": duration,
 		"color": color,
@@ -118,7 +116,7 @@ func show_message(text: String, duration: float = DEFAULT_DURATION, color: Color
 		if hud and hud.has_method("show_message"):
 			hud.show_message(text, color, id, 0)
 		return
-	_add_to_queue(notification)
+	_add_to_queue(notif)
 
 ## 显示获取类通知 (金色)
 func show_gain(text: String, duration: float = DEFAULT_DURATION, id: String = "") -> void:
@@ -162,14 +160,14 @@ func show_with_priority(text: String, duration: float = DEFAULT_DURATION, color:
 		if hud and hud.has_method("show_message"):
 			hud.show_message(text, color, id, priority)
 		return
-	var notification = {
+	var notif = {
 		"text": text,
 		"duration": duration,
 		"color": color,
 		"priority": priority,
 		"id": id
 	}
-	_add_to_queue(notification)
+	_add_to_queue(notif)
 
 ## 清除所有待处理通知
 func clear_queue() -> void:
@@ -190,29 +188,29 @@ func is_showing() -> bool:
 # ============ 内部方法 ============
 
 ## 添加到队列
-func _add_to_queue(notification: Dictionary) -> void:
+func _add_to_queue(notif: Dictionary) -> void:
 	# 去重合并：同一 id 在队列中已存在时合并计数
-	var nid: String = notification.get("id", "")
+	var nid: String = notif.get("id", "")
 	if nid != "":
 		if _dedup_map.has(nid):
 			_dedup_map[nid]["count"] = mini(_dedup_map[nid].get("count", 1) + 1, 999)
 			# 更新队列中已有条目的文本和时长
 			for item in _queue:
 				if item.get("id") == nid:
-					item["text"] = notification["text"]
-					item["duration"] = notification["duration"]
+					item["text"] = notif["text"]
+					item["duration"] = notif["duration"]
 					break
 			return
 		else:
 			_dedup_map[nid] = {"count": 1}
 
 	# 强制优先级边界
-	var priority: int = notification["priority"]
+	var priority: int = notif["priority"]
 	if priority <= 0:
 		priority = 1
 	elif priority > 4:
 		priority = 4
-	notification["priority"] = priority
+	notif["priority"] = priority
 
 	# 队列满时，丢弃最低优先级的消息
 	if _queue.size() >= MAX_QUEUE_SIZE:
@@ -228,13 +226,13 @@ func _add_to_queue(notification: Dictionary) -> void:
 	# 按优先级插入 (高优先级在前)
 	var inserted = false
 	for i in range(_queue.size()):
-		if notification["priority"] > _queue[i]["priority"]:
-			_queue.insert(i, notification)
+		if notif["priority"] > _queue[i]["priority"]:
+			_queue.insert(i, notif)
 			inserted = true
 			break
 
 	if not inserted:
-		_queue.append(notification)
+		_queue.append(notif)
 
 	queue_changed.emit(_queue.size())
 
@@ -248,15 +246,15 @@ func _show_next() -> void:
 		_is_showing = false
 		return
 
-	var notification = _queue.pop_front()
+	var notif = _queue.pop_front()
 
 	queue_changed.emit(_queue.size())
 	_show_notification(
-		notification["text"],
-		notification["duration"],
-		notification["color"],
-		notification.get("id", ""),
-		notification.get("priority", 0)
+		notif["text"],
+		notif["duration"],
+		notif["color"],
+		notif.get("id", ""),
+		notif.get("priority", 0)
 	)
 
 ## 执行通知显示 - 委托给HUD
@@ -272,31 +270,19 @@ func _show_notification(text: String, duration: float, color: Color, id: String 
 		await get_tree().create_timer(duration).timeout
 		notification_finished.emit(text)
 	else:
-		_show_fallback_notification(text, duration, color)
+		_show_fallback_notification(text)
 	_is_showing = false
 	_show_next()
 
 ## 备用通知显示 (无HUD时)
-func _show_fallback_notification(text: String, duration: float, color: Color) -> void:
+func _show_fallback_notification(text: String) -> void:
 	# 直接打印到控制台作为后备
 	print("[Notification] " + text)
 
 # ============ EventBus回调 ============
 
-## EventBus通知信号处理
-func _on_ui_notification(message: String, duration: float = DEFAULT_DURATION, priority: int = 0, notif_type: int = 0, id: String = "") -> void:
-	var color = NotificationColor.NORMAL
-	match notif_type:
-		0: color = NotificationColor.GAIN
-		1: color = NotificationColor.COST
-		2: color = NotificationColor.SUCCESS
-		3: color = NotificationColor.WARNING
-		4: color = NotificationColor.ERROR
-		5: color = NotificationColor.SYSTEM
-	show_with_priority(message, duration, color, priority, id)
-
 ## EventBus notification_requested 信号处理（GDD 标准信号）
-func _on_notification_requested(text: String, notif_type: int = 0, priority: int = 2, duration: float = DEFAULT_DURATION, id: String = "", icon_path: String = "") -> void:
+func _on_notification_requested(text: String, notif_type: int = 0, priority: int = 2, duration: float = DEFAULT_DURATION, id: String = "", _icon_path: String = "") -> void:
 	var color = NotificationColor.NORMAL
 	match notif_type:
 		0: color = NotificationColor.GAIN

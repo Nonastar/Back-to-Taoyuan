@@ -395,7 +395,7 @@ func spend_money(amount: int) -> bool:
 		return false
 
 	money -= amount
-	_emit_money_changed()
+	_emit_money_changed(-amount)
 	return true
 
 ## 获得金钱
@@ -404,7 +404,7 @@ func earn_money(amount: int) -> void:
 		return
 
 	money += amount
-	_emit_money_changed()
+	_emit_money_changed(amount)
 
 	# 触发成就检查
 	if EventBus.has_signal("money_earned"):
@@ -418,8 +418,8 @@ func set_money(amount: int) -> void:
 # ============ 玩家身份 ============
 
 ## 设置玩家名称
-func set_player_name(name: String) -> void:
-	player_name = name
+func set_player_name(new_name: String) -> void:
+	player_name = new_name
 
 ## 设置性别
 func set_gender(g: String) -> void:
@@ -522,7 +522,7 @@ func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
 	daily_reset(hour, forced)
 
 ## 农场交互回调 - 消耗体力
-func _on_farm_interaction(plot_id: String, tool: int, action: String, success: bool, original_state: int) -> void:
+func _on_farm_interaction(_plot_id: String, _tool: int, action: String, success: bool, original_state: int) -> void:
 	if not success:
 		return
 
@@ -574,8 +574,10 @@ func _emit_hp_changed() -> void:
 	hp_changed.emit(current_hp, get_max_hp())
 
 ## 发送金钱变化信号
-func _emit_money_changed() -> void:
+func _emit_money_changed(delta: int = 0) -> void:
 	money_changed.emit(money)
+	if EventBus and EventBus.has_signal("player_money_changed"):
+		EventBus.player_money_changed.emit(money, delta)
 
 ## 检查体力状态
 func _check_stamina_state() -> void:

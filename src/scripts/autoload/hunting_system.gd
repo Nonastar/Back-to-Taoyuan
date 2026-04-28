@@ -324,7 +324,7 @@ func _calculate_drops(prey_id: String, skill_level: int) -> Array:
 		var skill_bonus_per_level = _quality_data.get("skill_drop_rate_bonus_per_level", 0.05)
 		var effective_rate = drop_rate + (skill_level * skill_bonus_per_level)
 		if _rng.randf() < effective_rate:
-			var quality = _calculate_drop_quality(skill_level)
+			var quality = _calculate_drop_quality()
 			drops.append({
 				"item_id": drop_item,
 				"quantity": 1,
@@ -337,7 +337,7 @@ func _calculate_drops(prey_id: String, skill_level: int) -> Array:
 					drops.append({"item_id": drop_item, "quantity": 1, "quality": quality})
 	return drops
 
-func _calculate_drop_quality(skill_level: int) -> int:
+func _calculate_drop_quality() -> int:
 	var roll = _rng.randf()
 	var supreme_th = _quality_data.get("supreme_threshold", 0.01)
 	var excellent_th = _quality_data.get("excellent_threshold", 0.10)

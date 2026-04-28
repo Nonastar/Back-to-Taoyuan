@@ -158,9 +158,10 @@ func _get_save_path(slot: int) -> String:
 
 ## 写入加密文件
 func _write_encrypted_file(file_path: String, data: String) -> bool:
+	var file: FileAccess
 	if not ENCRYPTION_ENABLED:
 		# 不加密，直接写入
-		var file = FileAccess.open(file_path, FileAccess.WRITE)
+		file = FileAccess.open(file_path, FileAccess.WRITE)
 		if file == null:
 			return false
 		file.store_string(data)
@@ -168,7 +169,7 @@ func _write_encrypted_file(file_path: String, data: String) -> bool:
 		return true
 
 	# 使用FileAccess.open_encrypted()进行AES加密
-	var file = FileAccess.open_encrypted(file_path, FileAccess.WRITE, _encryption_key)
+	file = FileAccess.open_encrypted(file_path, FileAccess.WRITE, _encryption_key)
 	if file == null:
 		push_error("[SaveManager] Failed to open encrypted file for writing")
 		return false
@@ -181,27 +182,28 @@ func _write_encrypted_file(file_path: String, data: String) -> bool:
 func _read_encrypted_file(file_path: String) -> String:
 	if not FileAccess.file_exists(file_path):
 		return ""
+	var file: FileAccess
 
 	if not ENCRYPTION_ENABLED:
 		# 不加密，直接读取
-		var file = FileAccess.open(file_path, FileAccess.READ)
+		file = FileAccess.open(file_path, FileAccess.READ)
 		if file == null:
 			return ""
-		var content = file.get_as_text()
+		var _content = file.get_as_text()
 		file.close()
-		return content
+		return _content
 
 	# 使用FileAccess.open_encrypted()读取
-	var file = FileAccess.open_encrypted(file_path, FileAccess.READ, _encryption_key)
+	file = FileAccess.open_encrypted(file_path, FileAccess.READ, _encryption_key)
 	if file == null:
 		# 可能是旧版本未加密的存档，尝试直接读取
 		print("[SaveManager] Decryption failed, trying raw read...")
 		file = FileAccess.open(file_path, FileAccess.READ)
 		if file == null:
 			return ""
-		var content = file.get_as_text()
+		var _content = file.get_as_text()
 		file.close()
-		return content
+		return _content
 
 	var content = file.get_as_text()
 	file.close()

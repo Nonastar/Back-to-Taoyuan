@@ -137,6 +137,8 @@ func add_item(item_id: String, amount: int = 1, quality: int = Quality.NORMAL) -
 	# 所有背包都满了
 	inventory_full.emit(item_id)
 	all_full.emit()
+	if EventBus and EventBus.has_signal("inventory_full"):
+		EventBus.inventory_full.emit(item_id)
 	return false
 
 ## 从背包移除物品 (优先消耗低品质)

@@ -354,7 +354,7 @@ func _connect_signals() -> void:
 		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
 		print("[AnimalHusbandrySystem] Connected to time_sleep_triggered")
 
-func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
+func _on_sleep_triggered(_bedtime: int, _forced: bool) -> void:
 	daily_update()
 
 # ============ 公共 API ============
@@ -612,7 +612,7 @@ func get_all_animal_info() -> Array:
 # ============ 好感度系统 ============
 
 ## 根据好感度值获取等级名称
-static func get_friendship_level_name(friendship: int) -> String:
+func get_friendship_level_name(friendship: int) -> String:
 	if friendship >= FRIENDSHIP_THRESHOLD_BEST_FRIEND:
 		return FRIENDSHIP_LEVEL_BEST_FRIEND
 	elif friendship >= FRIENDSHIP_THRESHOLD_FRIEND:
@@ -623,21 +623,21 @@ static func get_friendship_level_name(friendship: int) -> String:
 		return FRIENDSHIP_LEVEL_STRANGER
 
 ## 根据好感度值获取等级枚举
-static func get_friendship_level_enum(friendship: int) -> FriendshipLevel:
+func get_friendship_level_enum(friendship: int) -> FriendshipLevel:
 	return FRIENDSHIP_LEVEL_TO_ENUM.get(get_friendship_level_name(friendship), FriendshipLevel.STRANGER)
 
 ## 获取好感度等级对应的品质加成
-static func get_quality_bonus_for_level(level_name: String) -> float:
+func get_quality_bonus_for_level(level_name: String) -> float:
 	return FRIENDSHIP_QUALITY_BONUS.get(level_name, 0.0)
 
 ## 根据好感度值获取品质加成百分比
-static func get_quality_bonus(friendship: int) -> float:
+func get_quality_bonus(friendship: int) -> float:
 	var level_name = get_friendship_level_name(friendship)
 	return get_quality_bonus_for_level(level_name)
 
 ## 根据好感度值获取等级进度 (0.0 - 1.0)
 ## 用于UI显示进度条
-static func get_friendship_progress(friendship: int) -> float:
+func get_friendship_progress(friendship: int) -> float:
 	var level_name = get_friendship_level_name(friendship)
 	var thresholds = _FRIENDSHIP_LEVEL_THRESHOLDS.get(level_name, {"current": 0, "next": FRIENDSHIP_THRESHOLD_PAL})
 

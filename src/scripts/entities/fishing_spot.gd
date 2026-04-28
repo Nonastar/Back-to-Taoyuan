@@ -104,13 +104,12 @@ func _setup_collision() -> void:
 	add_child(collision)
 
 ## 点击交互回调
-func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
+func _on_input_event(viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			# 检查是否是钓鱼工具或手
 			var can_interact = true
 			if Player and Player.has_method("get_current_tool"):
-				var tool = Player.get_current_tool()
 				# 任何工具都可以钓鱼，或者使用手也可以
 				can_interact = true  # 钓鱼不消耗工具，直接可用
 

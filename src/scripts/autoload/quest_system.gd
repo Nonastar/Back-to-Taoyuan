@@ -130,7 +130,6 @@ const MAIN_QUESTS_DATA: Array = [
 signal quest_accepted(quest_id: String, quest_title: String)
 signal quest_progress_updated(quest_id: String, progress: int, target: int)
 signal quest_completed(quest_id: String, quest_title: String)
-signal quest_expired(quest_id: String)
 
 # ============ 状态 ============
 
@@ -167,7 +166,6 @@ func _connect_signals() -> void:
 		EventBus.farm_interaction_result.connect(_on_farm_interaction_result)
 		EventBus.fish_caught.connect(_on_fish_caught)
 		EventBus.cooking_completed.connect(_on_cooking_completed)
-		EventBus.mine_floor_reached.connect(_on_mine_floor_reached)
 		EventBus.time_day_changed.connect(_on_day_changed)
 
 # ============ 公共 API ============
@@ -392,16 +390,16 @@ func _on_cooking_completed(_recipe_id: String) -> void:
 		if quest.get("target_type") == "cookRecipes":
 			add_progress(quest_id, 1)
 
-func _on_mine_floor_reached(floor: int) -> void:
+func _on_mine_floor_reached(_floor: int) -> void:
 	# 检查 reachMineFloor 类型任务（取最深到达层）
 	for quest_id in _active_quests.keys():
 		var quest = _quests.get(quest_id, {})
 		if quest.get("target_type") == "reachMineFloor":
 			var current_progress = quest.get("progress", 0)
-			if floor > current_progress:
-				add_progress(quest_id, floor - current_progress)
+			if _floor > current_progress:
+				add_progress(quest_id, _floor - current_progress)
 
-func _on_farm_interaction_result(_plot_id: String, tool: int, action: String, success: bool, _original_state: int) -> void:
+func _on_farm_interaction_result(_plot_id: String, _tool: int, action: String, success: bool, _original_state: int) -> void:
 	# 根据动作类型更新对应任务进度
 	if not success:
 		return

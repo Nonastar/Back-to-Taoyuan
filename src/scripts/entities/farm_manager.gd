@@ -33,7 +33,6 @@ var plots: Array[FarmPlot] = []
 signal day_processed()
 signal plot_interacted(plot: FarmPlot, tool: int)
 signal plot_message_received(msg: String)
-signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)
 
 # ============ 初始化 ============
 
@@ -73,8 +72,8 @@ func _create_plot(pos: Vector2i) -> FarmPlot:
 	# 设置位置 (使地块居中对齐)
 	var total_width = FARM_WIDTH * PLOT_SPACING
 	var total_height = FARM_HEIGHT * PLOT_SPACING
-	var start_x = FARM_OFFSET.x - total_width / 2 + PLOT_SPACING / 2
-	var start_y = FARM_OFFSET.y - total_height / 2 + PLOT_SPACING / 2
+	var start_x = FARM_OFFSET.x - total_width / 2.0 + PLOT_SPACING / 2.0
+	var start_y = FARM_OFFSET.y - total_height / 2.0 + PLOT_SPACING / 2.0
 
 	plot.position = Vector2(
 		start_x + pos.x * PLOT_SPACING,
@@ -83,10 +82,8 @@ func _create_plot(pos: Vector2i) -> FarmPlot:
 
 	# 连接信号
 	plot.plot_clicked.connect(_on_plot_clicked)
-	plot.crop_planted.connect(_on_crop_planted)
 	plot.crop_harvested.connect(_on_crop_harvested)
 	plot.plot_message.connect(_on_plot_message)
-	plot.farming_exp_changed.connect(_on_farming_exp_changed)
 
 	return plot
 
@@ -97,12 +94,12 @@ func _connect_event_signals() -> void:
 
 # ============ 事件处理 ============
 
-func _on_plot_clicked(position: Vector2) -> void:
+func _on_plot_clicked(click_pos: Vector2) -> void:
 	# 找到被点击的地块
 	for plot in plots:
 		if plot.has_method("get_center"):
 			var plot_center = plot.get_center()
-			if position.distance_to(plot_center) < 30:
+			if click_pos.distance_to(plot_center) < 30:
 				var tool: int = 0
 				if has_node("/root/Player"):
 					var player_node = get_node("/root/Player")
@@ -111,9 +108,6 @@ func _on_plot_clicked(position: Vector2) -> void:
 				plot_interacted.emit(plot, tool)
 				break
 
-func _on_crop_planted(crop_id: String, position: Vector2) -> void:
-	print("[FarmManager] Crop planted: " + str(crop_id))
-
 func _on_crop_harvested(crop_id: String, quantity: int, quality: int) -> void:
 	print("[FarmManager] Harvested: %d x %s (quality: %d)" % [quantity, crop_id, quality])
 
@@ -121,11 +115,7 @@ func _on_plot_message(msg: String) -> void:
 	# 转发地块消息
 	plot_message_received.emit(msg)
 
-func _on_farming_exp_changed(skill_type: int, exp: int, leveled_up: bool) -> void:
-	# 转发技能经验变化信号
-	farming_exp_changed.emit(skill_type, exp, leveled_up)
-
-func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
+func _on_sleep_triggered() -> void:
 	_process_day()
 
 # ============ 公共方法 ============

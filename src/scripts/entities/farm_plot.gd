@@ -36,11 +36,9 @@ var fertilizer_label: Label  # 肥料状态标签
 var collision: CollisionShape2D
 
 signal plot_state_changed(state: PlotState)
-signal crop_planted(crop_id: String, position: Vector2)
 signal crop_harvested(crop_id: String, quantity: int, quality: int)
 signal plot_clicked(position: Vector2)
-signal plot_message(msg: String)  # 用于显示操作提示
-signal farming_exp_changed(skill_type: int, exp: int, leveled_up: bool)  # 技能经验变化
+signal plot_message(msg: String)
 
 func _loc(text: String) -> String:
 	return tr(text)
@@ -177,14 +175,14 @@ func _setup_collision() -> void:
 	add_child(collision)
 	input_event.connect(_on_input_event)
 
-func _on_input_event(viewport: Node, event: InputEvent, shape_idx: int) -> void:
+func _on_input_event(viewport: Node, event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			plot_clicked.emit(global_position)
 
 # ============ 交互 ============
 
-func interact(tool_type: int, direction: Vector2) -> bool:
+func interact(tool_type: int) -> bool:
 	match tool_type:
 		Player.ToolType.HOE:
 			return _till()
@@ -454,27 +452,27 @@ func _get_selected_fertilizer() -> Dictionary:
 func _get_selected_seed() -> Dictionary:
 	# 从物品数据系统获取番茄种子
 	if ItemDataSystem:
-		var seed = ItemDataSystem.get_item_def("tomato_seed")
-		if seed:
+		var _seed = ItemDataSystem.get_item_def("tomato_seed")
+		if _seed:
 			var count = InventorySystem.get_item_count("tomato_seed") if InventorySystem else 0
 			if count > 0:
 				return {
 					"id": "tomato_seed",
 					"name": "番茄种子",
 					"count": count,
-					"growth_days": seed.growth_days if seed.growth_days > 0 else 4,
+					"growth_days": _seed.growth_days if _seed.growth_days > 0 else 4,
 					"base_quality": 0
 				}
 		# 尝试胡萝卜
-		seed = ItemDataSystem.get_item_def("carrot_seed")
-		if seed:
+		_seed = ItemDataSystem.get_item_def("carrot_seed")
+		if _seed:
 			var count = InventorySystem.get_item_count("carrot_seed") if InventorySystem else 0
 			if count > 0:
 				return {
 					"id": "carrot_seed",
 					"name": "胡萝卜种子",
 					"count": count,
-					"growth_days": seed.growth_days if seed.growth_days > 0 else 3,
+					"growth_days": _seed.growth_days if _seed.growth_days > 0 else 3,
 					"base_quality": 0
 				}
 	return {"id": "", "name": "", "count": 0, "growth_days": 4, "base_quality": 0}

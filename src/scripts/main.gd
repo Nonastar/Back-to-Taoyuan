@@ -104,9 +104,9 @@ func _add_starting_items() -> void:
 
 func _verify_autoloads() -> bool:
 	var required = ["GameManager", "TimeManager", "EventBus", "InventorySystem", "PlayerStats", "SkillSystem", "NavigationSystem"]
-	for name in required:
-		if not has_node("/root/" + name):
-			push_error("[Main] Missing autoload: " + name)
+	for _name in required:
+		if not has_node("/root/" + _name):
+			push_error("[Main] Missing autoload: " + _name)
 			return false
 	return true
 
@@ -162,10 +162,10 @@ func _on_hour_changed(hour: int) -> void:
 	if hour == 24:
 		print("[Main] 午夜了！")
 
-func _on_day_changed(day: int, season: String, year: int) -> void:
+func _on_day_changed(day: int, season: String, _year: int) -> void:
 	print("[Main] 新的一天: " + season + " 第" + str(day) + "天")
 
-func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
+func _on_sleep_triggered(_bedtime: int, forced: bool) -> void:
 	var msg = "晚安！" if not forced else "昏倒了..."
 	print("[Main] " + msg)
 

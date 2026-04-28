@@ -46,7 +46,6 @@ var current_panel: String = "farm"
 
 # ============ 状态 ============
 
-var _expanded: bool = false
 var _current_group: String = "farm"
 
 ## 需要钓鱼按钮的场景
@@ -68,9 +67,9 @@ func _setup_ui() -> void:
 	var nav_bg = ColorRect.new()
 	nav_bg.name = "NavBG"
 	nav_bg.color = Color(0, 0, 0, 0.7)
+	nav_bg.size = Vector2(1280, 120)
 	nav_bg.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	nav_bg.offset_top = -120
-	nav_bg.size = Vector2(1280, 120)
 	add_child(nav_bg)
 
 	# 面板容器
@@ -181,18 +180,15 @@ func _on_panel_button_pressed(panel_key: String) -> void:
 		return
 
 	# 检查是否是室内场景
-	var scene_path = NavigationSystem.get_panel_scene(panel_key)
 	if _is_interior_panel(panel_key):
-		_load_interior(panel_key, scene_path)
+		_load_interior(panel_key)
 		return
 
 	# 检查是否是世界场景（室内场景返回 false）
 	if _is_world_panel(panel_key):
-		_switch_world(panel_key, scene_path)
+		_switch_world(panel_key)
 		return
 
-	# 获取旅行消耗预览
-	var cost = NavigationSystem.get_travel_cost(panel_key)
 
 	# 检查是否可以前往
 	if not NavigationSystem.can_navigate_to(panel_key):
@@ -250,7 +246,7 @@ func _is_world_panel(panel_key: String) -> bool:
 	return false
 
 ## 加载室内场景
-func _load_interior(panel_key: String, scene_path: String) -> void:
+func _load_interior(panel_key: String) -> void:
 	# 检查是否已经在这个室内场景中
 	if SceneManager and SceneManager.current_interior == panel_key:
 		# 如果是畜牧界面，切换显示/隐藏
@@ -272,7 +268,7 @@ func _load_interior(panel_key: String, scene_path: String) -> void:
 		push_error("[NavigationPanel] SceneManager not found")
 
 ## 切换世界场景
-func _switch_world(panel_key: String, scene_path: String) -> void:
+func _switch_world(panel_key: String) -> void:
 	print("[NavigationPanel] Switching world: " + str(panel_key))
 
 	if SceneManager:
@@ -292,7 +288,7 @@ func _on_panel_changed(panel_key: String) -> void:
 	_update_toolbar_visibility()
 
 ## 位置变化回调
-func _on_location_changed(new_group: int, old_group: int) -> void:
+func _on_location_changed(_new_group: int, _old_group: int) -> void:
 	var group_name = NavigationSystem.get_current_group_name().to_lower()
 	_current_group = group_name
 	_update_button_styles()
@@ -300,12 +296,12 @@ func _on_location_changed(new_group: int, old_group: int) -> void:
 	_update_toolbar_visibility()
 
 ## 旅行开始
-func _on_travel_started(time_cost: float, stamina_cost: int) -> void:
+func _on_travel_started(_time_cost: float, _stamina_cost: int) -> void:
 	# 可以在这里播放旅行动画
 	pass
 
 ## 商店拒绝访问
-func _on_shop_access_denied(panel_key: String, reason: String) -> void:
+func _on_shop_access_denied(_panel_key: String, reason: String) -> void:
 	_show_error_message(reason)
 
 ## 就寝时间

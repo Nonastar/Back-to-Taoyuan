@@ -74,7 +74,7 @@ func _connect_signals() -> void:
 		EventBus.time_sleep_triggered.connect(_on_sleep_triggered)
 		print("[FishPondSystem] Connected to time_sleep_triggered")
 
-func _on_sleep_triggered(bedtime: int, forced: bool) -> void:
+func _on_sleep_triggered(_bedtime: int, _forced: bool) -> void:
 	daily_update()
 
 # ============ 公共 API ============

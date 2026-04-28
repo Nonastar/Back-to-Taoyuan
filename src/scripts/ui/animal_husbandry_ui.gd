@@ -211,12 +211,12 @@ func _hide_ui() -> void:
 	visible = false
 	_release_all_focus()
 
-func _modulate_panel(show: bool) -> void:
+func _modulate_panel(_show: bool) -> void:
 	if not _panel:
 		return
 
 	var tween = create_tween()
-	if show:
+	if _show:
 		_panel.modulate = Color(1, 1, 1, 0)
 		_panel.scale = Vector2(0.9, 0.9)
 		tween.tween_property(_panel, "modulate:a", 1.0, 0.25)
@@ -285,7 +285,6 @@ func _update_animal_list() -> void:
 
 	# 添加动物卡片
 	for animal in animals:
-		var unique_id = animal.get("unique_id", "")
 		var animal_id = animal.get("animal_id", "")
 		var animal_data = AnimalHusbandrySystem.get_animal_data(animal_id)
 		var card = _create_animal_card(animal, animal_data)
@@ -638,7 +637,7 @@ func _on_product_collected(product_id: String, quantity: int) -> void:
 	_show_notification(_fmt("收获了: {item} x{count}", {"item": product_id, "count": quantity}))
 	_update_display()
 
-func _on_building_built(building_type: int) -> void:
+func _on_building_built() -> void:
 	_update_display()
 
 func _on_animal_sick(unique_id: String) -> void:
@@ -728,7 +727,6 @@ func _on_clean_pressed() -> void:
 	var building_type = AnimalHusbandrySystem.BuildingType.COOP if _current_building_type == 0 else AnimalHusbandrySystem.BuildingType.BARN
 	var success = AnimalHusbandrySystem.clean_building(building_type)
 	if success:
-		var dirty_days = AnimalHusbandrySystem.get_building_dirty_days(building_type)
 		var building_name = _t("鸡舍") if _current_building_type == 0 else _t("谷仓")
 		_show_notification(_fmt("已清理{name}! 所有动物好感度+1", {"name": building_name}))
 	else:

@@ -169,12 +169,12 @@ func _hide_ui() -> void:
 	visible = false
 	_release_all_focus()
 
-func _modulate_panel(show: bool) -> void:
+func _modulate_panel(_show: bool) -> void:
 	if not _panel:
 		return
 
 	var tween = create_tween()
-	if show:
+	if _show:
 		_panel.modulate = Color(1, 1, 1, 0)
 		_panel.scale = Vector2(0.95, 0.95)
 		tween.tween_property(_panel, "modulate:a", 1.0, 0.2)

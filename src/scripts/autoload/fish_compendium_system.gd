@@ -43,7 +43,7 @@ const RARITY_COLORS: Dictionary = {
 
 static var _instance: FishCompendiumSystem = null
 
-static func get_instance() -> FishCompendiumSystem:
+func get_instance() -> FishCompendiumSystem:
 	return _instance
 
 # ============ 信号 ============
@@ -187,7 +187,7 @@ func get_progress_text() -> String:
 	return "已钓: %d/%d 种鱼 (%d%%)" % [discovered, total, percentage]
 
 ## 获取鱼类图标
-static func get_fish_emoji(fish_id: String) -> String:
+func get_fish_emoji(fish_id: String) -> String:
 	return FISH_EMOJI.get(fish_id, DEFAULT_EMOJI)
 
 ## 获取稀有度名称

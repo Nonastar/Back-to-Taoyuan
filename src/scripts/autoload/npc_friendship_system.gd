@@ -32,8 +32,6 @@ const LEVEL_THRESHOLDS: Dictionary = {
 
 signal friendship_changed(npc_id: String, old_value: int, new_value: int)
 signal npc_talked(npc_id: String, gain: int)
-signal npc_gifted(npc_id: String, item_id: String, gain: int, reaction: String)
-signal heart_event_triggered(npc_id: String, event_id: String)
 
 # ============ 状态 ============
 

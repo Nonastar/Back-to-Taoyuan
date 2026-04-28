@@ -6,7 +6,7 @@ extends Node
 
 # ============ 单例 ============
 
-static func get_instance() -> NavigationSystem:
+func get_instance() -> NavigationSystem:
 	return Engine.get_singleton("NavigationSystem")
 
 # ============ 地点组定义 ============

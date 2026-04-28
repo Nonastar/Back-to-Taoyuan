@@ -248,7 +248,6 @@ func _create_npc_card(npc_id: String) -> Control:
 	var is_bonded = (state.get("bonded", false))
 	var is_courting = (state.get("courting", false))
 	var emoji = NPC_EMOJI.get(npc_id, "✨")
-	var title = NPC_TITLES.get(npc_id, "???")
 	var level_name = _get_affinity_level_name(affinity)
 
 	# 背景样式
@@ -622,7 +621,6 @@ func _get_npc_abilities(npc_id: String) -> Array:
 	var state: Dictionary = {}
 	if _system_ready:
 		state = HiddenNpcSystem.get_hidden_npc_state(npc_id)
-		var current_affinity = state.get("affinity", 0)
 		var system_abilities = state.get("unlocked_abilities", [])
 		for ability in system_abilities:
 			var ability_id = ability.get("id", "")

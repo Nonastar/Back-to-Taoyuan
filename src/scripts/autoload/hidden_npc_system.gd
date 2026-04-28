@@ -307,7 +307,7 @@ func _connect_signals() -> void:
 
 # ============ 单例访问 ============
 
-static func get_instance() -> Node:
+func get_instance() -> Node:
 	return _instance
 
 # ============ 基础查询 API ============
@@ -1137,7 +1137,7 @@ func daily_bond_bonus() -> Dictionary:
 
 # ============ 每日更新 ============
 
-func _on_day_changed(day: int, season: String, year: int) -> void:
+func _on_day_changed(_day: int, _season: String, _year: int) -> void:
 	daily_reset()
 
 func daily_reset() -> void:

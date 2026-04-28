@@ -123,12 +123,6 @@ var _left_button: Button
 var _right_button: Button
 var _hint_label: Label
 
-## 区域绘制
-var _zone_safe_left: ColorRect
-var _zone_safe_right: ColorRect
-var _zone_transition_left: ColorRect
-var _zone_transition_right: ColorRect
-
 # ============ 状态变量 ============
 
 var _current_state: State = State.IDLE
@@ -175,9 +169,6 @@ var _rng: RandomNumberGenerator
 signal state_changed(new_state: State, old_state: State)
 signal timing_result_changed(result: TimingResult)
 signal fishing_complete(result: Dictionary)
-signal fish_stamina_changed(value: float)
-signal player_pressure_changed(value: float)
-signal zone_entered(zone: ZoneType)
 
 # ============ 初始化 ============
 
@@ -464,11 +455,6 @@ func _start_bite_phase() -> void:
 
 	_enable_reel_button(true)
 
-	## 根据辅助模式设置触发阈值
-	var trigger_threshold = SINK_TRIGGER_THRESHOLD
-	if _assist_mode:
-		trigger_threshold = ASSIST_SINK_TRIGGER_THRESHOLD
-
 func _start_fighting_phase() -> void:
 	_is_fighting = true
 	_fight_time = 0.0
@@ -577,9 +563,7 @@ func _process(delta: float) -> void:
 	if _current_state == State.IDLE:
 		return
 
-	var current_time = Time.get_ticks_msec()
-	var frame_delta = (current_time - _last_update_time) / 1000.0
-	_last_update_time = current_time
+	_last_update_time = Time.get_ticks_msec()
 
 	match _current_state:
 		State.WAITING:
@@ -887,21 +871,21 @@ func _update_ui_visibility() -> void:
 	var show_fight = _current_state == State.FISHING or _current_state == State.SUCCESS or _current_state == State.FAILED
 	_show_fight_ui(show_fight)
 
-func _show_fight_ui(show: bool) -> void:
+func _show_fight_ui(_show: bool) -> void:
 	if _fight_progress_bg:
-		_fight_progress_bg.visible = show
+		_fight_progress_bg.visible = _show
 	if _fish_indicator:
-		_fish_indicator.visible = show
+		_fish_indicator.visible = _show
 	if _stamina_bar:
-		_stamina_bar.visible = show
+		_stamina_bar.visible = _show
 	if _stamina_label:
-		_stamina_label.visible = show
+		_stamina_label.visible = _show
 	if _pressure_bar:
-		_pressure_bar.visible = show
+		_pressure_bar.visible = _show
 	if _pressure_label:
-		_pressure_label.visible = show
+		_pressure_label.visible = _show
 	if _hint_label:
-		_hint_label.visible = show
+		_hint_label.visible = _show
 
 func _update_fight_ui() -> void:
 	if _stamina_bar:

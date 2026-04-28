@@ -294,9 +294,9 @@ func _is_ui_open() -> bool:
 		for child in hud.get_children():
 			# 只拦截真正的交互面板节点，不拦截装饰性或常驻信息面板
 			if child is Control and child.visible and child.mouse_filter != Control.MOUSE_FILTER_IGNORE:
-				var name = child.name
+				var node_name = child.name
 				# 排除常驻 HUD 元素（位置信息、技能面板、装饰背景等）
-				if name == "TopBarBG" or name == "HotbarBG" or name == "TopBar" or name == "Hotbar" or name == "QuickButtons" or name == "LocationInfo" or name == "SkillPanel" or name == "NotificationArea" or name == "MapContainer":
+				if node_name == "TopBarBG" or node_name == "HotbarBG" or node_name == "TopBar" or node_name == "Hotbar" or node_name == "QuickButtons" or node_name == "LocationInfo" or node_name == "SkillPanel" or node_name == "NotificationArea" or node_name == "MapContainer":
 					continue
 				return true
 	return false

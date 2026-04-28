@@ -160,15 +160,15 @@ func _connect_signals() -> void:
 	# 连接TimeManager信号
 	if EventBus.has_signal("time_day_changed"):
 		EventBus.time_day_changed.connect(_on_day_changed)
-	if EventBus.has_signal("season_changed"):
-		EventBus.season_changed.connect(_on_season_changed)
+	if EventBus.has_signal("time_season_changed"):
+		EventBus.time_season_changed.connect(_on_season_changed)
 	if EventBus.has_signal("year_changed"):
 		EventBus.year_changed.connect(_on_year_changed)
 
 # ============ 信号处理 ============
 
 ## 日期变化回调
-func _on_day_changed(day: int, season: String, year: int) -> void:
+func _on_day_changed(_day: int, _season: String, _year: int) -> void:
 	# 更新今日天气为明天的预报
 	var old_weather = today_weather
 	today_weather = tomorrow_weather
@@ -179,17 +179,19 @@ func _on_day_changed(day: int, season: String, year: int) -> void:
 	# 如果天气变化，发送信号
 	if today_weather != old_weather:
 		weather_changed.emit(today_weather, old_weather)
+	if EventBus and EventBus.has_signal("weather_changed"):
+		EventBus.weather_changed.emit(today_weather)
 
 	# 生成新的明日预报
 	_roll_tomorrow_weather()
 
 ## 季节变化回调
-func _on_season_changed(season: String, year: int) -> void:
+func _on_season_changed(_season: String, _year: int) -> void:
 	# 季节变化时重新roll明日预报
 	_roll_tomorrow_weather()
 
 ## 年份变化回调
-func _on_year_changed(year: int) -> void:
+func _on_year_changed(_year: int) -> void:
 	# 新年开始时重置绿雨状态
 	is_green_rain_active = false
 
@@ -536,6 +538,8 @@ func debug_set_weather(weather: String) -> void:
 		is_green_rain_active = true
 
 	weather_changed.emit(today_weather, old_weather)
+	if EventBus and EventBus.has_signal("weather_changed"):
+		EventBus.weather_changed.emit(today_weather)
 
 ## 强制设置明日天气 (调试用)
 func debug_set_tomorrow_weather(weather: String) -> void:

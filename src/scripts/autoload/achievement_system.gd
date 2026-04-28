@@ -108,7 +108,7 @@ const ACHIEVEMENTS: Array[Dictionary] = [
 
 static var _instance: Node = null
 
-static func get_instance() -> Node:
+func get_instance() -> Node:
 	return _instance
 
 # ============ 成就状态 ============
@@ -162,8 +162,6 @@ func _connect_event_signals() -> void:
 		EventBus.fishing_completed.connect(_on_fishing_completed)
 	if EventBus.has_signal("fish_caught"):
 		EventBus.fish_caught.connect(_on_fish_caught)
-	if EventBus.has_signal("mine_floor_reached"):
-		EventBus.mine_floor_reached.connect(_on_mine_floor_reached)
 	if EventBus.has_signal("player_money_changed"):
 		EventBus.player_money_changed.connect(_on_money_changed)
 	if EventBus.has_signal("cooking_completed"):
@@ -174,14 +172,10 @@ func _connect_event_signals() -> void:
 		EventBus.quest_completed.connect(_on_quest_completed)
 	if EventBus.has_signal("npc_talked"):
 		EventBus.npc_talked.connect(_on_npc_interaction)
-	if EventBus.has_signal("npc_gifted"):
-		EventBus.npc_gifted.connect(_on_npc_interaction)
 	if EventBus.has_signal("friendship_changed"):
 		EventBus.friendship_changed.connect(_on_friendship_changed)
 	if EventBus.has_signal("item_added"):
 		EventBus.item_added.connect(_on_item_added)
-	if EventBus.has_signal("item_shipped"):
-		EventBus.item_shipped.connect(_on_item_shipped)
 
 # ============ 事件回调 ============
 
@@ -198,13 +192,7 @@ func _on_fish_caught(_fish_id: String, _quantity: int, _quality: int) -> void:
 	_invalidate_perfection_cache()
 	evaluate_achievements()
 
-func _on_mine_floor_reached(floor: int) -> void:
-	if floor > _stats.highest_mine_floor:
-		_stats.highest_mine_floor = floor
-		_invalidate_perfection_cache()
-		evaluate_achievements()
-
-func _on_money_changed(current: int, delta: int) -> void:
+func _on_money_changed(_current: int, delta: int) -> void:
 	if delta > 0:
 		_stats.total_money_earned += delta
 		_invalidate_perfection_cache()
@@ -235,10 +223,6 @@ func _on_item_added(item_id: String, _amount: int) -> void:
 	discover_item(item_id)
 	evaluate_achievements()
 
-func _on_item_shipped(_item_id: String) -> void:
-	_invalidate_perfection_cache()
-	evaluate_achievements()
-
 # ============ 物品发现 ============
 
 func discover_item(item_id: String) -> void:
@@ -267,7 +251,6 @@ func get_discovered_items() -> Array:
 # ============ 核心评估 API ============
 
 func evaluate_achievements() -> void:
-	var unlocked_any = false
 	for ach in ACHIEVEMENTS:
 		var ach_id = ach["id"]
 		var state = _achievement_states.get(ach_id, AchievementState.LOCKED)
@@ -276,7 +259,6 @@ func evaluate_achievements() -> void:
 		var condition = ach.get("condition", {})
 		if check_condition(condition):
 			_pending_achievements.append(ach_id)
-			unlocked_any = true
 
 	while not _pending_achievements.is_empty():
 		var ach_id = _pending_achievements.pop_back()
@@ -577,10 +559,10 @@ func _complete_achievement(achievement_id: String) -> void:
 	_invalidate_perfection_cache()
 
 	var ach_data = get_achievement(achievement_id)
-	var name = ach_data.get("name", achievement_id)
+	var ach_name = ach_data.get("name", achievement_id)
 	var desc = ach_data.get("desc", "")
 
-	print("[AchievementSystem] Achievement unlocked: %s - %s (%s)" % [achievement_id, name, desc])
+	print("[AchievementSystem] Achievement unlocked: %s - %s (%s)" % [achievement_id, ach_name, desc])
 	achievement_unlocked.emit(achievement_id, ach_data)
 
 	if EventBus.has_signal("ui_achievement_unlocked"):

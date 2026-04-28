@@ -88,7 +88,7 @@ const MILESTONES: Array[Dictionary] = [
 
 static var _instance = null
 
-static func get_instance():
+func get_instance():
 	return _instance
 
 # ============ 信号 ============

@@ -132,7 +132,6 @@ func add_exp(skill_type: int, base_amount: int) -> Dictionary:
 	skill.exp += actual_exp
 
 	# 检查是否升级
-	var old_level = skill.level
 	var result = _check_level_up(skill_type)
 
 	# 发送经验变化信号

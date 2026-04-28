@@ -152,7 +152,6 @@ func _connect_signals() -> void:
 	# 订阅 C07 NpcFriendshipSystem
 	if NpcFriendshipSystem:
 		NpcFriendshipSystem.friendship_changed.connect(_on_friendship_changed)
-		NpcFriendshipSystem.heart_event_triggered.connect(_on_heart_event_triggered)
 	# 订阅 P08 QuestSystem
 	if QuestSystem:
 		QuestSystem.quest_completed.connect(_on_quest_completed)
@@ -312,14 +311,14 @@ func _get_dialogue_text(npc_id: String, dialogue_type: int) -> String:
 
 	return _random_daily(npc_id, data)
 
-func _random_daily(npc_id: String, data: Dictionary) -> String:
+func _random_daily(_npc_id: String, data: Dictionary) -> String:
 	var pool = data.get("daily", [])
 	if pool.is_empty():
 		return ""
 	return pool[_rng.randi() % pool.size()]
 
 func _friendship_dialogue(npc_id: String, data: Dictionary) -> String:
-	var level = NpcFriendshipSystem.get_friendship_level(npc_id) if NpcFriendshipSystem else FriendshipLevel.STRANGER
+	var level: int = NpcFriendshipSystem.get_friendship_level(npc_id) if NpcFriendshipSystem else FriendshipLevel.STRANGER
 	var level_key = _level_to_key(level)
 	var by_level = data.get("by_friendship_level", {})
 	var pool: Array = by_level.get(level_key, [])
@@ -341,7 +340,7 @@ func _heart_event_dialogue(npc_id: String, data: Dictionary) -> String:
 	_pending_heart_events.remove_at(0)
 	return event.get("dialogue", _random_daily(npc_id, data))
 
-func _festival_dialogue(npc_id: String, data: Dictionary) -> String:
+func _festival_dialogue(_npc_id: String, _data: Dictionary) -> String:
 	return "节日快乐！今天大家都很高兴呢。"
 
 func _level_to_key(level: int) -> String:
@@ -352,7 +351,7 @@ func _level_to_key(level: int) -> String:
 		FriendshipLevel.BEST_FRIEND: return "best_friend"
 	return "stranger"
 
-func _is_npc_birthday(npc_id: String) -> bool:
+func _is_npc_birthday(_npc_id: String) -> bool:
 	# TODO: 实现生日检查（需要 NPC 数据中的 birthday 字段）
 	return false
 
@@ -370,7 +369,7 @@ func _is_special_weather() -> bool:
 		return w in ["rainy", "stormy", "snowy"]
 	return false
 
-func _get_choices(npc_id: String, dialogue_id: String) -> Array:
+func _get_choices(_npc_id: String, _dialogue_id: String) -> Array:
 	# TODO: 从对话数据中读取分支选项（MVP 暂不实现）
 	return []
 
@@ -437,18 +436,9 @@ func _add_to_history(npc_id: String, text: String) -> void:
 
 # ============ 事件回调 ============
 
-func _on_friendship_changed(npc_id: String, _old: int, _new: int) -> void:
+func _on_friendship_changed(_npc_id: String, _old: int, _new: int) -> void:
 	# 好感变化时可触发新对话
 	pass
-
-func _on_heart_event_triggered(npc_id: String, event_id: String) -> void:
-	# C07 触发心事件，P15 提供对话
-	print("[DialogueSystem] Heart event triggered: %s / %s" % [npc_id, event_id])
-	_pending_heart_events.append({
-		"npc_id": npc_id,
-		"event_id": event_id,
-		"dialogue": "你来了！我……我有件事想跟你说。"
-	})
 
 func _on_quest_completed(_quest_id: String, _quest_title: String) -> void:
 	# 任务完成时检查特殊对话

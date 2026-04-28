@@ -99,8 +99,6 @@ var midnight_warning_hour: int = MIDNIGHT_HOUR
 # ============ 内部状态 ============
 
 var _game_hour_accumulator: float = 0.0
-var _pending_day: int = 1
-var _pending_season: Season = Season.SPRING
 
 # ============ 初始化 ============
 
@@ -159,15 +157,6 @@ func _state_changed(from: TimeState, to: TimeState) -> void:
 func _trigger_sleep(forced: bool = false) -> void:
 	time_state = TimeState.SLEEPING
 
-	# 计算恢复率
-	var recovery_rate: float
-	if current_hour <= 24:
-		recovery_rate = 0.90  # 24时前就寝
-	elif current_hour <= 25:
-		recovery_rate = 0.60  # 25时就寝
-	else:
-		recovery_rate = 0.50  # 强制睡眠
-
 	# 发送睡眠信号
 	EventBus.time_sleep_triggered.emit(current_hour, forced)
 
@@ -178,18 +167,7 @@ func _trigger_sleep(forced: bool = false) -> void:
 func _do_day_transition() -> void:
 	time_state = TimeState.DAY_TRANSITION
 
-	# 保存当前时间用于恢复计算
-	var bedtime = current_hour
-	var recovery_rate: float
-	if bedtime <= 24:
-		recovery_rate = 0.90
-	elif bedtime <= 25:
-		recovery_rate = 0.60
-	else:
-		recovery_rate = 0.50
-
 	# 推进日期
-	var old_season = current_season
 	current_day += 1
 
 	# 检查季节边界
@@ -218,7 +196,7 @@ func _do_season_transition() -> void:
 	time_state = TimeState.SEASON_TRANSITION
 
 	var old_season = current_season
-	current_season = (current_season + 1) % 4
+	current_season = ((current_season + 1) % 4) as Season
 
 	# 如果回到春季，年份+1
 	if current_season == Season.SPRING:

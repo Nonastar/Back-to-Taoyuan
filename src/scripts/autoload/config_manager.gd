@@ -79,7 +79,7 @@ func _load_all_configs() -> void:
 	print("[ConfigManager] All configs loaded successfully")
 
 ## 加载单个配置
-func _load_config(config_class: GDScript, path: String) -> Resource:
+func _load_config(_config_class: GDScript, path: String) -> Resource:
 	if FileAccess.file_exists(path):
 		return load(path)
 	return null

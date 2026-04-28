@@ -207,19 +207,19 @@ func end_fishing(caught: bool, fish_id: String = "") -> void:
 ## 处理捕获结果
 func _process_catch_result(fish_id: String) -> void:
 	var fish_data = get_fish_data(fish_id)
-	var exp = fish_data.get("exp", 10)
+	var _exp = fish_data.get("exp", 10)
 
 	# 添加钓鱼经验
 	if SkillSystem and SkillSystem.has_method("add_exp"):
-		SkillSystem.add_exp(SkillSystem.SkillType.FISHING, exp)
-		print("[FishingSystem] Added " + str(exp) + " fishing exp")
+		SkillSystem.add_exp(SkillSystem.SkillType.FISHING, _exp)
+		print("[FishingSystem] Added " + str(_exp) + " fishing exp")
 
 	# 添加鱼到背包
 	if PlayerStats and PlayerStats.has_method("add_item"):
 		PlayerStats.add_item(fish_id, 1)
 
 	EventBus.fish_caught.emit(fish_id, 1, 0)
-	print("[FishingSystem] Fish caught: " + str(fish_id) + ", exp: " + str(exp))
+	print("[FishingSystem] Fish caught: " + str(fish_id) + ", exp: " + str(_exp))
 
 ## 恢复游戏时间
 func _resume_game_time() -> void:
@@ -394,7 +394,6 @@ func _hide_fishing_minigame() -> void:
 func _on_fishing_complete(result: Dictionary) -> void:
 	var success = result.get("success", false)
 	var fish_id = result.get("fish_id", _current_fish_id)
-	var timing_result = result.get("timing_result", "none")
 
 	print("[FishingSystem] Fishing complete: " + str(result))
 
